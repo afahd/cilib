@@ -1,0 +1,143 @@
+#! /bin/bash -e
+PWD=`pwd`
+
+BASE_LINUX="ubuntu-1204-3-10-39"
+MACHINETYPE="n1-standard-4"
+
+declare -A MINOR_STEPS_ST
+declare -A MINOR_STEPS_ED
+BUILD_ENV_USER=${USER}
+
+MAJOR_STEPS="build"
+#MAJOR_STEPS="init build"
+MINOR_STEPS_ED[init]=23
+MINOR_STEPS_ED[build]=10
+MINOR_STEPS_ST[init]=1
+MINOR_STEPS_ST[build]=1
+
+# forward to subshells
+trap "kill 0" SIGINT
+trap "kill 0" SIGTERM
+
+function tryexec() {
+  "$@"
+  retval=$?
+  [[ $retval -eq 0 ]] && return 0
+
+  log 'A command has failed:'
+  log "  $@"
+  log "Value returned: ${retval}"
+  exit $retval
+}
+
+
+function usage() {
+cat <<EOF
+usage: $0
+-c | --cleanup : Test Cleanup
+-Q | --major : Jump to specific major step in the install process
+-R | --minor : Jump to specific minor step in the install process
+-O | --stop : DONT Continue beyond the specifict step to end of the installation
+-h | --help : help
+EOF
+exit 0
+}
+
+# Parsing arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -c|--cleanup ) CLEANUP=1;  ;;
+    -Q| --major ) MAJOR_STEPS="$2"; TMP_MAJOR="$2"; shift ;;
+    -R| --minor ) MINOR_STEPS_ST[$TMP_MAJOR]="$2"; shift ;;
+    -O| --stop ) STOP=1; ;;
+    -h | --help ) usage; ;;
+    -- ) shift; break ;;
+    * )
+      log "Unknown parameter: $1";
+      usage; break;;
+  esac
+  shift
+done
+
+function build_image() {
+  local step=$1
+  local NAME=plumgrid-builder-v1
+
+  case "$step" in
+      1)
+        echo "Creating the disk[${NAME}-d1] for the instance in the cloud"
+            gcloud -q --verbosity error compute disks create "${NAME}-d1"  --source-snapshot "$BASE_LINUX" --type "pd-standard" >> /tmp/create_inst_cn.log 2>&1 || FAIL=1
+        ;;
+      2)
+        echo "Creating the instance[$NAME] in the cloud"
+        gcloud -q --verbosity error compute instances  create "${NAME}" --machine-type "$MACHINETYPE" --network "net-10-10" --maintenance-policy "MIGRATE" --scopes "https://www.googleapis.com/auth/devstorage.read_only" --disk "name=${NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes"
+        ;;
+      3)
+          echo "Waiting for the machine to boot up and allow ssh access"
+          for i in `seq 1 60`;
+          do
+              echo "       Trying to ssh to $NAME Iteration [$i]"
+#              gcloud compute -q ssh work-nod --ssh-flag='-t' --command "ssh -t -o StrictHostKeyChecking=no $NAME 'echo \"${DOMAIN}\" | sudo tee /opt/pg/domains'" >> /tmp/cn_init.log 2>&1  && break
+              gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "ls" >> /tmp/build_image.2.log 2>&1  && break
+              sleep 1
+          done
+          ;;
+      4)
+          echo "updating the local dev-bootstrap repository"
+          cd ~/dev-bootstrap && git pull
+          cd ~ && tar cvfz dev-bootstrap.tar.gz dev-bootstrap
+          ;;
+      5)
+          echo "Copying the dev-bootstrap directory to the build machine $NAME"
+          gcloud compute copy-files ~/dev-bootstrap.tar.gz ${NAME}:./
+          ;;
+      6)
+          echo "Untaring the script on the remote machine"
+          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "tar xvf ./dev-bootstrap.tar.gz"
+          ;;
+      7)
+          echo "Starting the build for pgdev-base container"
+          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "cd pgdev-docker-base && sudo docker build -t plumgrid-pgdev-base"
+          ;;
+      8)
+          echo "Starting the build for pgdev container"
+          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "cd pgdev-docker && sudo docker build -t plumgrid-pgdev"
+          ;;
+      9)
+          echo "Starting the build-all.sh"
+          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "  sudo  docker run  --cap-add=all  --cap-add=SYS_ADMIN --lxc-conf='lxc.aa_profile=unconfined' --privileged -ti plumgrid-pgdev /home/plumgrid/startup.sh)"
+          ;;
+      10);
+          echo "Making a snapshot for the container"
+          echo gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "  docker tag <image> pg-docker-repo:5000/<Name>"
+          echo gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "  docker push pg-docker-repo:5000/<name>"
+          ;;
+      *)
+          echo "NOP - $step"
+          ;;
+esac
+}
+
+for MAJOR_STEP in $MAJOR_STEPS; do
+echo " ====== Starting STEP [$MAJOR_STEP] Number of Steps ::${MINOR_STEPS_ST[$MAJOR_STEP]} -> ${MINOR_STEPS_ED[$MAJOR_STEP]}  ======"
+for MINOR_STEP in `seq ${MINOR_STEPS_ST[$MAJOR_STEP]} ${MINOR_STEPS_ED[$MAJOR_STEP]}`; do
+    echo "    === Starting STEP [$MAJOR_STEP][$MINOR_STEP] ==="
+    case "$MAJOR_STEP" in
+#        init)
+#            build_image $MINOR_STEP
+#            ;;
+        build)
+            build_image $MINOR_STEP
+            ;;
+        *)
+            echo "UNKNOWN STEP $MAJOR_STEP.$MINOR_STEP"
+            ;;
+    esac
+    if [ -n "$STOP" ] ; then
+        exit
+
+   fi
+done
+done
+
+exit 0
