@@ -1,0 +1,163 @@
+#!/bin/bash -e
+
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
+. gc_helpers.sh
+. aurora_utils.sh
+source aurora.conf
+
+# TODO: Make a decision about machine type and Disk sizes.
+MACHINETYPE="n1-standard-4"
+DISK1_SIZE=10
+DISK2_SIZE=200
+
+declare -A MINOR_STEPS_ST
+declare -A MINOR_STEPS_ED
+BUILD_ENV_USER=${USER}
+MAJOR_STEPS="build"
+MINOR_STEPS_ST[run]=1
+MINOR_STEPS_ED[run]=15
+
+function usage() {
+cat <<EOF
+usage: $0
+-c | --cleanup : Test Cleanup
+-Q | --major : Jump to specific major step in the install process
+-R | --minor : Jump to specific minor step in the install process
+-E | --minor_end : Stop at this step when in debug
+-B | --build_id: Mention the build-id on which you want to test
+-T | --test: Test script to run.
+-O | --stop : DONT Continue beyond the specifict step to end of the installation
+-h | --help : help
+EOF
+exit 0
+}
+
+# Parsing arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -c|--cleanup ) CLEANUP=1;  ;;
+    -Q| --major ) MAJOR_STEPS="$2"; TMP_MAJOR="$2"; shift ;;
+    -R| --minor ) MINOR_STEPS_ST[$TMP_MAJOR]="$2"; shift ;;
+    -E| --minor ) MINOR_STEPS_ED[$TMP_MAJOR]="$2"; shift ;;
+    -B| --build_id ) BUILD_ID=$2; shift ;;
+    -T| --test_script ) TEST_SCRIPT=$2; shift ;;
+    -O| --stop ) STOP=1; ;;
+    -h | --help ) usage; ;;
+    -- ) shift; break ;;
+    * )
+      echo "Unknown parameter: $1";
+      usage; break;;
+  esac
+  shift
+done
+
+rand=$(( ( RANDOM % 20 )  + 1 ))
+INSTANCE_NAME=${BUILD_ID}-run-20
+# TODO: Get the latest snapshot id and use that in below variables
+DOCK_NAME=pg-docker-repo:5000/pg_dev:1419174051
+
+function run_test() {
+  local step=$1
+
+  case "$step" in
+  1)
+    echo "Creating the disk[${INSTANCE_NAME}-d1] and [${INSTANCE_NAME}-d2] for the instance in the cloud"
+    gcloud -q --verbosity error compute disks create "${INSTANCE_NAME}-d1" \
+      --source-snapshot "${BUILD_ID}-ssd1" --type "pd-standard" --size="$DISK1_SIZE"
+    gcloud -q --verbosity error compute disks create "${INSTANCE_NAME}-d2" \
+      --source-snapshot "${BUILD_ID}-ssd2" --type "pd-standard" --size="$DISK2_SIZE"
+    ;;
+
+  2)
+    echo "Creating the instance[$INSTANCE_NAME] in the cloud"
+    gcloud -q --verbosity error compute instances create "${INSTANCE_NAME}" \
+      --machine-type "$MACHINETYPE" --network "net-10-10" --maintenance-policy \
+      "MIGRATE" --scopes "https://www.googleapis.com/auth/devstorage.read_only" \
+      --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
+      --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes"
+    ;;
+
+  3)
+    echo "Waiting for the machine to boot up and allow ssh access"
+    wait_for_instance ${INSTANCE_NAME}
+    ;;
+
+  4)
+    echo "starting the pgdev container ${DOCK_NAME}"
+    run_dock_container ${INSTANCE_NAME} ${DOCK_NAME} "./local_docker_id" "./local_docker_ip"
+    ;;
+
+  5)
+    echo "Copy build-instance key to pgdev container"
+    #run_cmd_gci ${INSTANCE_NAME} "ssh-keygen -t rsa -N \"\" -f ~/.ssh/id_rsa"
+    run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat $HOME/.ssh/id_rsa.pub >> \
+      /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
+    ;;
+
+  6)
+    echo "Copy local key to pgdev container"
+    gcloud compute copy-files ~/.ssh/id_rsa.pub ${INSTANCE_NAME}:./auth-key.pub
+    run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat $HOME/auth-key.pub >> \
+      /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
+    ;;
+
+  7)
+    check_ssh_server_status ${INSTANCE_NAME}
+    ;;
+
+  8)
+    # This is here only untill https://gerrit:8443/#/c/10751/ gets merged.
+    echo "Execute the pre run-automaton on docker container"
+    echo "sed -i '/restart_lxc lvm/a tryexec lxc-attach -n lvm -- /bin/bash -c \"echo 'NOZEROCONF=true' >> /etc/sysconfig/network\"' /opt/pg/systest/lxc/automaton/automaton-helpers.sh" > /tmp/zeroconf.sh
+    upload_to_docker ${INSTANCE_NAME} /tmp/zeroconf.sh /tmp/zeroconf.sh
+    run_cmd_docker ${INSTANCE_NAME} "/bin/bash /tmp/zeroconf.sh"
+    ;;
+
+  9)
+    echo "Execute the run-automaton script on docker container"
+    run_cmd_gci_sshforwarding ${INSTANCE_NAME} "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` /bin/bash run_automaton_init.sh"
+    ;;
+
+  10)
+    upload_to_docker ${INSTANCE_NAME} ${TEST_SCRIPT} /tmp/user_test_script.sh
+    run_cmd_docker ${INSTANCE_NAME} "/bin/bash /tmp/user_test_script.sh"
+    ;;
+
+  11)
+    # By adding another switch to "aurora-run", user can specify the log directory as well.
+    echo "Donwload PG logs to local machine"
+    run_cmd_gci ${INSTANCE_NAME} "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` /bin/bash -c \'tar -cvf /opt/pg/log/log.tar /opt/pg/log/*\'"
+    download_from_docker ${INSTANCE_NAME} /opt/pg/log/log.tar /tmp/${INSTANCE_NAME}-logs.tar
+    ;;
+
+  12)
+    echo "Shutting down the Instance ${INSTANCE_NAME}"
+    gcloud compute instances delete ${INSTANCE_NAME} --delete-disks all  -q
+    ;;
+
+  *)
+    echo "NOP - $step"
+  ;;
+  esac
+}
+
+for MAJOR_STEP in $MAJOR_STEPS; do
+  echo " ====== Starting STEP [$MAJOR_STEP] Number of Steps ::${MINOR_STEPS_ST[$MAJOR_STEP]} -> ${MINOR_STEPS_ED[$MAJOR_STEP]}  ======"
+  for MINOR_STEP in `seq ${MINOR_STEPS_ST[$MAJOR_STEP]} ${MINOR_STEPS_ED[$MAJOR_STEP]}`; do
+    echo "    === Starting STEP [$MAJOR_STEP][$MINOR_STEP] ==="
+    case "$MAJOR_STEP" in
+      # init)
+      # build_image $MINOR_STEP
+      # ;;
+      run)
+        run_test $MINOR_STEP
+      ;;
+      *)
+        echo "UNKNOWN STEP $MAJOR_STEP.$MINOR_STEP"
+      ;;
+    esac
+    if [ -n "$STOP" ] ; then
+      exit
+    fi
+  done
+done

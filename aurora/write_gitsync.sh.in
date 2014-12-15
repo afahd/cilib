@@ -1,0 +1,65 @@
+#!/bin/bash -e
+
+## This script prepares a 'gitsync.sh' script which is copied inside docker to prep the system
+## for running build_all.sh script later.
+
+source aurora.conf
+
+git_script=$1
+branch=$2
+project=$3
+refspec=$4
+
+APT_COMPONENT=""
+# List of projects available
+project_list=(pkg pg_cli pg_ui sal alps python-plumgridlib)
+
+# Describe the possible mappings for branch->component translations
+declare -A branch_to_component
+branch_to_component['master']='unstable'
+branch_to_component['stable_4_0']='everest'
+
+# Convert the branch name to respective component name
+for key in ${!branch_to_component[@]}; do
+  if [[ "${key}" == ${branch} ]]; then
+    APT_COMPONENT=${branch_to_component[$key]}
+    break
+  fi
+done
+if [[ $APT_COMPONENT == "" ]]; then
+  echo "Unable to find the branch -> component mapping for $branch"
+  exit 1
+fi
+
+###### Prepare to create and strt writing to the gitsync script ############
+
+## Prepare the git script to write into
+echo "Writing to the $git_script script"
+cat /dev/null > ${git_script}
+echo "#!/bin/bash -e" >> ${git_script}
+echo ". /opt/pg/env/alps.bashrc" >> ${git_script}
+
+if [[ $branch != "master" ]]; then
+  echo "sudo rm -rf /opt/pg/var/www/*" >> ${git_script}
+  for p in ${project_list[@]}; do
+    echo "cd /home/plumgrid/work/${p}/build && sudo rm -rf *" >> ${git_script}
+  done
+fi
+## Update and install the tools in the snapshot in case some new packages were added.
+echo "cd /home/plumgrid/work/tools && git reset --hard && git pull --rebase" >> ${git_script}
+echo "cd /home/plumgrid/work/tools/build && cmake .. && sudo make packages && make -C packages install && make -j4 install" >> ${git_script}
+## Update and install iovisor.
+echo "cd /home/plumgrid/work/iovisor && git reset --hard && git pull --rebase" >> ${git_script}
+echo "cd /home/plumgrid/work/iovisor/bld && make -j4 -k && sudo make install" >> ${git_script}
+
+
+## Checkout the requested branch on all the projects
+for p in ${project_list[@]}; do
+  echo "cd /home/plumgrid/work/${p} && git reset --hard && git checkout ${branch}" >> ${git_script}
+  echo "cd /home/plumgrid/work/${p}/build && export APT_COMPONENT=${APT_COMPONENT} && cmake .." >> ${git_script}
+done
+
+## Checkout the request commit in the request project
+echo "cd /home/plumgrid/work/${project} && git fetch ssh://${gerritid}@192.168.10.77:29418/${project} ${refspec} && git checkout FETCH_HEAD" >> $git_script
+
+

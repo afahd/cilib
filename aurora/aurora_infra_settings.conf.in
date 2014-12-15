@@ -1,0 +1,14 @@
+PROJECT=festive-courier-755
+MACHINE_TYPE=n1-standard-1
+ZONE=us-central1-f
+SCOPES=https://www.googleapis.com/auth/devstorage.read_only
+NETWORK=net-10-10
+DISK_TYPE=pd-standard
+DISK1_SIZE=10
+DISK2_SIZE=200
+
+SN_ID=1418550446
+SNAP1=plumgrid-builder-v2-d1-${SN_ID}
+SNAP2=plumgrid-builder-v2-d2-${SN_ID}
+DOCK_NAME=pg-docker-repo:5000/pg_dev:${SN_ID}
+VERBOSITY=error

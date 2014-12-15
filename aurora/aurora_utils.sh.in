@@ -1,0 +1,47 @@
+#!/bin/bash -e
+
+function init_id() {
+  echo "I am here ..."
+  conf_file="/opt/pg/scripts/aurora.conf"
+  echo "Please enter your gerrit id: "
+  read gerritid
+  echo "gerritid=${gerritid}" > ${conf_file}
+}
+# ***********************************************************************************
+# Function: upload_to_docker
+# Purpose : Upload a file from your local machine to Docker container
+# Usage   : upload_to_docker <Cloud instance name where docker container is running>
+#                            <Local file which needs to be uploaded>
+#                            <>
+# Prereq: Your laptop's key must be already in docker container before this operation
+# Test function by giving relative path.
+# ***********************************************************************************
+function upload_to_docker() {
+  local INSTANCE_NAME=$1
+  local FILE=$2
+  local DESTINATION=$3
+
+  echo "** $INSTANCE_NAME $FILE $DESTINATION **"
+  FILE_NAME="${FILE##*/}"
+  gcloud compute copy-files $FILE "${INSTANCE_NAME}:/tmp/"
+  gcloud compute -q ssh  ${INSTANCE_NAME} --ssh-flag='-tA' --command "scp -o StrictHostKeyChecking=no /tmp/${FILE_NAME} \`cat local_docker_ip\`:$DESTINATION"
+}
+
+# *****************************************************************************
+# Function: download_from_docker
+# Purpose : Download a file from docker container to your local machine.
+# Usage   : download_from_docker <Cloud instance where docker container is running>
+#                                <Location of file which needs to be downloaded>
+#                                <Local machine's path where you need to download>
+# Prereq: Your laptop's key must be already in docker container before this operation.
+# *****************************************************************************
+function download_from_docker() {
+  INSTANCE_NAME=$1
+  FILE=$2
+  DESTINATION=$3
+
+  FILE_NAME="${FILE##*/}"
+  gcloud compute -q ssh  ${INSTANCE_NAME} --ssh-flag='-tA' --command "scp -o StrictHostKeyChecking=no \`cat local_docker_ip\`:$FILE /tmp/$FILE_NAME"
+  gcloud compute copy-files "${INSTANCE_NAME}:/tmp/$FILE_NAME" ${DESTINATION}
+}
+

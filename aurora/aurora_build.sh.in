@@ -1,0 +1,208 @@
+#!/bin/bash -e
+
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
+
+. gc_helpers.sh
+. aurora_utils.sh
+source aurora_infra_settings.conf
+source aurora.conf
+
+# TODO: Get the latest snapshot id and use that in below variables
+SN_ID=$(get_latest_snapshot_id)
+SNAP1=plumgrid-builder-v1-d1-${SN_ID}
+SNAP2=plumgrid-builder-v1-d2-${SN_ID}
+DOCK_NAME=pg-docker-repo:5000/pg_dev:${SN_ID}
+
+# TODO: Make a decision about machine type and Disk sizes.
+MACHINETYPE="n1-standard-4"
+DISK1_SIZE=10
+DISK2_SIZE=200
+GIT_SYNC_SCRIPT="/tmp/gitsync.sh"
+BRANCH=""
+REFSPEC=""
+PROJECT=""
+
+declare -A MINOR_STEPS_ST
+declare -A MINOR_STEPS_ED
+BUILD_ENV_USER=${USER}
+MAJOR_STEPS="build"
+MINOR_STEPS_ST[init]=1
+MINOR_STEPS_ST[build]=1
+MINOR_STEPS_ED[init]=1
+MINOR_STEPS_ED[build]=15
+
+function usage() {
+cat <<EOF
+usage: $0
+ -c | --cleanup : Test Cleanup
+ -Q | --major : Jump to specific major step in the install process
+ -R | --minor_st : Jump to specific minor step in the install process
+ -E | --minor_end : Stop at this step when in debug
+ -G | --gerrit_refpec: Mention the gerrit refspec
+ -B | --branch: branch to run the setup on. Options: master, stable_4_0
+ -P | --project: project on which the code change is expected. Options: alps, pg_ui, etc
+ -O | --stop : DONT Continue beyond the specifict step to end of the installation
+ -h | --help : help
+EOF
+exit 0
+}
+
+# Parsing arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+     -c|--cleanup ) CLEANUP=1;  ;;
+     -Q| --major ) MAJOR_STEPS="$2"; TMP_MAJOR="$2"; shift ;;
+     -R| --minor_st ) MINOR_STEPS_ST[$TMP_MAJOR]="$2"; shift ;;
+     -E| --minor_end ) MINOR_STEPS_ED[$TMP_MAJOR]="$2"; shift ;;
+     -G| --gerrit_refspec ) REFSPEC=$2; shift ;;
+     -B| --branch ) BRANCH=$2; shift ;;
+     -P| --project ) PROJECT=$2; shift ;;
+     -O| --stop ) STOP=1; ;;
+     -h | --help ) usage; ;;
+    -- ) shift; break ;;
+    * )
+      echo "Unknown parameter: $1";
+      usage; break;;
+  esac
+  shift
+done
+
+MOD_REFSPEC=$(echo "$REFSPEC" | tr / -)
+MOD_REFSPEC=${MOD_REFSPEC:13}
+MOD_BRANCH=$(echo "$BRANCH" | tr _ -)
+INSTANCE_NAME=${gerritid}-bld-${MOD_BRANCH}-${PROJECT}-${MOD_REFSPEC}
+
+# Describe the possible mappings for branch->component translations
+declare -A branch_to_component
+branch_to_component['master']='unstable'
+branch_to_component['stable_4_0']='everest'
+# Convert the branch name to respective component name
+for key in ${!branch_to_component[@]}; do
+  if [[ "${key}" == ${BRANCH} ]]; then
+    APT_COMPONENT=${branch_to_component[$key]}
+    break
+  fi
+done
+
+
+function init_id() {
+  echo "I am here ..."
+  conf_file="/opt/pg/scripts/aurora.conf"
+  echo "Please enter your gerrit id: "
+  read gerritid
+  echo "gerritid=${gerritid}" > ${conf_file}
+}
+
+function build_image() {
+  local step=$1
+  case "$step" in
+
+  1)
+    echo "Creating the disk[${INSTANCE_NAME}-d1] and [${INSTANCE_NAME}-d2] for the instance in the cloud"
+    gcloud -q --verbosity ${VERBOSITY} compute disks create "${INSTANCE_NAME}-d1" \
+      --source-snapshot "${SNAP1}" --type "pd-standard" --size="$DISK1_SIZE"
+    gcloud -q --verbosity ${VERBOSITY} compute disks create "${INSTANCE_NAME}-d2" \
+      --source-snapshot "${SNAP2}" --type "pd-standard" --size="$DISK2_SIZE"
+    ;;
+
+  2)
+    echo "Creating the instance[$INSTANCE_NAME] in the cloud"
+    gcloud -q --verbosity ${VERBOSITY} compute instances create "${INSTANCE_NAME}" \
+      --machine-type "$MACHINETYPE" --network "net-10-10" --maintenance-policy \
+      "MIGRATE" --scopes "https://www.googleapis.com/auth/devstorage.read_only" \
+      --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
+      --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes"
+    ;;
+
+  3)
+    echo "Waiting for the machine to boot up and allow ssh access"
+    wait_for_instance ${INSTANCE_NAME}
+    ;;
+
+  4)
+    echo "starting the pgdev container"
+    run_dock_container ${INSTANCE_NAME} ${DOCK_NAME} "./local_docker_id" "./local_docker_ip"
+    ;;
+
+  5)
+    echo "Copy build-instance key to pgdev container"
+    run_cmd_gci ${INSTANCE_NAME} "ssh-keygen -t rsa -N \"\" -f ~/.ssh/id_rsa"
+    run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat $HOME/.ssh/id_rsa.pub >> \
+      /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
+    ;;
+
+  6)
+    echo "Copy local key to pgdev container"
+    gcloud compute copy-files ~/.ssh/id_rsa.pub ${INSTANCE_NAME}:./auth-key.pub
+    run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat $HOME/auth-key.pub >> \
+      /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
+    ;;
+
+  7)
+    check_ssh_server_status ${INSTANCE_NAME}
+    ;;
+
+  8)
+    echo "Generate script for syncing the gerrit repo"
+    write_gitsync.sh "${GIT_SYNC_SCRIPT}" "${BRANCH}" "${PROJECT}" "${REFSPEC}"
+    upload_to_docker ${INSTANCE_NAME} ${GIT_SYNC_SCRIPT} /tmp/
+    ;;
+
+  9)
+    echo "Execute the gitsynch script on docker container"
+    check_ssh_server_status ${INSTANCE_NAME}
+    run_cmd_docker_sshforwarding ${INSTANCE_NAME} "bash ${GIT_SYNC_SCRIPT}"
+    ;;
+
+  10)
+    echo "Starting build-all.sh"
+    run_cmd_docker_sshforwarding ${INSTANCE_NAME} "/bin/bash /home/plumgrid/run_build_all.sh ${APT_COMPONENT}"
+    ;;
+
+  11)
+    echo "Making a snapshot for the container"
+    run_cmd_gci ${INSTANCE_NAME} "sudo docker commit \`cat ./local_docker_id\` pg_dev_${INSTANCE_NAME}:latest"
+    ;;
+
+  12)
+    echo "Creating a snapshot of VM"
+    gcloud compute -q ssh ${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
+    gcloud compute -q ssh ${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${INSTANCE_NAME}-ssd2 > ~/build_d2_snapshot"
+    gcloud compute -q ssh ${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${SN_ID} > ~/primary_snapshot"
+    gcloud compute disks snapshot ${INSTANCE_NAME}-d1 --snapshot-names ${INSTANCE_NAME}-ssd1
+    gcloud compute disks snapshot ${INSTANCE_NAME}-d2 --snapshot-names ${INSTANCE_NAME}-ssd2
+    echo "BUILD-ID = ${INSTANCE_NAME}"
+    ;;
+
+  13)
+    echo "Shutting down the Instance ${INSTANCE_NAME}"
+    gcloud compute instances delete ${INSTANCE_NAME} --delete-disks all  -q
+    ;;
+
+  *)
+    echo "NOP - $step"
+  ;;
+  esac
+}
+
+for MAJOR_STEP in $MAJOR_STEPS; do
+  echo " ====== Starting STEP [$MAJOR_STEP] Number of Steps ::${MINOR_STEPS_ST[$MAJOR_STEP]} -> ${MINOR_STEPS_ED[$MAJOR_STEP]}  ======"
+  for MINOR_STEP in `seq ${MINOR_STEPS_ST[$MAJOR_STEP]} ${MINOR_STEPS_ED[$MAJOR_STEP]}`; do
+    echo "    === Starting STEP [$MAJOR_STEP][$MINOR_STEP] ==="
+    case "$MAJOR_STEP" in
+      init)
+        echo "Going to call init function"
+        init_id
+      ;;
+      build)
+        build_image $MINOR_STEP
+      ;;
+      *)
+        echo "UNKNOWN STEP $MAJOR_STEP.$MINOR_STEP"
+      ;;
+    esac
+    if [ -n "$STOP" ] ; then
+      exit
+    fi
+  done
+done
