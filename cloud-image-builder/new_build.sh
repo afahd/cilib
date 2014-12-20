@@ -136,8 +136,8 @@ function build_image() {
           ;;
       12) 
  	  echo "Updating the repositories"
-  	  #gcloud compute -q ssh  plumgrid-builder-v1 --ssh-flag='-tA' --command "eval \`ssh-agent -s\`; ssh-add; ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` /bin/bash"
-  	  gcloud compute -q ssh  plumgrid-builder-v1 --ssh-flag='-tA' --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` /bin/bash ./git_update.sh"
+  	  #gcloud compute -q ssh  $NAME --ssh-flag='-tA' --command "eval \`ssh-agent -s\`; ssh-add; ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` /bin/bash"
+  	  gcloud compute -q ssh  $NAME --ssh-flag='-tA' --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` /bin/bash ./git_update.sh"
 	;;
       13) 
          echo "Creating a snapshot with the repo installed in the docker"
@@ -163,12 +163,12 @@ function build_image() {
           fi
           for i in `seq 1 60`;
           do
-              echo "       Trying to ssh to plumgrid-builder-v1 Iteration [$i]"
-              gcloud compute -q ssh  plumgrid-builder-v1 --ssh-flag='-tA' --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_pgdev_docker_ip\` ls" >> /tmp/build_image.3.log  2>&1 && break 
+              echo "       Trying to ssh to $NAME Iteration [$i]"
+              gcloud compute -q ssh  $NAME --ssh-flag='-tA' --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_pgdev_docker_ip\` ls" >> /tmp/build_image.3.log  2>&1 && break 
               sleep 1
           done
           echo "Starting build-all.sh"
-          gcloud compute -q ssh  plumgrid-builder-v1 --ssh-flag='-tA' --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_pgdev_docker_ip\` /bin/bash /home/plumgrid/run_build_all.sh"
+          gcloud compute -q ssh  $NAME --ssh-flag='-tA' --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_pgdev_docker_ip\` /bin/bash /home/plumgrid/run_build_all.sh"
           ;;
       18)
           echo "Making a snapshot for the container"
@@ -180,8 +180,8 @@ function build_image() {
           gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "sudo docker tag pg_dev:latest pg-docker-repo:5000/pg_dev:${SN_ID}"
           gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "sudo docker push pg-docker-repo:5000/pg_dev:${SN_ID}"
           gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "echo pg_dev:${SN_ID} > ~/pgdev_latest_docker_image"
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "echo plumgrid-builder-v1-d1-${SN_ID} > ~/pgtest_latest_d1_snapshot"
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "echo plumgrid-builder-v1-d2-${SN_ID} > ~/pgtest_latest_d2_snapshot"
+          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "echo $NAME-d1-${SN_ID} > ~/pgtest_latest_d1_snapshot"
+          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "echo $NAME-d2-${SN_ID} > ~/pgtest_latest_d2_snapshot"
           gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "echo ${BASE_LINUX} > ~/base_linux_vm_snapshot_name"
           ;;
       20) 
@@ -191,9 +191,9 @@ function build_image() {
           SNAP_D1=$(echo $SNAP_D1_ | tr -d '\n'| tr -d '\r')
           SNAP_D2=$(echo $SNAP_D2_ | tr -d '\n'| tr -d '\r')
           echo "SNAP_D1 = [$SNAP_D1]"
-          echo gcloud compute disks snapshot plumgrid-builder-v1-d1 --snapshot-names $SNAP_D1
-          gcloud compute disks snapshot plumgrid-builder-v1-d1 --snapshot-names "$SNAP_D1"
-          gcloud compute disks snapshot plumgrid-builder-v1-d2 --snapshot-names "$SNAP_D2"
+          echo gcloud compute disks snapshot $NAME-d1 --snapshot-names $SNAP_D1
+          gcloud compute disks snapshot $NAME-d1 --snapshot-names "$SNAP_D1"
+          gcloud compute disks snapshot $NAME-d2 --snapshot-names "$SNAP_D2"
 	  ;;
       21)
           echo "Shutting down the Instance $NAME"
