@@ -1,7 +1,7 @@
 #! /bin/bash -e
 PWD=`pwd`
 
-BASE_LINUX="ubuntu-1204-3-10-39-v2"
+BASE_LINUX="ubuntu-1204-3-10-39-v3"
 MACHINETYPE="n1-standard-4"
 DISK_SIZE="10GB"
 
@@ -38,7 +38,7 @@ usage: $0
 -c | --cleanup : Test Cleanup
 -Q | --major : Jump to specific major step in the install process
 -R | --minor : Jump to specific minor step in the install process
--E | --minor_end : Stop at this step when in debug 
+-E | --minor_end : Stop at this step when in debug
 -O | --stop : DONT Continue beyond the specifict step to end of the installation
 -h | --help : help
 EOF
@@ -86,7 +86,7 @@ function build_image() {
               sleep 1
           done
           ;;
-      4) 
+      4)
           echo "copy my public key into the servers authorized keys"
           gcloud compute copy-files ~/.ssh/id_rsa.pub $NAME:./auth-key.pub
           gcloud compute -q ssh $NAME  --ssh-flag='-t' --command "cat ./auth-key.pub >> ~/.ssh/authorized_keys"
@@ -127,23 +127,23 @@ function build_image() {
           echo "starting the pgdev-base container"
           gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "DID=\$(sudo docker run -d plumgrid-pgdev-base /usr/sbin/sshd -D); echo \$DID > ./local_docker_id; sudo docker inspect --format '{{ .NetworkSettings.IPAddress }}' \$DID > ./local_docker_ip"
           ;;
-      11) 
+      11)
           echo "starting ssh agent and exporting keys"
-          if [ -z "$SSH_AUTH_SOCK" ] ; then 
+          if [ -z "$SSH_AUTH_SOCK" ] ; then
              eval `ssh-agent -s`
              ssh-add
           fi
           ;;
-      12) 
+      12)
  	  echo "Updating the repositories"
   	  #gcloud compute -q ssh  $NAME --ssh-flag='-tA' --command "eval \`ssh-agent -s\`; ssh-add; ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` /bin/bash"
   	  gcloud compute -q ssh  $NAME --ssh-flag='-tA' --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` /bin/bash ./git_update.sh"
 	;;
-      13) 
+      13)
          echo "Creating a snapshot with the repo installed in the docker"
          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "sudo docker commit \`cat local_docker_id\` plumgrid-pgdev-gitbase"
         ;;
-      14) 
+      14)
          echo "Stopping the container"
          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "sudo docker stop \`cat local_docker_id\`"
         ;;
@@ -152,10 +152,10 @@ function build_image() {
           gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "cd dev-bootstrap/pgdev-docker && sudo docker build -t plumgrid-pgdev ."
           ;;
       16)
-          echo "Starting prepration for build-all.sh(Starting the ssh server)" 
+          echo "Starting prepration for build-all.sh(Starting the ssh server)"
           gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "DID=\$(sudo docker run  --cap-add=all  --cap-add=SYS_ADMIN --lxc-conf='lxc.aa_profile=unconfined' --privileged -d plumgrid-pgdev /home/plumgrid/startup.sh); echo \$DID > ./local_pgdev_docker_id; sudo docker inspect --format '{{ .NetworkSettings.IPAddress }}' \$DID > ./local_pgdev_docker_ip"
           ;;
-      17) 
+      17)
           echo "check if ssh server is up and running"
           if [ -z "$SSH_AUTH_SOCK" ] ; then
              eval `ssh-agent -s`
@@ -164,7 +164,7 @@ function build_image() {
           for i in `seq 1 60`;
           do
               echo "       Trying to ssh to $NAME Iteration [$i]"
-              gcloud compute -q ssh  $NAME --ssh-flag='-tA' --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_pgdev_docker_ip\` ls" >> /tmp/build_image.3.log  2>&1 && break 
+              gcloud compute -q ssh  $NAME --ssh-flag='-tA' --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_pgdev_docker_ip\` ls" >> /tmp/build_image.3.log  2>&1 && break
               sleep 1
           done
           echo "Starting build-all.sh"
@@ -184,7 +184,7 @@ function build_image() {
           gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "echo $NAME-d2-${SN_ID} > ~/pgtest_latest_d2_snapshot"
           gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "echo ${BASE_LINUX} > ~/base_linux_vm_snapshot_name"
           ;;
-      20) 
+      20)
           echo "Making a snapshot of the VM"a
           SNAP_D1_=$(gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "cat ~/pgtest_latest_d1_snapshot")
           SNAP_D2_=$(gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "cat ~/pgtest_latest_d2_snapshot")
