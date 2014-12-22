@@ -10,7 +10,7 @@ function run_cmd_gci() {
   local INSTANCE_NAME=$1
   local CMD=$2
   local SSH_FLAGS=${3:-t}
-  gcloud compute -q ssh ${INSTANCE_NAME} --ssh-flag="-${SSH_FLAGS}" --command "$CMD"
+  gcloud compute -q ssh ${INSTANCE_NAME} --ssh-flag="-${SSH_FLAGS}" --ssh-flag="-o ServerAliveInterval=5" --command "$CMD"
 }
 
 # *****************************************************************************
@@ -67,7 +67,7 @@ function wait_for_instance() {
   for i in `seq 1 60`;
     do
       echo "Trying to ssh to ${INSTANCE_NAME} Iteration [$i]"
-      gcloud compute -q ssh ${INSTANCE_NAME} --ssh-flag='-t' --command "ls" >> /tmp/build_image.2.log 2>&1  && break
+      gcloud compute -q ssh ${INSTANCE_NAME} --ssh-flag='-t' --ssh-flag="-o ServerAliveInterval=5" --command "ls" >> /tmp/build_image.2.log 2>&1  && break
       sleep 1
     done
 }
@@ -89,7 +89,7 @@ function check_ssh_server_status() {
   for i in `seq 1 60`;
     do
       echo "Trying to ssh to ${DOCK_NAME} Iteration [$i]"
-      gcloud compute -q ssh  ${INSTANCE_NAME} --ssh-flag='-tA' --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ls" >> /tmp/build_image.3.log  2>&1 && break
+      gcloud compute -q ssh  ${INSTANCE_NAME} --ssh-flag='-tA' --ssh-flag="-o ServerAliveInterval=5" --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ls" >> /tmp/build_image.3.log  2>&1 && break
       sleep 1
     done
 }
@@ -153,4 +153,21 @@ function get_latest_snapshot_id() {
   echo $ssid
 }
 
+# *****************************************************************************
+# Function: modify_git_config
+# Purpose : Modify the git config inside docker acc to current user in order to
+#           checkout/clone commits/repos
+# Usage   : modify_git_config <repo_name> <gerrit_id> <write_to_script>
+# *****************************************************************************
+function modify_git_config() {
+  local repo_name=$1
+  local gerrit_id=$2
+  local write_to_script=$3
+  if [[ $# -ne 3 ]]; then
+    log "BUG: $# args received by ${FUNCNAME}"
+    exit 100
+  fi
+
+  echo "cd /home/plumgrid/work/${repo_name}/.git && sed -i \"/url = ssh:/ c\        url = ssh://${gerrit_id}@192.168.10.77:29418/${repo_name}.git\" config" >> ${write_to_script}
+}
 

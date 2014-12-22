@@ -24,7 +24,7 @@ function upload_to_docker() {
   echo "** $INSTANCE_NAME $FILE $DESTINATION **"
   FILE_NAME="${FILE##*/}"
   gcloud compute copy-files $FILE "${INSTANCE_NAME}:/tmp/"
-  gcloud compute -q ssh  ${INSTANCE_NAME} --ssh-flag='-tA' --command "scp -o StrictHostKeyChecking=no /tmp/${FILE_NAME} \`cat local_docker_ip\`:$DESTINATION"
+  gcloud compute -q ssh  ${INSTANCE_NAME} --ssh-flag='-tA' --ssh-flag="-o ServerAliveInterval=5" --command "scp -o StrictHostKeyChecking=no /tmp/${FILE_NAME} plumgrid@\`cat local_docker_ip\`:$DESTINATION"
 }
 
 # *****************************************************************************
@@ -41,7 +41,7 @@ function download_from_docker() {
   DESTINATION=$3
 
   FILE_NAME="${FILE##*/}"
-  gcloud compute -q ssh  ${INSTANCE_NAME} --ssh-flag='-tA' --command "scp -o StrictHostKeyChecking=no \`cat local_docker_ip\`:$FILE /tmp/$FILE_NAME"
+  gcloud compute -q ssh  ${INSTANCE_NAME} --ssh-flag='-tA' --ssh-flag="-o ServerAliveInterval=5" --command "scp -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\`:$FILE /tmp/$FILE_NAME"
   gcloud compute copy-files "${INSTANCE_NAME}:/tmp/$FILE_NAME" ${DESTINATION}
 }
 

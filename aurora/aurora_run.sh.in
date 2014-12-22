@@ -54,7 +54,7 @@ done
 rand=$(( ( RANDOM % 20 )  + 1 ))
 INSTANCE_NAME=${BUILD_ID}-run-20
 # TODO: Get the latest snapshot id and use that in below variables
-DOCK_NAME=pg-docker-repo:5000/pg_dev:1419174051
+DOCK_NAME="pg_dev_${BUILD_ID}:latest"
 
 function run_test() {
   local step=$1

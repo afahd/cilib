@@ -120,51 +120,60 @@ function build_image() {
     ;;
 
   4)
+    echo "setting up forward on ${INSTANCE_NAME} Machine "
+    run_cmd_gci ${INSTANCE_NAME} "echo 'host *' > ~/.ssh/config; echo '    ForwardAgent yes'>>~/.ssh/config"
+    ;;
+
+  5)
     echo "starting the pgdev container"
     run_dock_container ${INSTANCE_NAME} ${DOCK_NAME} "./local_docker_id" "./local_docker_ip"
     ;;
 
-  5)
+  6)
     echo "Copy build-instance key to pgdev container"
     run_cmd_gci ${INSTANCE_NAME} "ssh-keygen -t rsa -N \"\" -f ~/.ssh/id_rsa"
     run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat $HOME/.ssh/id_rsa.pub >> \
       /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
     ;;
 
-  6)
+  7)
     echo "Copy local key to pgdev container"
     gcloud compute copy-files ~/.ssh/id_rsa.pub ${INSTANCE_NAME}:./auth-key.pub
     run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat $HOME/auth-key.pub >> \
       /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
     ;;
 
-  7)
+  8)
     check_ssh_server_status ${INSTANCE_NAME}
     ;;
 
-  8)
+  9)
+    # TODO: Use auror_utils copy_to_docker function
     echo "Generate script for syncing the gerrit repo"
     write_gitsync.sh "${GIT_SYNC_SCRIPT}" "${BRANCH}" "${PROJECT}" "${REFSPEC}"
     upload_to_docker ${INSTANCE_NAME} ${GIT_SYNC_SCRIPT} /tmp/
     ;;
 
-  9)
+  10)
+    # TODO: Write a helper function run_cmd_docker
     echo "Execute the gitsynch script on docker container"
     check_ssh_server_status ${INSTANCE_NAME}
     run_cmd_docker_sshforwarding ${INSTANCE_NAME} "bash ${GIT_SYNC_SCRIPT}"
     ;;
 
-  10)
+  11)
+    echo "${APT_COMPONENT}==="
     echo "Starting build-all.sh"
     run_cmd_docker_sshforwarding ${INSTANCE_NAME} "/bin/bash /home/plumgrid/run_build_all.sh ${APT_COMPONENT}"
     ;;
 
-  11)
+  12)
     echo "Making a snapshot for the container"
+    run_cmd_gci ${INSTANCE_NAME} "echo \"pg_dev_${INSTANCE_NAME}\" > docker_build_id" "t"
     run_cmd_gci ${INSTANCE_NAME} "sudo docker commit \`cat ./local_docker_id\` pg_dev_${INSTANCE_NAME}:latest"
     ;;
 
-  12)
+  13)
     echo "Creating a snapshot of VM"
     gcloud compute -q ssh ${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
     gcloud compute -q ssh ${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${INSTANCE_NAME}-ssd2 > ~/build_d2_snapshot"
@@ -174,7 +183,7 @@ function build_image() {
     echo "BUILD-ID = ${INSTANCE_NAME}"
     ;;
 
-  13)
+  14)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     gcloud compute instances delete ${INSTANCE_NAME} --delete-disks all  -q
     ;;
@@ -206,3 +215,4 @@ for MAJOR_STEP in $MAJOR_STEPS; do
     fi
   done
 done
+
