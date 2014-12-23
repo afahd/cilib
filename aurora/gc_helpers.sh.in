@@ -1,0 +1,156 @@
+#!/bin/bash -e
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
+
+# *****************************************************************************
+# Function: run_cmd_gci
+# Purpose : Run command on Google Cloud instance.
+# Usage   : run_cmd_gci <cloud_instance_name>
+# *****************************************************************************
+function run_cmd_gci() {
+  local INSTANCE_NAME=$1
+  local CMD=$2
+  local SSH_FLAGS=${3:-t}
+  gcloud compute -q ssh ${INSTANCE_NAME} --ssh-flag="-${SSH_FLAGS}" --command "$CMD"
+}
+
+# *****************************************************************************
+# Function: run_cmd_gci_sshforwarding
+# Purpose : Run command on Google Cloud instance with ssh forwarding.
+# Usage   : run_cmd_gci <cloud_instance_name>
+# *****************************************************************************
+function run_cmd_gci_sshforwarding() {
+  local INSTANCE_NAME=$1
+  local CMD=$2
+
+  if [ -z "$SSH_AUTH_SOCK" ] ; then
+    echo "running ssh-add"
+    eval `ssh-agent -s`
+    ssh-add
+  fi
+
+  run_cmd_gci ${INSTANCE_NAME} "${CMD}" tA
+}
+
+# *****************************************************************************
+# Function: run_cmd_docker
+# Purpose : Ran a command inside docker container
+# Usage   : run_cmd_docker <Instance Name on which docker is running>
+# /_\ Caution: Not tested.
+# *****************************************************************************
+function run_cmd_docker() {
+  local INSTANCE_NAME=$1
+  local DOCKER_CMD=$2
+
+  run_cmd_gci ${INSTANCE_NAME} "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ${DOCKER_CMD}"
+}
+
+# *****************************************************************************
+# Function: run_cmd_docker
+# Purpose : Ran a command inside docker container
+# Usage   : run_cmd_docker <Instance Name on which docker is running>
+# /_\ Caution: Not tested.
+# *****************************************************************************
+function run_cmd_docker_sshforwarding() {
+  local INSTANCE_NAME=$1
+  local DOCKER_CMD=$2
+
+  run_cmd_gci_sshforwarding ${INSTANCE_NAME} "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ${DOCKER_CMD}"
+}
+
+# *****************************************************************************
+# Function: wait_for_instance
+# Purpose : Wait Cloud instance to come up.
+# Usage   : wait_for_instance <cloud_instance_name>
+# *****************************************************************************
+function wait_for_instance() {
+  local INSTANCE_NAME=$1
+  for i in `seq 1 60`;
+    do
+      echo "Trying to ssh to ${INSTANCE_NAME} Iteration [$i]"
+      gcloud compute -q ssh ${INSTANCE_NAME} --ssh-flag='-t' --command "ls" >> /tmp/build_image.2.log 2>&1  && break
+      sleep 1
+    done
+}
+
+# *****************************************************************************
+# Purpose : Check whether ssh server is up and running.
+# Usage   : wait_for_instance <cloud_instance_name>
+# *****************************************************************************
+function check_ssh_server_status() {
+  local INSTANCE_NAME=$1
+
+  echo "check if ssh server is up and running"
+  if [ -z "$SSH_AUTH_SOCK" ] ; then
+    echo "running ssh-add"
+    eval `ssh-agent -s`
+    ssh-add
+  fi
+
+  for i in `seq 1 60`;
+    do
+      echo "Trying to ssh to ${DOCK_NAME} Iteration [$i]"
+      gcloud compute -q ssh  ${INSTANCE_NAME} --ssh-flag='-tA' --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ls" >> /tmp/build_image.3.log  2>&1 && break
+      sleep 1
+    done
+}
+
+# *****************************************************************************
+# Purpose : Run docker container inside given instance
+# *****************************************************************************
+function run_dock_container() {
+  local INSTANCE_NAME=$1
+  local DOCK_NAME=$2
+  local DOCK_ID_FILE=$3
+  local DOCK_IP_FILE=$4
+
+  run_cmd_gci ${INSTANCE_NAME} "DID=\$(sudo docker run  --cap-add=all  --cap-add=SYS_ADMIN \
+    --lxc-conf='lxc.aa_profile=unconfined' --privileged -d ${DOCK_NAME} /home/plumgrid/startup.sh) && \
+    echo \$DID > ${DOCK_ID_FILE} && \
+    sudo docker inspect --format '{{ .NetworkSettings.IPAddress }}' \$DID > ${DOCK_IP_FILE}"
+}
+
+# *****************************************************************************
+# Purpose : Configure docker according to PG requirements.
+# *****************************************************************************
+function configure_docker() {
+  local INSTANCE_NAME=$1
+
+  run_cmd_gci ${INSTANCE_NAME} "echo 'DOCKER_OPTS=\"--mtu 1400 --insecure-registry pg-docker-repo:5000\"' | sudo tee /etc/default/docker && sudo service docker restart"
+}
+
+function setup_forwarding() {
+  local INSTANCE_NAME=$1
+
+  run_cmd_gci ${INSTANCE_NAME} "echo 'host *' > ~/.ssh/config; echo '    ForwardAgent yes'>>~/.ssh/config"
+}
+
+# *****************************************************************************
+# Purpose : ADD key to authroized keys of docker container running on instance
+# Usage   :
+# KEY_PATH:       KEY path on cloud insctance machine.
+# DOCKER_ID_FILE: File which holds the docker id on instance
+# TODO: Not tested much
+# *****************************************************************************
+function add_to_dock_authorized_keys() {
+  local INSTANCE_NAME=$1
+  local KEY_PATH=$2
+  local DOCK_ID_FILE=$3
+
+  run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat ${KEY_PATH} >> \
+    /var/lib/docker/btrfs/subvolumes/\`cat ${DOCK_ID_FILE}\`/home/plumgrid/.ssh/authorized_keys\""
+}
+
+# *****************************************************************************
+# Function: get_lastest_snapshot
+# Purpose : Lists the snapshot with the highest time stamp.
+# Usage   : list_lastest_snapshot
+# *****************************************************************************
+function get_latest_snapshot_id() {
+  #The snapshots are sorted in desencding order by name. Sorting by name also works for numbers.
+  local latest_ss=$(gcloud compute snapshots list --sort-by=~NAME --regexp=plumgrid-builder-v1-d1-.* --limit=1 | grep plumgrid-builder-v1-d1- | cut  -d ' ' -f 1)
+  local ssid="${latest_ss##*-}"
+
+  echo $ssid
+}
+
+

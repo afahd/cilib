@@ -1,0 +1,7 @@
+configure_file(aurora.sh.in "${CMAKE_CURRENT_BINARY_DIR}/aurora" @ONLY)
+configure_file(aurora_infra_settings.conf.in "${CMAKE_CURRENT_BINARY_DIR}/aurora_infra_settings.conf" @ONLY)
+configure_file(aurora_build.sh.in "${CMAKE_CURRENT_BINARY_DIR}/aurora_build.sh" @ONLY)
+configure_file(aurora_run.sh.in "${CMAKE_CURRENT_BINARY_DIR}/aurora_run.sh" @ONLY)
+configure_file(aurora_utils.sh.in "${CMAKE_CURRENT_BINARY_DIR}/aurora_utils.sh" @ONLY)
+configure_file(write_gitsync.sh.in "${CMAKE_CURRENT_BINARY_DIR}/write_gitsync.sh" @ONLY)
+configure_file(gc_helpers.sh.in "${CMAKE_CURRENT_BINARY_DIR}/gc_helpers.sh" @ONLY)

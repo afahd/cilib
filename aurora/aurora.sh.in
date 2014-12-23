@@ -1,0 +1,42 @@
+#!/bin/bash -e
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
+. aurora_utils.sh
+
+function show_help() {
+    cat << ENDHELP
+<init> : Setup aurora environment
+<build> <test-case-name><Gerrit-Command>: Build a new image with given COMMIT-ID/TAG/LOCAL-CHANGES.
+<run> <Build ID> <Test Script>: Run test script on cloud instance with aurora BUILD-ID.
+<upload_to_docker>: Upload some local file to docker container.
+<download_from_docker>: Download file from docker container to local machine.
+ls: List all cloud instances currently running by user
+ENDHELP
+}
+
+case $1 in
+    --help)
+        show_help
+      ;;
+    init)
+      echo "In aurora.sh"
+      init_id
+      #aurora_build.sh -Q init
+      ;;
+    build)
+      aurora_build.sh -Q build -R 1 -E 12 -G ${2} -P ${3} -B ${4}
+      ;;
+    run)
+      aurora_run.sh -Q run -R 1 -E 11 -B ${2} -T ${3}
+      ;;
+    upload_to_docker)
+      aurora_utils.sh -Q upload_to_docker -R 4 -E 10 -F $2 -P $3
+    ;;
+    download_from_docker)
+      aurora_utils.sh -Q download_from_docker -R 1 -E 2 -F $2 -P $3
+    ;;
+    *)
+        echo "USAGE:"
+        show_help
+    ;;
+esac
+
