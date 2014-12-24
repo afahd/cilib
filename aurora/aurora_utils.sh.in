@@ -1,14 +1,20 @@
 #!/bin/bash -e
+source aurora_infra_settings.conf
+source aurora.conf
+source gc_helpers.sh
 
 function init_id() {
   conf_file="/home/$USER/.aurora.conf"
   echo "Please enter your gerrit id: "
   read gerritid
-  echo "gerritid=${gerritid}" > "${conf_file}"
+  echo "gerritid=${gerritid}" > ${conf_file}
+  gcloud config set project $PROJECT
+  gcloud config set compute/zone $ZONE
+  gcloud config set compute/region $REGION
 }
 # ***********************************************************************************
 # Function: upload_to_docker
-# Purpose : Upload a file from your local machine to Docker container
+# Purpose : Upload a file/folder from your local machine to Docker container
 # Usage   : upload_to_docker <Cloud instance name where docker container is running>
 #                            <Local file which needs to be uploaded>
 #                            <>
@@ -23,12 +29,12 @@ function upload_to_docker() {
   echo "** $INSTANCE_NAME $FILE $DESTINATION **"
   FILE_NAME="${FILE##*/}"
   gcloud compute copy-files $FILE "${USER}@${INSTANCE_NAME}:/tmp/"
-  gcloud compute -q ssh  ${USER}@${INSTANCE_NAME} --ssh-flag='-tA' --ssh-flag="-o ServerAliveInterval=5" --command "scp -o StrictHostKeyChecking=no /tmp/${FILE_NAME} plumgrid@\`cat local_docker_ip\`:$DESTINATION"
+  gcloud compute -q ssh  ${USER}@${INSTANCE_NAME} --ssh-flag='-tA' --ssh-flag="-o ServerAliveInterval=5" --command "scp -r -o StrictHostKeyChecking=no /tmp/${FILE_NAME} plumgrid@\`cat local_docker_ip\`:$DESTINATION"
 }
 
 # *****************************************************************************
 # Function: download_from_docker
-# Purpose : Download a file from docker container to your local machine.
+# Purpose : Download a file/folder from docker container to your local machine.
 # Usage   : download_from_docker <Cloud instance where docker container is running>
 #                                <Location of file which needs to be downloaded>
 #                                <Local machine's path where you need to download>
@@ -40,6 +46,69 @@ function download_from_docker() {
   DESTINATION=$3
 
   FILE_NAME="${FILE##*/}"
-  gcloud compute -q ssh  ${USER}@${INSTANCE_NAME} --ssh-flag='-tA' --ssh-flag="-o ServerAliveInterval=5" --command "scp -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\`:$FILE /tmp/$FILE_NAME"
+  gcloud compute -q ssh  ${USER}@${INSTANCE_NAME} --ssh-flag='-tA' --ssh-flag="-o ServerAliveInterval=5" --command "scp -r -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\`:$FILE /tmp/$FILE_NAME"
   gcloud compute copy-files "${USER}@${INSTANCE_NAME}:/tmp/$FILE_NAME" ${DESTINATION}
+}
+# *****************************************************************************
+# Function: list_user_instances
+# Purpose : Lists the cloud instances currently running for the user.
+# Usage   : list_user_instances
+# Prereq: Aurora init has been called.
+# *****************************************************************************
+function list_user_instances() {
+  echo "Listing instances for the user:$gerritid"
+  gcloud compute instances list --regexp $gerritid.* --zones "$ZONE"
+}
+
+# *****************************************************************************
+# Function: delete_instance
+# Purpose : Deletes the cloud instance specified.
+# Usage   : delete_instance <build-id>
+# Prereq: Aurora init has been called.
+# *****************************************************************************
+function delete_instance() {
+  local INSTANCE_NAME=$1
+  if [[ $INSTANCE_NAME == ${gerritid}* ]]; then
+    if [ "$2" != "-f" -a "$2" != "--force" ]; then
+      gcloud compute instances delete $INSTANCE_NAME --delete-disks all
+    else
+      gcloud compute instances delete $INSTANCE_NAME -q --delete-disks all
+    fi
+  else
+    echo "Can't delete, the instance isn't owned by the user:${gerritid}"
+  fi
+}
+# *****************************************************************************
+# Function: delete_user_instances
+# Purpose : Deletes the cloud instances currently running for the user.
+# Usage   : delete_user_instances
+# Prereq: Aurora init has been called.
+# *****************************************************************************
+function delete_user_instances() {
+  local user_instances=$(gcloud compute instances list --regexp $gerritid.* --zones "$ZONE" | grep $gerritid | cut -d ' ' -f 1)
+  echo "The following instances will be permanently deleted: "
+  for instance in $user_instances; do
+    echo "$instance"
+  done
+  if [ "$1" != "-f" -a "$1" != "--force" ]; then
+    read -r -p "Are you sure you want to continue? (y/N)" response
+    response=${response,,}    # tolower
+    if [[ $response =~ ^(yes|y)$ ]]; then
+      for instance in $user_instances; do
+        gcloud compute instances delete $instance -q --delete-disks all
+      done
+    else
+      exit
+    fi
+  fi
+}
+
+# *****************************************************************************
+# Function: login_instance
+# Purpose : Logs into the insatance name provided.
+# Usage   : login_instance <build-id>
+# Prereq: The instance should exsist.
+# *****************************************************************************
+function login_instance() {
+   run_cmd_docker $1 "bash"
 }

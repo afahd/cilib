@@ -141,9 +141,9 @@ function add_to_dock_authorized_keys() {
 }
 
 # *****************************************************************************
-# Function: get_lastest_snapshot
+# Function: get_lastest_snapshot_id
 # Purpose : Lists the snapshot with the highest time stamp.
-# Usage   : list_lastest_snapshot
+# Usage   : get_lastest_snapshot_id
 # *****************************************************************************
 function get_latest_snapshot_id() {
   #The snapshots are sorted in desencding order by name. Sorting by name also works for numbers.
@@ -171,3 +171,25 @@ function modify_git_config() {
   echo "cd /home/plumgrid/work/${repo_name}/.git && sed -i \"/url = ssh:/ c\        url = ssh://${gerrit_id}@192.168.10.77:29418/${repo_name}.git\" config" >> ${write_to_script}
 }
 
+# *****************************************************************************
+# Function: get_latest_logs
+# Purpose : Gets the latest test logs from docker in a .tar file.
+# Usage   : get_latest_logs
+# *****************************************************************************
+function get_latest_logs() {
+  local INSTANCE_NAME=$1
+  echo "Donwloading PG logs to local machine"
+  #Get the latest directory created and save it in a file
+  run_cmd_docker ${INSTANCE_NAME} "ls /opt/pg/log -rt | tail -1 > latest_log_dir"
+  gcloud compute copy-files "${INSTANCE_NAME}:/home/plumgrid/latest_log_dir" /tmp/
+  #Extract the directory name from the local file
+  log_dir=$(cat /tmp/latest_log_dir | tr -d '\r')
+  log_dir_base="/opt/pg/log/$log_dir"
+  #tar the directory
+  run_cmd_docker ${INSTANCE_NAME} "/bin/bash -c \'tar -cvf ${log_dir_base}.tar ${log_dir_base}/*\'"
+  #Copy the tar file to the local machine
+  download_from_docker ${INSTANCE_NAME} $log_dir_base.tar /tmp/${INSTANCE_NAME}-logs.tar
+  echo "Logs have been placed at /tmp/${INSTANCE_NAME}-logs.tar"
+  #Deleting the .tar file
+  run_cmd_docker ${INSTANCE_NAME} "/bin/bash -c \'rm $log_dir_base.tar \'"
+}

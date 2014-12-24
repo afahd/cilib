@@ -138,10 +138,7 @@ function run_test() {
     ;;
 
   11)
-    # By adding another switch to "aurora-run", user can specify the log directory as well.
-    echo "Donwload PG logs to local machine"
-    run_cmd_gci ${INSTANCE_NAME} "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` /bin/bash -c \'tar -cvf /opt/pg/log/log.tar /opt/pg/log/*\'"
-    download_from_docker ${INSTANCE_NAME} /opt/pg/log/log.tar /tmp/${INSTANCE_NAME}-logs.tar
+    get_latest_logs ${INSTANCE_NAME}
     ;;
 
   12)

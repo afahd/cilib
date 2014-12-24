@@ -1,6 +1,7 @@
 PROJECT=festive-courier-755
 MACHINE_TYPE=n1-standard-1
 ZONE=us-central1-f
+REGION=us-central1
 SCOPES=https://www.googleapis.com/auth/devstorage.read_only
 NETWORK=net-10-10
 DISK_TYPE=pd-standard
