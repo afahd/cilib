@@ -5,7 +5,7 @@ export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
 . gc_helpers.sh
 . aurora_utils.sh
 source aurora_infra_settings.conf
-source aurora.conf
+source /home/$USER/aurora.conf
 
 # TODO: Get the latest snapshot id and use that in below variables
 SN_ID=$(get_latest_snapshot_id)
@@ -86,7 +86,6 @@ done
 
 
 function init_id() {
-  echo "I am here ..."
   conf_file="/opt/pg/scripts/aurora.conf"
   echo "Please enter your gerrit id: "
   read gerritid

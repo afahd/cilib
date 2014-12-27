@@ -1,11 +1,10 @@
 #!/bin/bash -e
 
 function init_id() {
-  echo "I am here ..."
-  conf_file="/opt/pg/scripts/aurora.conf"
+  conf_file="/home/$USER/aurora.conf"
   echo "Please enter your gerrit id: "
   read gerritid
-  echo "gerritid=${gerritid}" > ${conf_file}
+  echo "gerritid=${gerritid}" > "${conf_file}"
 }
 # ***********************************************************************************
 # Function: upload_to_docker

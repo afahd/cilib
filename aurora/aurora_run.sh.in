@@ -3,7 +3,7 @@
 export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
 . gc_helpers.sh
 . aurora_utils.sh
-source aurora.conf
+source /home/$USER/aurora.conf
 
 # TODO: Make a decision about machine type and Disk sizes.
 MACHINETYPE="n1-standard-4"
@@ -51,8 +51,10 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-rand=$(( ( RANDOM % 20 )  + 1 ))
-INSTANCE_NAME=${BUILD_ID}-run-20
+UUID=$(cat /proc/sys/kernel/random/uuid)
+SUUID="${UUID##*-}"
+echo "**** ${SUUID} ****"
+INSTANCE_NAME=${BUILD_ID}-run-${SUUID}
 # TODO: Get the latest snapshot id and use that in below variables
 DOCK_NAME="pg_dev_${BUILD_ID}:latest"
 
