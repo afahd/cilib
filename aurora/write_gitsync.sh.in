@@ -4,7 +4,7 @@
 ## for running build_all.sh script later.
 
 . gc_helpers.sh
-source /home/$USER/aurora.conf
+source /home/$USER/.aurora.conf
 
 git_script=$1
 branch=$2

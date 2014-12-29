@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 function init_id() {
-  conf_file="/home/$USER/aurora.conf"
+  conf_file="/home/$USER/.aurora.conf"
   echo "Please enter your gerrit id: "
   read gerritid
   echo "gerritid=${gerritid}" > "${conf_file}"
@@ -22,8 +22,8 @@ function upload_to_docker() {
 
   echo "** $INSTANCE_NAME $FILE $DESTINATION **"
   FILE_NAME="${FILE##*/}"
-  gcloud compute copy-files $FILE "${INSTANCE_NAME}:/tmp/"
-  gcloud compute -q ssh  ${INSTANCE_NAME} --ssh-flag='-tA' --ssh-flag="-o ServerAliveInterval=5" --command "scp -o StrictHostKeyChecking=no /tmp/${FILE_NAME} plumgrid@\`cat local_docker_ip\`:$DESTINATION"
+  gcloud compute copy-files $FILE "${USER}@${INSTANCE_NAME}:/tmp/"
+  gcloud compute -q ssh  ${USER}@${INSTANCE_NAME} --ssh-flag='-tA' --ssh-flag="-o ServerAliveInterval=5" --command "scp -o StrictHostKeyChecking=no /tmp/${FILE_NAME} plumgrid@\`cat local_docker_ip\`:$DESTINATION"
 }
 
 # *****************************************************************************
@@ -40,7 +40,6 @@ function download_from_docker() {
   DESTINATION=$3
 
   FILE_NAME="${FILE##*/}"
-  gcloud compute -q ssh  ${INSTANCE_NAME} --ssh-flag='-tA' --ssh-flag="-o ServerAliveInterval=5" --command "scp -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\`:$FILE /tmp/$FILE_NAME"
-  gcloud compute copy-files "${INSTANCE_NAME}:/tmp/$FILE_NAME" ${DESTINATION}
+  gcloud compute -q ssh  ${USER}@${INSTANCE_NAME} --ssh-flag='-tA' --ssh-flag="-o ServerAliveInterval=5" --command "scp -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\`:$FILE /tmp/$FILE_NAME"
+  gcloud compute copy-files "${USER}@${INSTANCE_NAME}:/tmp/$FILE_NAME" ${DESTINATION}
 }
-

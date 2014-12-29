@@ -1,11 +1,11 @@
 #!/bin/bash -e
 
 export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
-
+echo "aurora_build.sh started with [aurora_build.sh  $@]"
 . gc_helpers.sh
 . aurora_utils.sh
 source aurora_infra_settings.conf
-source /home/$USER/aurora.conf
+source /home/$USER/.aurora.conf
 
 # TODO: Get the latest snapshot id and use that in below variables
 SN_ID=$(get_latest_snapshot_id)
@@ -131,14 +131,14 @@ function build_image() {
   6)
     echo "Copy build-instance key to pgdev container"
     run_cmd_gci ${INSTANCE_NAME} "ssh-keygen -t rsa -N \"\" -f ~/.ssh/id_rsa"
-    run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat $HOME/.ssh/id_rsa.pub >> \
+    run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat /home/$USER/.ssh/id_rsa.pub >> \
       /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
     ;;
 
   7)
     echo "Copy local key to pgdev container"
-    gcloud compute copy-files ~/.ssh/id_rsa.pub ${INSTANCE_NAME}:./auth-key.pub
-    run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat $HOME/auth-key.pub >> \
+    gcloud compute copy-files ~/.ssh/id_rsa.pub ${USER}@${INSTANCE_NAME}:./auth-key.pub
+    run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat /home/$USER/auth-key.pub >> \
       /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
     ;;
 
@@ -174,9 +174,9 @@ function build_image() {
 
   13)
     echo "Creating a snapshot of VM"
-    gcloud compute -q ssh ${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
-    gcloud compute -q ssh ${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${INSTANCE_NAME}-ssd2 > ~/build_d2_snapshot"
-    gcloud compute -q ssh ${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${SN_ID} > ~/primary_snapshot"
+    gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
+    gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${INSTANCE_NAME}-ssd2 > ~/build_d2_snapshot"
+    gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${SN_ID} > ~/primary_snapshot"
     gcloud compute disks snapshot ${INSTANCE_NAME}-d1 --snapshot-names ${INSTANCE_NAME}-ssd1
     gcloud compute disks snapshot ${INSTANCE_NAME}-d2 --snapshot-names ${INSTANCE_NAME}-ssd2
     echo "BUILD-ID = ${INSTANCE_NAME}"

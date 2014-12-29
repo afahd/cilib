@@ -1,9 +1,11 @@
 #!/bin/bash -e
 
+echo "aurora_run.sh started with [aurora_run.sh  $@]"
+
 export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
 . gc_helpers.sh
 . aurora_utils.sh
-source /home/$USER/aurora.conf
+source /home/$USER/.aurora.conf
 
 # TODO: Make a decision about machine type and Disk sizes.
 MACHINETYPE="n1-standard-4"
@@ -26,6 +28,7 @@ usage: $0
 -E | --minor_end : Stop at this step when in debug
 -B | --build_id: Mention the build-id on which you want to test
 -T | --test: Test script to run.
+-U | --test_uuid: Test unique id to use.
 -O | --stop : DONT Continue beyond the specifict step to end of the installation
 -h | --help : help
 EOF
@@ -41,6 +44,7 @@ while [[ $# -gt 0 ]]; do
     -E| --minor ) MINOR_STEPS_ED[$TMP_MAJOR]="$2"; shift ;;
     -B| --build_id ) BUILD_ID=$2; shift ;;
     -T| --test_script ) TEST_SCRIPT=$2; shift ;;
+    -U| --test_uuid ) SUUID=$2; shift ;;
     -O| --stop ) STOP=1; ;;
     -h | --help ) usage; ;;
     -- ) shift; break ;;
@@ -51,9 +55,17 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-UUID=$(cat /proc/sys/kernel/random/uuid)
-SUUID="${UUID##*-}"
+#UUID=$(cat /proc/sys/kernel/random/uuid)
+#UUID=`uuidgen`
+#SUUID_="${UUID##*-}"
+#SUUID="${SUUID_,,}"
 echo "**** ${SUUID} ****"
+if [ -z ${SUUID+x} ]; then
+  echo "Input parameter -U is required"
+  exit 1
+fi
+
+
 INSTANCE_NAME=${BUILD_ID}-run-${SUUID}
 # TODO: Get the latest snapshot id and use that in below variables
 DOCK_NAME="pg_dev_${BUILD_ID}:latest"
@@ -63,7 +75,7 @@ function run_test() {
 
   case "$step" in
   1)
-    echo "Creating the disk[${INSTANCE_NAME}-d1] and [${INSTANCE_NAME}-d2] for the instance in the cloud"
+    echo "Creating the disk[${INSTANCE_NAME}-d1] and [${INSTANCE_NAME}-d2] for the instance in the cloud from ${BUILD_ID}"
     gcloud -q --verbosity error compute disks create "${INSTANCE_NAME}-d1" \
       --source-snapshot "${BUILD_ID}-ssd1" --type "pd-standard" --size="$DISK1_SIZE"
     gcloud -q --verbosity error compute disks create "${INSTANCE_NAME}-d2" \
@@ -92,14 +104,14 @@ function run_test() {
   5)
     echo "Copy build-instance key to pgdev container"
     #run_cmd_gci ${INSTANCE_NAME} "ssh-keygen -t rsa -N \"\" -f ~/.ssh/id_rsa"
-    run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat $HOME/.ssh/id_rsa.pub >> \
+    run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat /home/$USER/.ssh/id_rsa.pub >> \
       /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
     ;;
 
   6)
     echo "Copy local key to pgdev container"
-    gcloud compute copy-files ~/.ssh/id_rsa.pub ${INSTANCE_NAME}:./auth-key.pub
-    run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat $HOME/auth-key.pub >> \
+    gcloud compute copy-files ~/.ssh/id_rsa.pub ${USER}@${INSTANCE_NAME}:./auth-key.pub
+    run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat /home/$USER/auth-key.pub >> \
       /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
     ;;
 

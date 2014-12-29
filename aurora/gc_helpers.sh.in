@@ -10,7 +10,7 @@ function run_cmd_gci() {
   local INSTANCE_NAME=$1
   local CMD=$2
   local SSH_FLAGS=${3:-t}
-  gcloud compute -q ssh ${INSTANCE_NAME} --ssh-flag="-${SSH_FLAGS}" --ssh-flag="-o ServerAliveInterval=5" --command "$CMD"
+  gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag="-${SSH_FLAGS}" --ssh-flag="-o ServerAliveInterval=5" --command "$CMD"
 }
 
 # *****************************************************************************
@@ -67,7 +67,7 @@ function wait_for_instance() {
   for i in `seq 1 60`;
     do
       echo "Trying to ssh to ${INSTANCE_NAME} Iteration [$i]"
-      gcloud compute -q ssh ${INSTANCE_NAME} --ssh-flag='-t' --ssh-flag="-o ServerAliveInterval=5" --command "ls" >> /tmp/build_image.2.log 2>&1  && break
+      gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag='-t' --ssh-flag="-o ServerAliveInterval=5" --command "ls" >> /tmp/build_image.2.log 2>&1  && break
       sleep 1
     done
 }
@@ -89,7 +89,7 @@ function check_ssh_server_status() {
   for i in `seq 1 60`;
     do
       echo "Trying to ssh to ${DOCK_NAME} Iteration [$i]"
-      gcloud compute -q ssh  ${INSTANCE_NAME} --ssh-flag='-tA' --ssh-flag="-o ServerAliveInterval=5" --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ls" >> /tmp/build_image.3.log  2>&1 && break
+      gcloud compute -q ssh  ${USER}@${INSTANCE_NAME} --ssh-flag='-tA' --ssh-flag="-o ServerAliveInterval=5" --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ls" >> /tmp/build_image.3.log  2>&1 && break
       sleep 1
     done
 }
