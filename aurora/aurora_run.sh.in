@@ -66,7 +66,7 @@ if [ -z ${SUUID+x} ]; then
 fi
 
 BUILD_ID=${gerritid}-${USER_BUILD_ID}
-INSTANCE_NAME=${BUILD_ID}-run-${SUUID}
+INSTANCE_NAME=`echo ${BUILD_ID}-${SUUID} | sed 's/bld/run/'`
 # TODO: Get the latest snapshot id and use that in below variables
 DOCK_NAME="pg_dev_${BUILD_ID}:latest"
 

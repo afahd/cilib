@@ -66,7 +66,7 @@ function list_instances() {
 
   echo "Listing instances for the user:$gerritid"
   gcloud compute instances list --regexp "$gerritid-.*" > ${file}
-  sed -i "s/${gerritid}-//g" ${file}
+  sed -ie "s/${gerritid}-//g" ${file}
   cat ${file}
   rm ${file}
 }
@@ -82,7 +82,7 @@ function list_snapshots() {
 
   echo "Listing instances for the user:$gerritid"
   gcloud compute snapshots list --regexp "$gerritid-.*" > ${file}
-  sed -i "s/${gerritid}-//g" ${file}
+  sed -ie "s/${gerritid}-//g" ${file}
   cat ${file}
   rm ${file}
 }
