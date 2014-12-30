@@ -25,7 +25,7 @@ case $1 in
       init_id
       ;;
     build)
-      aurora_build.sh -Q build -R 1 -E 13 -G ${2} -P ${3} -B ${4}
+      aurora_build.sh -Q build -R 1 -E 14 -G ${2} -P ${3} -B ${4}
       ;;
     run)
       UUID=`uuidgen`
