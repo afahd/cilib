@@ -42,7 +42,7 @@ while [[ $# -gt 0 ]]; do
     -Q| --major ) MAJOR_STEPS="$2"; TMP_MAJOR="$2"; shift ;;
     -R| --minor ) MINOR_STEPS_ST[$TMP_MAJOR]="$2"; shift ;;
     -E| --minor ) MINOR_STEPS_ED[$TMP_MAJOR]="$2"; shift ;;
-    -B| --build_id ) BUILD_ID=$2; shift ;;
+    -B| --build_id ) USER_BUILD_ID=$2; shift ;;
     -T| --test_script ) TEST_SCRIPT=$2; shift ;;
     -U| --test_uuid ) SUUID=$2; shift ;;
     -O| --stop ) STOP=1; ;;
@@ -65,7 +65,7 @@ if [ -z ${SUUID+x} ]; then
   exit 1
 fi
 
-
+BUILD_ID=${gerritid}-${USER_BUILD_ID}
 INSTANCE_NAME=${BUILD_ID}-run-${SUUID}
 # TODO: Get the latest snapshot id and use that in below variables
 DOCK_NAME="pg_dev_${BUILD_ID}:latest"

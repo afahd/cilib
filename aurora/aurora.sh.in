@@ -4,25 +4,25 @@ export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
 
 function show_help() {
     cat << ENDHELP
-init                  : Setup aurora environment
-build                 : <Gerrit-RefSpec> <Project> <Branch>
-                        Build a new image with given COMMIT-ID/TAG/LOCAL-CHANGES.
-run                   : <Build ID> <Test Script>
-                        Run test script on cloud instance with aurora BUILD-ID.
-<upload_to_docker>    : <File To Upload> <Destination Path>
-                        Upload some local file to docker container.
-<download_from_docker>: <Location of File to download> <Path where you need to keep>
-                        Download file from docker container to local machine.
-ls                    : List all cloud instances currently running by user
-delete <name> <option>: Deletes the instance specified
-Options:
--f, --force 		Disable interactive prompts, instances will be deleted without confirmation
-
-delete_all <option>   : Deletes all the cloud instances of the user
-Options:
--f, --force 		Disable interactive prompts, instances will be deleted without confirmation
-
-login <instance name> : Login to the specified instance
+init                        : Setup aurora environment
+build <Gerrit-RefSpec> <Project> <Branch>
+                      : Build a new image with given COMMIT-ID/TAG/LOCAL-CHANGES.
+run <Build ID> <Test Script>
+                      :  Run test script on cloud instance with aurora BUILD-ID.
+upload_to_docker <File To Upload> <Destination Path>
+                      : Upload some local file to docker container.
+download_from_docker <Location of File to download> <Path where you need to keep>
+                      : Download file from docker container to local machine.
+ls instance
+                      : List all cloud instances currently running by user
+ls snapshots
+                      : List all cloud snapshots currently running by user
+delete instances <regex>
+                      : Deletes the instance specified
+delete snapshots <regex>
+                      : Deletes the snapshots specified
+login <instance name>
+                      : Login to the specified instance
 ENDHELP
 }
 
@@ -34,13 +34,23 @@ case $1 in
       init_id
       ;;
     ls)
-      list_user_instances
-      ;;
-    delete_all)
-      delete_user_instances ${2}
+      if [[ $2 == "instances" ]] ; then
+        list_instances
+      elif [[ $2 == "snapshots" ]] ; then
+        list_snapshots
+      else
+        echo "ERROR: invalid second argument $2: It can be either 'instances' or 'snapshots'"
+      fi
       ;;
     delete)
-      delete_instance ${2} ${3}
+      if [[ $2 == "instances" ]] ; then
+        delete_instances ${3} ${4}
+      elif [[ $2 == "snapshots" ]] ; then
+        delete_snapshots ${3} ${4}
+      else
+        echo "ERROR: invalid second argument $2: It can be either 'instances' or 'snapshots'"
+      fi
+
       ;;
     login)
       login_instance ${2}

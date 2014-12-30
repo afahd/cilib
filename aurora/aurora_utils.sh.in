@@ -3,6 +3,12 @@ source aurora_infra_settings.conf
 source ~/.aurora.conf
 source gc_helpers.sh
 
+if [ -z ${gerritid+x} ]; then
+  echo "ERROR: gerritid has not been defined. Please make sure to run aurora init. Exiting"
+  exit
+fi
+
+
 function init_id() {
   conf_file="/home/$USER/.aurora.conf"
   echo "Please enter your gerrit id: "
@@ -50,58 +56,95 @@ function download_from_docker() {
   gcloud compute copy-files "${USER}@${INSTANCE_NAME}:/tmp/$FILE_NAME" ${DESTINATION}
 }
 # *****************************************************************************
-# Function: list_user_instances
+# Function: list_instances
 # Purpose : Lists the cloud instances currently running for the user.
-# Usage   : list_user_instances
+# Usage   : list_instances
 # Prereq: Aurora init has been called.
 # *****************************************************************************
-function list_user_instances() {
+function list_instances() {
+  local file=$(mktemp /tmp/${gerritid}-instance-list-XXXXX)
+
   echo "Listing instances for the user:$gerritid"
-  gcloud compute instances list --regexp "$gerritid.*" --zones "$ZONE"
+  gcloud compute instances list --regexp "$gerritid-.*" > ${file}
+  sed -i "s/${gerritid}-//g" ${file}
+  cat ${file}
+  rm ${file}
 }
 
 # *****************************************************************************
-# Function: delete_instance
-# Purpose : Deletes the cloud instance specified.
-# Usage   : delete_instance <build-id>
+# Function: list_snapshots
+# Purpose : Lists the cloud instances currently running for the user.
+# Usage   : list_instances
 # Prereq: Aurora init has been called.
 # *****************************************************************************
-function delete_instance() {
-  local INSTANCE_NAME=$1
-  if [[ $INSTANCE_NAME == ${gerritid}* ]]; then
-    if [ "$2" != "-f" -a "$2" != "--force" ]; then
-      gcloud compute instances delete $INSTANCE_NAME --delete-disks all
-    else
-      gcloud compute instances delete $INSTANCE_NAME -q --delete-disks all
-    fi
-  else
-    echo "Can't delete, the instance isn't owned by the user:${gerritid}"
-  fi
+function list_snapshots() {
+  local file=$(mktemp /tmp/${gerritid}-snapshot-list-XXXXX)
+
+  echo "Listing instances for the user:$gerritid"
+  gcloud compute snapshots list --regexp "$gerritid-.*" > ${file}
+  sed -i "s/${gerritid}-//g" ${file}
+  cat ${file}
+  rm ${file}
 }
+
 # *****************************************************************************
-# Function: delete_user_instances
+# Function: delete_instances
 # Purpose : Deletes the cloud instances currently running for the user.
 # Usage   : delete_user_instances
 # Prereq: Aurora init has been called.
 # *****************************************************************************
-function delete_user_instances() {
-  local user_instances=$(gcloud compute instances list --regexp "$gerritid.*" --zones "$ZONE" | grep $gerritid | cut -d ' ' -f 1)
+function delete_instances() {
+  local INSTANCE_NAME="${gerritid}-$1"
+  local user_instances=$(gcloud compute instances list --regexp "${INSTANCE_NAME}.*" | grep $gerritid | cut -d ' ' -f 1)
+
   echo "The following instances will be permanently deleted: "
   for instance in $user_instances; do
     echo "$instance"
   done
+
   if [ "$1" != "-f" -a "$1" != "--force" ]; then
     read -r -p "Are you sure you want to continue? (y/N)" response
     response=${response,,}    # tolower
     if [[ $response =~ ^(yes|y)$ ]]; then
-      for instance in $user_instances; do
-        gcloud compute instances delete $instance -q --delete-disks all
-      done
+      echo "Proceeding with delete..."
     else
       exit
     fi
   fi
+  for instance in $user_instances; do
+    gcloud compute instances delete $instance -q --delete-disks all
+  done
 }
+
+# *****************************************************************************
+# Function: delete_instances
+# Purpose : Deletes the cloud instances currently running for the user.
+# Usage   : delete_user_instances
+# Prereq: Aurora init has been called.
+# *****************************************************************************
+function delete_snapshots() {
+  local SNAPSHOT_NAME="${gerritid}-$1"
+  local user_snapshots=$(gcloud compute snapshots list --regexp "${SNAPSHOT_NAME}.*" | grep $gerritid | cut -d ' ' -f 1)
+
+  echo "The following instances will be permanently deleted: "
+  for snapshot in $user_snapshots; do
+    echo "$snapshot"
+  done
+
+  if [ "$1" != "-f" -a "$1" != "--force" ]; then
+    read -r -p "Are you sure you want to continue? (y/N)" response
+    response=${response,,}    # tolower
+    if [[ $response =~ ^(yes|y)$ ]]; then
+      echo "Proceeding with delete..."
+    else
+      exit
+    fi
+  fi
+  for snapshot in $user_snapshots; do
+    gcloud compute snapshots delete $snapshot -q
+  done
+}
+
 
 # *****************************************************************************
 # Function: login_instance
@@ -110,5 +153,6 @@ function delete_user_instances() {
 # Prereq: The instance should exsist.
 # *****************************************************************************
 function login_instance() {
-   run_cmd_docker $1 "bash"
+  local INSTANCE_NAME="${gerritid}-$1"
+  run_cmd_docker ${INSTANCE_NAME} "/bin/bash"
 }

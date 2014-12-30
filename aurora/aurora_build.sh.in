@@ -70,7 +70,7 @@ done
 MOD_REFSPEC=$(echo "$REFSPEC" | tr / -)
 MOD_REFSPEC=${MOD_REFSPEC:13}
 MOD_BRANCH=$(echo "$BRANCH" | tr _ -)
-INSTANCE_NAME=${gerritid}-bld-${MOD_BRANCH}-${PROJECT}-${MOD_REFSPEC}
+INSTANCE_NAME=${gerritid}-bld-${MOD_REFSPEC}
 
 # Describe the possible mappings for branch->component translations
 declare -A branch_to_component
@@ -173,13 +173,14 @@ function build_image() {
     ;;
 
   13)
-    echo "Creating a snapshot of VM"
+    BUILD_ID=`echo ${INSTANCE_NAME} | sed 's/${gerritid}-//'`
+    echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
     gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
     gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${INSTANCE_NAME}-ssd2 > ~/build_d2_snapshot"
     gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${SN_ID} > ~/primary_snapshot"
     gcloud compute disks snapshot ${INSTANCE_NAME}-d1 --snapshot-names ${INSTANCE_NAME}-ssd1
     gcloud compute disks snapshot ${INSTANCE_NAME}-d2 --snapshot-names ${INSTANCE_NAME}-ssd2
-    echo "BUILD-ID = ${INSTANCE_NAME}"
+    echo "BUILD-ID = ${BUILD_ID}"
     ;;
 
   14)
