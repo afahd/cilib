@@ -1,6 +1,6 @@
 #!/bin/bash -e
 source aurora_infra_settings.conf
-source aurora.conf
+source ~/.aurora.conf
 source gc_helpers.sh
 
 function init_id() {
@@ -57,7 +57,7 @@ function download_from_docker() {
 # *****************************************************************************
 function list_user_instances() {
   echo "Listing instances for the user:$gerritid"
-  gcloud compute instances list --regexp $gerritid.* --zones "$ZONE"
+  gcloud compute instances list --regexp "$gerritid.*" --zones "$ZONE"
 }
 
 # *****************************************************************************
@@ -85,7 +85,7 @@ function delete_instance() {
 # Prereq: Aurora init has been called.
 # *****************************************************************************
 function delete_user_instances() {
-  local user_instances=$(gcloud compute instances list --regexp $gerritid.* --zones "$ZONE" | grep $gerritid | cut -d ' ' -f 1)
+  local user_instances=$(gcloud compute instances list --regexp "$gerritid.*" --zones "$ZONE" | grep $gerritid | cut -d ' ' -f 1)
   echo "The following instances will be permanently deleted: "
   for instance in $user_instances; do
     echo "$instance"
