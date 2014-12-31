@@ -264,19 +264,22 @@ function modify_git_config() {
 # *****************************************************************************
 # Function: get_latest_logs
 # Purpose : Gets the latest test logs from docker in a .tar file.
+#           User might run several tests in on the instance, the funtion gets
+#           only the latest results.
 # Usage   : get_latest_logs
 # *****************************************************************************
 function get_latest_logs() {
   local INSTANCE_NAME=$1
-  echo "Donwloading PG logs to local machine"
-  #Get the latest directory created and save it in a file
-  run_cmd_docker ${INSTANCE_NAME} "ls /opt/pg/log -rt | tail -1 > latest_log_dir"
-  gcloud compute copy-files "${INSTANCE_NAME}:/home/plumgrid/latest_log_dir" /tmp/
-  #Extract the directory name from the local file
-  log_dir=$(cat /tmp/latest_log_dir | tr -d '\r')
-  log_dir_base="/opt/pg/log/$log_dir"
+  local log_dir_base
+  echo "Downloading PG logs to local machine"
+  #Get the latest directory created and save it in a file in the cloud instance
+  run_cmd_docker ${INSTANCE_NAME} "ls -rtd /opt/pg/log/*/ | tail -1 > /tmp/latest_log_dir"
+  #Extracting the latest directory name, removing the trailing \r
+  log_dir_base=$(run_cmd_gci ${INSTANCE_NAME} "cat /tmp/latest_log_dir")
+  log_dir_base=$(echo "$log_dir_base" | tr -d '\r')
+  log_dir_base=${log_dir_base%/}
   #tar the directory
-  run_cmd_docker ${INSTANCE_NAME} "/bin/bash -c \'tar -cvf ${log_dir_base}.tar ${log_dir_base}/*\'"
+  run_cmd_docker ${INSTANCE_NAME} "/bin/bash -c \'tar -zcvf ${log_dir_base}.tar ${log_dir_base}\'"
   #Copy the tar file to the local machine
   download_from_docker ${INSTANCE_NAME} $log_dir_base.tar /tmp/${INSTANCE_NAME}-logs.tar
   echo "Logs have been placed at /tmp/${INSTANCE_NAME}-logs.tar"
