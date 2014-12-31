@@ -161,18 +161,24 @@ function build_image() {
     ;;
 
   11)
-    echo "${APT_COMPONENT}==="
-    echo "Starting build-all.sh"
-    run_cmd_docker_sshforwarding ${INSTANCE_NAME} "/bin/bash /home/plumgrid/run_build_all.sh ${APT_COMPONENT}"
+    echo "Starting build-all.sh for ${APT_COMPONENT}==="
+    run_cmd_docker_sshforwarding_bg ${INSTANCE_NAME} "/bin/bash /home/plumgrid/run_build_all.sh ${APT_COMPONENT}" "/tmp/build_all.log"
     ;;
 
   12)
+    # Adding polling as a separate step, so that if the connection broke at the previous step,
+    # this step can be run directly to see if the previous command is still running
+    echo "Polling for build-all (tail \"/tmp/build_all.log\" for complete logs)"
+    run_poll_cmd ${INSTANCE_NAME} "build-all.sh"
+    ;;
+
+  13)
     echo "Making a snapshot for the container"
     run_cmd_gci ${INSTANCE_NAME} "echo \"pg_dev_${INSTANCE_NAME}\" > docker_build_id" "t"
     run_cmd_gci ${INSTANCE_NAME} "sudo docker commit \`cat ./local_docker_id\` pg_dev_${INSTANCE_NAME}:latest"
     ;;
 
-  13)
+  14)
     BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${gerritid}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
     gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
@@ -183,7 +189,7 @@ function build_image() {
     echo "BUILD-ID = ${BUILD_ID}"
     ;;
 
-  14)
+  15)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     gcloud compute instances delete ${INSTANCE_NAME} --delete-disks all  -q
     ;;
@@ -195,9 +201,13 @@ function build_image() {
 }
 
 for MAJOR_STEP in $MAJOR_STEPS; do
+  echo ""
   echo " ====== Starting STEP [$MAJOR_STEP] Number of Steps ::${MINOR_STEPS_ST[$MAJOR_STEP]} -> ${MINOR_STEPS_ED[$MAJOR_STEP]}  ======"
+  echo ""
   for MINOR_STEP in `seq ${MINOR_STEPS_ST[$MAJOR_STEP]} ${MINOR_STEPS_ED[$MAJOR_STEP]}`; do
+    echo ""
     echo "    === Starting STEP [$MAJOR_STEP][$MINOR_STEP] ==="
+    echo ""
     case "$MAJOR_STEP" in
       init)
         echo "Going to call init function"

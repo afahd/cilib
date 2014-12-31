@@ -129,19 +129,24 @@ function run_test() {
 
   9)
     echo "Execute the run-automaton script on docker container"
-    run_cmd_gci_sshforwarding ${INSTANCE_NAME} "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` /bin/bash run_automaton_init.sh"
+    run_cmd_docker_sshforwarding_bg ${INSTANCE_NAME} "/bin/bash run_automaton_init.sh" "/tmp/automaton_init.log"
     ;;
 
   10)
+    echo "Poll the automaton-init cmd (tail \"/tmp/automaton_init.log\" for complete logs)"
+    run_poll_cmd ${INSTANCE_NAME} "automaton-init.sh"
+    ;;
+
+  11)
     upload_to_docker ${INSTANCE_NAME} ${TEST_SCRIPT} /tmp/user_test_script.sh
     run_cmd_docker ${INSTANCE_NAME} "/bin/bash /tmp/user_test_script.sh"
     ;;
 
-  11)
+  12)
     get_latest_logs ${INSTANCE_NAME}
     ;;
 
-  12)
+  13)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     gcloud compute instances delete ${INSTANCE_NAME} --delete-disks all  -q
     ;;

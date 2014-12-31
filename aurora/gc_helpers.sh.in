@@ -58,6 +58,20 @@ function run_cmd_docker_sshforwarding() {
 }
 
 # *****************************************************************************
+# Function: run_cmd_docker
+# Purpose : Ran a command inside docker container
+# Usage   : run_cmd_docker <Instance Name on which docker is running>
+# /_\ Caution: Not tested.
+# *****************************************************************************
+function run_cmd_docker_sshforwarding_bg() {
+  local INSTANCE_NAME=$1
+  local DOCKER_CMD=$2
+  local LOG_FILE=$3
+
+  run_cmd_gci_sshforwarding ${INSTANCE_NAME} "ssh -t -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` \" nohup bash -c '${DOCKER_CMD} > ${LOG_FILE} 2>&1 &' \""
+}
+
+# *****************************************************************************
 # Function: wait_for_instance
 # Purpose : Wait Cloud instance to come up.
 # Usage   : wait_for_instance <cloud_instance_name>
@@ -193,3 +207,35 @@ function get_latest_logs() {
   #Deleting the .tar file
   run_cmd_docker ${INSTANCE_NAME} "/bin/bash -c \'rm $log_dir_base.tar \'"
 }
+
+# ******************************************************************************
+# Function: run_poll_cmd
+# Purpose : Poll the given gcloud command running in the background on the basis
+#           of pid to see if the command is completed. On completion, create an
+#           empty file in /tmp
+# Usage   : run_poll_cmd <cloud_instance_name> <process_to_poll_for> <ssh_flag>
+# ******************************************************************************
+function run_poll_cmd() {
+  local INSTANCE_NAME=$1
+  local process=$2
+  local SSH_FLAGS=${3:-t}
+  local temp_file="/tmp/run_process.txt"
+  local local_file=$(mktemp /tmp/poll_gcloud_cmd-XXXXX.sh)
+
+  # Check that the file to be created at the completion of this command does not already exists
+  if [ -f ${temp_file} ]; then
+    rm ${temp_file}
+  fi
+
+  # Create a script that will constantly poll for the running process and exit only when it has ended
+  cat /dev/null > ${local_file}
+  echo "#!/bin/bash" >> ${local_file}
+  echo "echo \"Waiting for command to finish \"" >> ${local_file}
+  echo "while [[ ! -z \`pidof -x ${process}\` ]]; do echo -n \"..\"; sleep 5; done; echo \"$process completely successfully, exiting\"" >> ${local_file}
+  gcloud compute copy-files ${local_file} $USER@${INSTANCE_NAME}:/tmp
+  rm ${local_file}
+  run_cmd_docker ${INSTANCE_NAME} "'bash -s' < ${local_file}"
+
+}
+
+

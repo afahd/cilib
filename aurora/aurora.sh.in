@@ -62,7 +62,7 @@ case $1 in
       UUID=`uuidgen`
       SUUID_="${UUID##*-}"
       SUUID="${SUUID_,,}"
-      aurora_run.sh -Q run -R 1 -E 11 -B ${2} -T ${3} -U ${SUUID}
+      aurora_run.sh -Q run -R 1 -E 12 -B ${2} -T ${3} -U ${SUUID}
       ;;
     upload_to_docker)
       aurora_utils.sh -Q upload_to_docker -R 4 -E 10 -F $2 -P $3
