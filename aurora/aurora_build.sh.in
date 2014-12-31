@@ -173,7 +173,7 @@ function build_image() {
     ;;
 
   13)
-    BUILD_ID=`echo ${INSTANCE_NAME} | sed 's/${gerritid}-//'`
+    BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${gerritid}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
     gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
     gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${INSTANCE_NAME}-ssd2 > ~/build_d2_snapshot"
