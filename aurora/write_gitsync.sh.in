@@ -12,8 +12,6 @@ project=$3
 refspec=$4
 
 APT_COMPONENT=""
-# List of projects available
-project_list=(pkg pg_cli pg_ui sal alps python-plumgridlib)
 
 # Describe the possible mappings for branch->component translations
 declare -A branch_to_component
@@ -42,7 +40,7 @@ echo ". /opt/pg/env/alps.bashrc" >> ${git_script}
 
 if [[ $branch != "master" ]]; then
   echo "sudo rm -rf /opt/pg/var/www/*" >> ${git_script}
-  for p in ${project_list[@]}; do
+  for p in ${PROJECT_LIST[@]}; do
     echo "cd /home/plumgrid/work/${p}/build && sudo rm -rf *" >> ${git_script}
   done
 fi
@@ -58,7 +56,7 @@ echo "cd /home/plumgrid/work/iovisor/bld && make -j4 -k && sudo make install" >>
 
 
 ## Checkout the requested branch on all the projects
-for p in ${project_list[@]}; do
+for p in ${PROJECT_LIST[@]}; do
   modify_git_config "${p}" "${gerritid}" "${git_script}"
   echo "cd /home/plumgrid/work/${p} && git reset --hard && git checkout ${branch}" >> ${git_script}
   echo "cd /home/plumgrid/work/${p}/build && export APT_COMPONENT=${APT_COMPONENT} && cmake .." >> ${git_script}
@@ -67,6 +65,6 @@ done
 echo "cd /home/plumgrid/work/pkg/scripts && sed -i \"/export APT_REPO_HOST/ c\export APT_REPO_HOST=127.0.0.1 && export APT_COMPONENT=${APT_COMPONENT}\" build-all.sh" >> $git_script
 
 ## Checkout the request commit in the request project
-echo "cd /home/plumgrid/work/${project} && git fetch ssh://${gerritid}@192.168.10.77:29418/${project} ${refspec} && git checkout FETCH_HEAD" >> $git_script
+echo "cd /home/plumgrid/work/${project} && git fetch ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/${project} ${refspec} && git checkout FETCH_HEAD" >> $git_script
 echo "cd /home/plumgrid/work/${project}/build && export APT_COMPONENT=${APT_COMPONENT} && cmake .." >> ${git_script}
 

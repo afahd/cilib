@@ -78,12 +78,14 @@ function run_cmd_docker_sshforwarding_bg() {
 # *****************************************************************************
 function wait_for_instance() {
   local INSTANCE_NAME=$1
+  local RESULT=1
   for i in `seq 1 60`;
     do
       echo "Trying to ssh to ${INSTANCE_NAME} Iteration [$i]"
-      gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag='-t' --ssh-flag="-o ServerAliveInterval=5" --command "ls" >> /tmp/build_image.2.log 2>&1  && break
+      gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag='-t' --ssh-flag="-o ServerAliveInterval=5" --command "ls" >> /tmp/build_image.2.log 2>&1  && RESULT=0 && break
       sleep 1
     done
+  return $RESULT
 }
 
 # *****************************************************************************
@@ -92,7 +94,7 @@ function wait_for_instance() {
 # *****************************************************************************
 function check_ssh_server_status() {
   local INSTANCE_NAME=$1
-
+  local RESULT=1
   echo "check if ssh server is up and running"
   if [ -z "$SSH_AUTH_SOCK" ] ; then
     echo "running ssh-add"
@@ -103,9 +105,10 @@ function check_ssh_server_status() {
   for i in `seq 1 60`;
     do
       echo "Trying to ssh to ${DOCK_NAME} Iteration [$i]"
-      gcloud compute -q ssh  ${USER}@${INSTANCE_NAME} --ssh-flag='-tA' --ssh-flag="-o ServerAliveInterval=5" --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ls" >> /tmp/build_image.3.log  2>&1 && break
+      gcloud compute -q ssh  ${USER}@${INSTANCE_NAME} --ssh-flag='-tA' --ssh-flag="-o ServerAliveInterval=5" --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ls" >> /tmp/build_image.3.log  2>&1 && RESULT=0 && break
       sleep 1
     done
+  return $RESULT
 }
 
 # *****************************************************************************
@@ -291,4 +294,114 @@ function create_snapshot {
     sleep 30
   done
 }
+# *****************************************************************************
+# Function: cleanup
+# Purpose : Cleans up the instances and disks in case of failure.
+# Usage   : cleanup
+# Prereq  :
+# *****************************************************************************
+function cleanup() {
+  delete_instances ${INSTANCE_NAME} -f
+}
 
+# *****************************************************************************
+# Function: tryexec
+# Purpose : Try to execute a command. If the command returns success, this
+#           function returns 0. Otherwise, the script is aborted with the status
+#           code of the failed command.
+# Usage   : tryexec <command>
+# Prereq  :
+# *****************************************************************************
+function tryexec() {
+  local retval=0;
+  "$@" || retval=$?
+  [[ $retval -eq 0 ]] && return 0
+
+  echo 'A command has failed:'
+  echo "  $@"
+  echo "Value returned: ${retval}"
+  echo "$(basename $0) Failed, do you want to cleanup the instances?"
+  read -r -p "Are you sure you want to continue? (y/N)" response
+    response=${response,,}    # tolower
+    if [[ $response =~ ^(yes|y)$ ]]; then
+      echo "Proceeding with cleanup..."
+      cleanup
+      exit $retval
+    else
+      exit $retval
+    fi
+}
+# *****************************************************************************
+# Function: check_build_inputs
+# Purpose : Checks if the inputs provided to aurora build are correct.
+# Usage   : check_build_inputs <PROJECT> <REFSPEC> <BRANCH>
+# Prereq  :
+# *****************************************************************************
+function check_build_inputs() {
+  local PROJECT=$1
+  local REFSPEC=$2
+  local BRANCH=$3
+  local RESULT=1
+  echo "Validating Inputs"
+  #Check project name
+  local project_list=$(ssh -p ${GERRIT_PORT} ${gerritid}@${GERRIT_IP} gerrit ls-projects)
+  for project_name in ${project_list}; do
+    echo "${project_name}"
+    if [[ $project_name =~ $PROJECT ]]; then
+      RESULT=0
+      break
+    fi
+  done
+
+  if [[ $RESULT -eq 1 ]]; then
+    echo "Invalid project name: ${PROJECT}"
+    exit 1
+  fi
+
+  #Check refspec format
+  if [[ ! $REFSPEC =~ ^refs/changes/[0-9]+/[0-9]+/[0-9]+$ ]]; then
+    echo "ERROR: Invalid refspec format"
+    exit 1
+  fi
+  #Check if refespec exists for the project
+  git ls-remote ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/${PROJECT} "${REFSPEC}" | grep "${REFSPEC}" || RESULT=$?
+  if [[ $RESULT -ne 0 ]];then
+    echo "Refspec: $REFSPEC does not exist for the project: ${PROJECT}"
+    exit 1
+  fi
+  #Check if branch exists
+  git ls-remote ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/${PROJECT} "${BRANCH}" | grep "${BRANCH}" || RESULT=$?
+    if [[ $RESULT -ne 0 ]];then
+    echo "Branch: $BRANCH does not exist for the project: ${PROJECT}"
+    exit 1
+  fi
+}
+# *****************************************************************************
+# Function: check_run_inputs
+# Purpose : Checks if the inputs provided to aurora run are correct.
+# Usage   : check_run_inputs <BUILDID> <TESTNAME>
+# Prereq  :
+# *****************************************************************************
+function check_run_inputs() {
+  local BUILDID=$1
+  local TESTNAME=$2
+  local RESULT
+
+  echo "Validating inputs"
+  gcloud compute snapshots list ${BUILDID}-ssd1 | grep "${BUILDID}-ssd1" || RESULT=$?
+  if [[ $RESULT -ne 0 ]];then
+    echo "Snapshot ${BUILDID}-ssd1 does not exist, wrong Build-ID"
+    exit 1
+  fi
+
+  gcloud compute snapshots list ${BUILDID}-ssd2 | grep "${BUILDID}-ssd2" || RESULT=$?
+  if [[ $RESULT -ne 0 ]];then
+    echo "Snapshot ${BUILDID}-ssd2 does not exist, wrong Build-ID"
+    exit 1
+  fi
+
+  if [ ! -f "$TESTNAME" ]; then
+    echo "Test file not found!"
+    exit 1
+  fi
+}

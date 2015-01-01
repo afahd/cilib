@@ -2,6 +2,23 @@
 export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
 . aurora_utils.sh
 
+# *****************************************************************************
+# Function: check_parameters
+# Purpose : Checks if the number of parameters are equal/greater than a number.
+# Usage   : check_parameters <parameters-passed> <value to check against>
+# Prereq  :
+# *****************************************************************************
+function check_parameters() {
+  local ARGUMENTS_REQUIRED=${@: -1}
+  #Need to add one argument since 'ARGUMENTS_REQUIRED' is also an argument
+  ARGUMENTS_REQUIRED=$(($ARGUMENTS_REQUIRED+1))
+  if [ "$#" -lt $ARGUMENTS_REQUIRED ]; then
+    echo "Wrong number of arguments"
+    show_help
+    exit 1
+  fi
+}
+
 function show_help() {
     cat << ENDHELP
 init                        : Setup aurora environment
@@ -9,17 +26,17 @@ build <Gerrit-RefSpec> <Project> <Branch>
                       : Build a new image with given COMMIT-ID/TAG/LOCAL-CHANGES.
 run <Build ID> <Test Script>
                       :  Run test script on cloud instance with aurora BUILD-ID.
-upload_to_docker <File To Upload> <Destination Path>
+upload <Instance Name> <File To Upload> <Destination Path>
                       : Upload some local file to docker container.
-download_from_docker <Location of File to download> <Path where you need to keep>
+download <Instance Name> <Location of File to download> <Path where you need to keep>
                       : Download file from docker container to local machine.
 ls instance
                       : List all cloud instances currently running by user
 ls snapshots
                       : List all cloud snapshots currently running by user
-delete instances <regex>
+delete instances <regex> <-f, --force>
                       : Deletes the instance specified
-delete snapshots <regex>
+delete snapshots <regex> <-f, --force>
                       : Deletes the snapshots specified
 login <instance name>
                       : Login to the specified instance
@@ -31,9 +48,11 @@ case $1 in
         show_help
       ;;
     init)
+      check_parameters $@ 1
       init_id
       ;;
     ls)
+      check_parameters $@ 2
       if [[ $2 == "instances" ]] ; then
         list_instances
       elif [[ $2 == "snapshots" ]] ; then
@@ -43,6 +62,7 @@ case $1 in
       fi
       ;;
     delete)
+      check_parameters $@ 3
       if [[ $2 == "instances" ]] ; then
         delete_instances ${3} ${4}
       elif [[ $2 == "snapshots" ]] ; then
@@ -53,22 +73,27 @@ case $1 in
 
       ;;
     login)
+      check_parameters $@ 2
       login_instance ${2}
       ;;
     build)
+      check_parameters $@ 4
       aurora_build.sh -Q build -R 1 -E 14 -G ${2} -P ${3} -B ${4}
       ;;
     run)
+      check_parameters $@ 3
       UUID=`uuidgen`
       SUUID_="${UUID##*-}"
       SUUID="${SUUID_,,}"
       aurora_run.sh -Q run -R 1 -E 12 -B ${2} -T ${3} -U ${SUUID}
       ;;
-    upload_to_docker)
-      aurora_utils.sh -Q upload_to_docker -R 4 -E 10 -F $2 -P $3
+    upload)
+      check_parameters $@ 4
+      upload_to_docker ${2} ${3} ${4}
     ;;
-    download_from_docker)
-      aurora_utils.sh -Q download_from_docker -R 1 -E 2 -F $2 -P $3
+    download)
+      check_parameters $@ 4
+      download_from_docker ${2} ${3} ${4}
     ;;
     *)
         echo "USAGE:"

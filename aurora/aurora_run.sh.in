@@ -66,6 +66,7 @@ if [ -z ${SUUID+x} ]; then
 fi
 
 BUILD_ID=${gerritid}-${USER_BUILD_ID}
+check_run_inputs $BUILD_ID $TEST_SCRIPT
 INSTANCE_NAME=`echo ${BUILD_ID}-${SUUID} | sed 's/bld/run/'`
 # TODO: Get the latest snapshot id and use that in below variables
 DOCK_NAME="pg_dev_${BUILD_ID}:latest"
@@ -76,15 +77,15 @@ function run_test() {
   case "$step" in
   1)
     echo "Creating the disk[${INSTANCE_NAME}-d1] and [${INSTANCE_NAME}-d2] for the instance in the cloud from ${BUILD_ID}"
-    gcloud -q --verbosity error compute disks create "${INSTANCE_NAME}-d1" \
+    tryexec gcloud -q --verbosity error compute disks create "${INSTANCE_NAME}-d1" \
       --source-snapshot "${BUILD_ID}-ssd1" --type "pd-standard" --size="$DISK1_SIZE"
-    gcloud -q --verbosity error compute disks create "${INSTANCE_NAME}-d2" \
+    tryexec gcloud -q --verbosity error compute disks create "${INSTANCE_NAME}-d2" \
       --source-snapshot "${BUILD_ID}-ssd2" --type "pd-standard" --size="$DISK2_SIZE"
     ;;
 
   2)
     echo "Creating the instance[$INSTANCE_NAME] in the cloud"
-    gcloud -q --verbosity error compute instances create "${INSTANCE_NAME}" \
+    tryexec gcloud -q --verbosity error compute instances create "${INSTANCE_NAME}" \
       --machine-type "$MACHINETYPE" --network "net-10-10" --maintenance-policy \
       "MIGRATE" --scopes "https://www.googleapis.com/auth/devstorage.read_only" \
       --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
@@ -93,62 +94,62 @@ function run_test() {
 
   3)
     echo "Waiting for the machine to boot up and allow ssh access"
-    wait_for_instance ${INSTANCE_NAME}
+    tryexec wait_for_instance ${INSTANCE_NAME}
     ;;
 
   4)
     echo "starting the pgdev container ${DOCK_NAME}"
-    run_dock_container ${INSTANCE_NAME} ${DOCK_NAME} "./local_docker_id" "./local_docker_ip"
+    tryexec run_dock_container ${INSTANCE_NAME} ${DOCK_NAME} "./local_docker_id" "./local_docker_ip"
     ;;
 
   5)
     echo "Copy build-instance key to pgdev container"
     #run_cmd_gci ${INSTANCE_NAME} "ssh-keygen -t rsa -N \"\" -f ~/.ssh/id_rsa"
-    run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat /home/$USER/.ssh/id_rsa.pub >> \
+    tryexec run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat /home/$USER/.ssh/id_rsa.pub >> \
       /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
     ;;
 
   6)
     echo "Copy local key to pgdev container"
-    gcloud compute copy-files ~/.ssh/id_rsa.pub ${USER}@${INSTANCE_NAME}:./auth-key.pub
-    run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat /home/$USER/auth-key.pub >> \
+    tryexec gcloud compute copy-files ~/.ssh/id_rsa.pub ${USER}@${INSTANCE_NAME}:./auth-key.pub
+    tryexec run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat /home/$USER/auth-key.pub >> \
       /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
     ;;
 
   7)
-    check_ssh_server_status ${INSTANCE_NAME}
+    tryexec check_ssh_server_status ${INSTANCE_NAME}
     ;;
 
   8)
     # This is here only untill https://gerrit:8443/#/c/10751/ gets merged.
     echo "Execute the pre run-automaton on docker container"
     echo "sed -i '/restart_lxc lvm/a tryexec lxc-attach -n lvm -- /bin/bash -c \"echo 'NOZEROCONF=true' >> /etc/sysconfig/network\"' /opt/pg/systest/lxc/automaton/automaton-helpers.sh" > /tmp/zeroconf.sh
-    upload_to_docker ${INSTANCE_NAME} /tmp/zeroconf.sh /tmp/zeroconf.sh
-    run_cmd_docker ${INSTANCE_NAME} "/bin/bash /tmp/zeroconf.sh"
+    tryexec upload_to_docker ${INSTANCE_NAME} /tmp/zeroconf.sh /tmp/zeroconf.sh
+    tryexec run_cmd_docker ${INSTANCE_NAME} "/bin/bash /tmp/zeroconf.sh"
     ;;
 
   9)
     echo "Execute the run-automaton script on docker container"
-    run_cmd_docker_sshforwarding_bg ${INSTANCE_NAME} "/bin/bash run_automaton_init.sh" "/tmp/automaton_init.log"
+    tryexec run_cmd_docker_sshforwarding_bg ${INSTANCE_NAME} "/bin/bash run_automaton_init.sh" "/tmp/automaton_init.log"
     ;;
 
   10)
     echo "Poll the automaton-init cmd (tail \"/tmp/automaton_init.log\" for complete logs)"
-    run_poll_cmd ${INSTANCE_NAME} "automaton-init.sh"
+    tryexec run_poll_cmd ${INSTANCE_NAME} "automaton-init.sh"
     ;;
 
   11)
-    upload_to_docker ${INSTANCE_NAME} ${TEST_SCRIPT} /tmp/user_test_script.sh
-    run_cmd_docker ${INSTANCE_NAME} "/bin/bash /tmp/user_test_script.sh"
+    tryexec upload_to_docker ${INSTANCE_NAME} ${TEST_SCRIPT} /tmp/user_test_script.sh
+    tryexec run_cmd_docker ${INSTANCE_NAME} "/bin/bash /tmp/user_test_script.sh"
     ;;
 
   12)
-    get_latest_logs ${INSTANCE_NAME}
+    tryexec get_latest_logs ${INSTANCE_NAME}
     ;;
 
   13)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
-    gcloud compute instances delete ${INSTANCE_NAME} --delete-disks all  -q
+    tryexec gcloud compute instances delete ${INSTANCE_NAME} --delete-disks all  -q
     ;;
 
   *)

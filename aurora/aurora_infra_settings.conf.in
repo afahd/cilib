@@ -13,3 +13,6 @@ SNAP1=plumgrid-builder-v2-d1-${SN_ID}
 SNAP2=plumgrid-builder-v2-d2-${SN_ID}
 DOCK_NAME=pg-docker-repo:5000/pg_dev:${SN_ID}
 VERBOSITY=error
+GERRIT_IP=192.168.10.77
+GERRIT_PORT=29418
+PROJECT_LIST=(pkg pg_cli pg_ui sal alps python-plumgridlib)
