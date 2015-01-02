@@ -238,4 +238,57 @@ function run_poll_cmd() {
 
 }
 
+# *****************************************************************************
+# Function: create_snapshot
+# Purpose : Creates a snapshot from disk.
+#           After issuing the request for snapshot creation, it will start
+#           polling that whether creation is successfull or not? If unsuccessful
+#           for 450 seconds, then another request will be issued for creation.
+#           Function also handles the situation where "false alarm" of error
+#           is raised by system.
+# Usage   : create_snapshot <diskname> <snapshotname>
+# *****************************************************************************
+function create_snapshot {
+  local DISK_NAME=$1
+  local SNAPSHOT_NAME=$2
+  local success=0
+  local retval=0
+  # Check if snapshot already exists
+  gcloud compute snapshots list ${SNAPSHOT_NAME} | grep "${SNAPSHOT_NAME}" || retval=$?
+  if [ $retval -eq 0 ]; then
+    echo "Snapshot already exists"
+    exit 1
+  fi
+
+  for i in `seq 1 5`;
+  do
+    echo "Try-$i: Request for snapshot creation"
+    # Issue snapshot creation command.
+    retval=0
+    gcloud compute disks snapshot ${DISK_NAME} --snapshot-names ${SNAPSHOT_NAME} || retval=$?
+    if [ $retval -eq 0 ]; then
+      return 0;
+    fi
+    for j in `seq 1 15`;
+    do
+      echo "$j: checking snapshot ${SNAPSHOT_NAME} creation...."
+      # Make sure snapshot is in READY state (not in UPLOADING or anyother state).
+      retval=0
+      gcloud compute snapshots list ${SNAPSHOT_NAME} | grep "${SNAPSHOT_NAME}" | grep "READY"|| retval=$?
+      if [ $retval -eq 0 ]; then
+        success=1
+        break
+      fi
+      sleep 1
+    done
+
+    # Check whether Snapshot creation remains successfull? If so, then exit from loop.
+    # Otherwise, issue a fresh request for it.
+    if [ ${success} -eq 1 ]; then
+      echo "SNAPSHOT:${SNAPSHOT_NAME} creation successful: exiting outer loop"
+      return 0
+    fi
+    sleep 30
+  done
+}
 

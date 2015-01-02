@@ -184,8 +184,8 @@ function build_image() {
     gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
     gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${INSTANCE_NAME}-ssd2 > ~/build_d2_snapshot"
     gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${SN_ID} > ~/primary_snapshot"
-    gcloud compute disks snapshot ${INSTANCE_NAME}-d1 --snapshot-names ${INSTANCE_NAME}-ssd1
-    gcloud compute disks snapshot ${INSTANCE_NAME}-d2 --snapshot-names ${INSTANCE_NAME}-ssd2
+    create_snapshot ${INSTANCE_NAME}-d1 ${INSTANCE_NAME}-ssd1
+    create_snapshot ${INSTANCE_NAME}-d2 ${INSTANCE_NAME}-ssd2
     echo "BUILD-ID = ${BUILD_ID}"
     ;;
 
