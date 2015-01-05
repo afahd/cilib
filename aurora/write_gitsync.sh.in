@@ -5,6 +5,7 @@
 
 . gc_helpers.sh
 source /home/$USER/.aurora.conf
+source aurora_infra_settings.conf
 
 git_script=$1
 branch=$2
