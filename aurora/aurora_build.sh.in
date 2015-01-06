@@ -14,6 +14,7 @@ SNAP2=plumgrid-builder-v1-d2-${SN_ID}
 DOCK_NAME=pg-docker-repo:5000/pg_dev:${SN_ID}
 
 # TODO: Make a decision about machine type and Disk sizes.
+# TODO: Use values from aurora_settings.conf file
 MACHINETYPE="n1-standard-4"
 DISK1_SIZE=10
 DISK2_SIZE=200
@@ -50,13 +51,14 @@ exit 0
 # Parsing arguments
 while [[ $# -gt 0 ]]; do
   case "$1" in
-     -c|--cleanup ) CLEANUP=1;  ;;
+     -c| --cleanup ) CLEANUP=1;  ;;
      -Q| --major ) MAJOR_STEPS="$2"; TMP_MAJOR="$2"; shift ;;
      -R| --minor_st ) MINOR_STEPS_ST[$TMP_MAJOR]="$2"; shift ;;
      -E| --minor_end ) MINOR_STEPS_ED[$TMP_MAJOR]="$2"; shift ;;
      -G| --gerrit_refspec ) REFSPEC=$2; shift ;;
      -B| --branch ) BRANCH=$2; shift ;;
      -P| --project ) PROJECT=$2; shift ;;
+     -I| --instance_name ) INSTANCE_NAME=$2; shift ;;
      -O| --stop ) STOP=1; ;;
      -h | --help ) usage; ;;
     -- ) shift; break ;;
@@ -66,12 +68,6 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
-
-check_build_inputs $PROJECT $REFSPEC $BRANCH
-MOD_REFSPEC=$(echo "$REFSPEC" | tr / -)
-MOD_REFSPEC=${MOD_REFSPEC:13}
-MOD_BRANCH=$(echo "$BRANCH" | tr _ -)
-INSTANCE_NAME=${gerritid}-bld-${MOD_REFSPEC}
 
 # Describe the possible mappings for branch->component translations
 declare -A branch_to_component
@@ -103,6 +99,7 @@ function build_image() {
       --source-snapshot "${SNAP1}" --type "pd-standard" --size="$DISK1_SIZE"
     tryexec gcloud -q --verbosity ${VERBOSITY} compute disks create "${INSTANCE_NAME}-d2" \
       --source-snapshot "${SNAP2}" --type "pd-standard" --size="$DISK2_SIZE"
+    record_step $step
     ;;
 
   2)
@@ -112,21 +109,25 @@ function build_image() {
       "MIGRATE" --scopes "https://www.googleapis.com/auth/devstorage.read_only" \
       --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
       --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes"
+    record_step $step
     ;;
 
   3)
     echo "Waiting for the machine to boot up and allow ssh access"
     wait_for_instance ${INSTANCE_NAME}
+    record_step $step
     ;;
 
   4)
     echo "setting up forward on ${INSTANCE_NAME} Machine "
     tryexec run_cmd_gci ${INSTANCE_NAME} "echo 'host *' > ~/.ssh/config; echo '    ForwardAgent yes'>>~/.ssh/config"
+    record_step $step
     ;;
 
   5)
     echo "starting the pgdev container"
     tryexec run_dock_container ${INSTANCE_NAME} ${DOCK_NAME} "./local_docker_id" "./local_docker_ip"
+    record_step $step
     ;;
 
   6)
@@ -134,6 +135,7 @@ function build_image() {
     tryexec run_cmd_gci ${INSTANCE_NAME} "ssh-keygen -t rsa -N \"\" -f ~/.ssh/id_rsa"
     tryexec run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat /home/$USER/.ssh/id_rsa.pub >> \
       /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
+    record_step $step
     ;;
 
   7)
@@ -141,10 +143,12 @@ function build_image() {
     tryexec gcloud compute copy-files ~/.ssh/id_rsa.pub ${USER}@${INSTANCE_NAME}:./auth-key.pub
     tryexec run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat /home/$USER/auth-key.pub >> \
       /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
+    record_step $step
     ;;
 
   8)
     tryexec check_ssh_server_status ${INSTANCE_NAME}
+    record_step $step
     ;;
 
   9)
@@ -152,18 +156,20 @@ function build_image() {
     echo "Generate script for syncing the gerrit repo"
     tryexec write_gitsync.sh "${GIT_SYNC_SCRIPT}" "${BRANCH}" "${PROJECT}" "${REFSPEC}"
     tryexec upload_to_docker ${INSTANCE_NAME} ${GIT_SYNC_SCRIPT} /tmp/
+    record_step $step
     ;;
 
   10)
-    # TODO: Write a helper function run_cmd_docker
     echo "Execute the gitsynch script on docker container"
     tryexec check_ssh_server_status ${INSTANCE_NAME}
     tryexec run_cmd_docker_sshforwarding ${INSTANCE_NAME} "bash ${GIT_SYNC_SCRIPT}"
+    record_step $step
     ;;
 
   11)
     echo "Starting build-all.sh for ${APT_COMPONENT}==="
     tryexec run_cmd_docker_sshforwarding_bg ${INSTANCE_NAME} "/bin/bash /home/plumgrid/run_build_all.sh ${APT_COMPONENT}" "/tmp/build_all.log"
+    record_step $step
     ;;
 
   12)
@@ -171,12 +177,14 @@ function build_image() {
     # this step can be run directly to see if the previous command is still running
     echo "Polling for build-all (tail \"/tmp/build_all.log\" for complete logs)"
     run_poll_cmd ${INSTANCE_NAME} "build-all.sh"
+    record_step $step
     ;;
 
   13)
     echo "Making a snapshot for the container"
     tryexec run_cmd_gci ${INSTANCE_NAME} "echo \"pg_dev_${INSTANCE_NAME}\" > docker_build_id" "t"
     tryexec run_cmd_gci ${INSTANCE_NAME} "sudo docker commit \`cat ./local_docker_id\` pg_dev_${INSTANCE_NAME}:latest"
+    record_step $step
     ;;
 
   14)
@@ -188,11 +196,13 @@ function build_image() {
     create_snapshot ${INSTANCE_NAME}-d1 ${INSTANCE_NAME}-ssd1
     create_snapshot ${INSTANCE_NAME}-d2 ${INSTANCE_NAME}-ssd2
     echo "BUILD-ID = ${BUILD_ID}"
+    record_step $step
     ;;
 
   15)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec gcloud compute instances delete ${INSTANCE_NAME} --delete-disks all  -q
+    record_step $step
     ;;
 
   *)

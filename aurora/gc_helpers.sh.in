@@ -1,5 +1,16 @@
 #!/bin/bash -e
 export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
+source aurora_infra_settings.conf
+
+function init_id() {
+  conf_file="/home/$USER/.aurora.conf"
+  echo "Please enter your gerrit id: "
+  read gerritid
+  echo "gerritid=${gerritid}" > ${conf_file}
+  gcloud config set project $PROJECT
+  gcloud config set compute/zone $ZONE
+  gcloud config set compute/region $REGION
+}
 
 # *****************************************************************************
 # Function: run_cmd_gci
@@ -10,6 +21,7 @@ function run_cmd_gci() {
   local INSTANCE_NAME=$1
   local CMD=$2
   local SSH_FLAGS=${3:-t}
+  #echo "gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag=\"-${SSH_FLAGS}\" --ssh-flag=\"-o ServerAliveInterval=5\" --command \"$CMD\""
   gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag="-${SSH_FLAGS}" --ssh-flag="-o ServerAliveInterval=5" --command "$CMD"
 }
 
@@ -222,13 +234,7 @@ function run_poll_cmd() {
   local INSTANCE_NAME=$1
   local process=$2
   local SSH_FLAGS=${3:-t}
-  local temp_file="/tmp/run_process.txt"
   local local_file=$(mktemp /tmp/poll_gcloud_cmd-XXXXX.sh)
-
-  # Check that the file to be created at the completion of this command does not already exists
-  if [ -f ${temp_file} ]; then
-    rm ${temp_file}
-  fi
 
   # Create a script that will constantly poll for the running process and exit only when it has ended
   cat /dev/null > ${local_file}
@@ -404,4 +410,8 @@ function check_run_inputs() {
     echo "Test file not found!"
     exit 1
   fi
+}
+
+function record_step() {
+  echo $1 > /tmp/${INSTANCE_NAME}-last-successful-step
 }

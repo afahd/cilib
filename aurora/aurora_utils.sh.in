@@ -1,23 +1,13 @@
 #!/bin/bash -e
 source aurora_infra_settings.conf
-source ~/.aurora.conf
 source gc_helpers.sh
+source /home/$USER/.aurora.conf
 
 if [ -z ${gerritid+x} ]; then
   echo "ERROR: gerritid has not been defined. Please make sure to run aurora init. Exiting"
   exit
 fi
 
-
-function init_id() {
-  conf_file="/home/$USER/.aurora.conf"
-  echo "Please enter your gerrit id: "
-  read gerritid
-  echo "gerritid=${gerritid}" > ${conf_file}
-  gcloud config set project $PROJECT
-  gcloud config set compute/zone $ZONE
-  gcloud config set compute/region $REGION
-}
 # ***********************************************************************************
 # Function: upload_to_docker
 # Purpose : Upload a file/folder from your local machine to Docker container
@@ -98,6 +88,7 @@ function delete_instances() {
   local INSTANCE_NAME="${gerritid}-$1"
   local user_instances=$(gcloud compute instances list --regexp "${INSTANCE_NAME}.*" | grep $gerritid | cut -d ' ' -f 1)
 
+  # TODO: Print message if no instance matches with given criteria and exit
   echo "The following instances will be permanently deleted: "
   for instance in $user_instances; do
     echo "$instance"
@@ -158,4 +149,63 @@ function login_instance() {
   run_cmd_docker ${INSTANCE_NAME} "/bin/bash"
 }
 
+function run_aurora_build() {
+  local REFSPEC=$1
+  local PROJ=$2
+  local BRANCH=$3
+  local START_STEP=1
+  local END_STEP=15
+  local MOD_REFSPEC=$(echo "$REFSPEC" | tr / -)
+  MOD_REFSPEC=${MOD_REFSPEC:13}
+  local INSTANCE_NAME=${gerritid}-bld-${MOD_REFSPEC}
+  local step_rec_file=/tmp/${INSTANCE_NAME}-last-successful-step
+
+  # If "continue" switch has been given then do following steps
+  #   a. Get the last successfully completed step.
+  #   b. Start the build process from step next to last completed step.
+  if [[ $4 == "--continue" ]] ; then
+    # Get the last successfull step from /tmp/${INSTANCE_NAME}-last-successful-step
+    LAST_SUCCESSFULL_STEP=( $(<${step_rec_file}) )
+    START_STEP=$((LAST_SUCCESSFULL_STEP+1))
+  fi
+  aurora_build.sh -Q build -R ${START_STEP} -E ${END_STEP} -G ${REFSPEC} -P ${PROJ} -B ${BRANCH} -I ${INSTANCE_NAME}
+
+  # Build process has been completed. Delete the file which was used to record the steps.
+  rm -r ${step_rec_file}
+}
+
+function run_aurora_run() {
+  local USER_BUILD_ID=$1
+  local TEST_SCRIPT=$2
+  local START_STEP=1
+  local END_STEP=13
+  local UUID=`uuidgen`
+  local SUUID_="${UUID##*-}"
+  SUUID="${SUUID_,,}"
+
+  BUILD_ID=${gerritid}-${USER_BUILD_ID}
+  local INSTANCE_NAME=`echo ${BUILD_ID}-${SUUID} | sed 's/bld/run/'`
+  local step_rec_file=/tmp/${INSTANCE_NAME}-last-successful-step
+
+  # If "continue" switch has been given then do following steps
+  #   a. Get the RUN-ID provided by user.
+  #   b. Get the last successfully completed step.
+  #   c. Start the run process from step next to last completed step.
+  if [[ $3 == "--continue" ]] ; then
+    # User must give the run-id(SUUID generated during first time execution of run process.)
+    # along with continue such that we can know that which "aurora run" he needs to resume.
+    # TODO: Exit if user does not give the run-id.
+    if [ -z ${var+x} ]; then
+      echo "Please provide the RUN-ID which you want to continue e.g. f82ba2b78256"
+      exit
+    fi
+
+    RUNID=$4
+    INSTANCE_NAME=`echo ${BUILD_ID}-${RUNID} | sed 's/bld/run/'`
+    local step_rec_file=/tmp/${INSTANCE_NAME}-last-successful-step
+    LAST_SUCCESSFULL_STEP=( $(<${step_rec_file}) )
+    START_STEP=$((LAST_SUCCESSFULL_STEP+1))
+  fi
+  aurora_run.sh -Q run -R ${START_STEP} -E ${END_STEP} -B ${BUILD_ID} -T ${TEST_SCRIPT} -U ${SUUID} -I ${INSTANCE_NAME}
+}
 
