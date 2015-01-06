@@ -137,23 +137,30 @@ function run_test() {
     ;;
 
   10)
-    echo "Poll the automaton-init cmd (tail \"/tmp/automaton_init.log\" for complete logs)"
-    tryexec run_poll_cmd ${INSTANCE_NAME} "automaton-init.sh"
+    echo "Poll the automaton-init cmd (tailing \"/tmp/automaton_init.log\" for complete logs)"
+    tryexec run_poll_cmd ${INSTANCE_NAME} "run_automaton_init.sh" "/tmp/automaton_init.log"
     record_step $step
     ;;
 
   11)
     tryexec upload_to_docker ${INSTANCE_NAME} ${TEST_SCRIPT} /tmp/user_test_script.sh
-    tryexec run_cmd_docker ${INSTANCE_NAME} "/bin/bash /tmp/user_test_script.sh"
+    # tryexec is not needed because test can fail as well
+    run_cmd_docker_bg ${INSTANCE_NAME} "/bin/bash /tmp/user_test_script.sh" "/tmp/test.logs"
     record_step $step
     ;;
 
   12)
-    tryexec get_latest_logs ${INSTANCE_NAME}
+    echo "Poll the test logs (tailing \"/tmp/test.log\")"
+    tryexec run_poll_cmd ${INSTANCE_NAME} "/tmp/user_test_script.sh" "/tmp/test.logs"
     record_step $step
     ;;
 
   13)
+    tryexec get_latest_logs ${INSTANCE_NAME}
+    record_step $step
+    ;;
+
+  14)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec gcloud compute instances delete ${INSTANCE_NAME} --delete-disks all  -q
     record_step $step

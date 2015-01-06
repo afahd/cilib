@@ -10,6 +10,10 @@ function init_id() {
   gcloud config set project $PROJECT
   gcloud config set compute/zone $ZONE
   gcloud config set compute/region $REGION
+
+  ## Set the SSH keys for google compute cloud engine
+  echo "Generate the ssh-keys for Google compute cloud engine."
+  ssh-keygen -N "" -t rsa -f $HOME/.ssh/google_compute_engine
 }
 
 # *****************************************************************************
@@ -54,6 +58,21 @@ function run_cmd_docker() {
   local DOCKER_CMD=$2
 
   run_cmd_gci ${INSTANCE_NAME} "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ${DOCKER_CMD}"
+}
+
+
+# *****************************************************************************
+# Function: run_cmd_docker
+# Purpose : Ran a command inside docker container
+# Usage   : run_cmd_docker <Instance Name on which docker is running>
+# /_\ Caution: Not tested.
+# *****************************************************************************
+function run_cmd_docker_bg() {
+  local INSTANCE_NAME=$1
+  local DOCKER_CMD=$2
+  local LOG_FILE=$3
+
+  run_cmd_gci ${INSTANCE_NAME} "ssh -t -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` \" nohup bash -c '${DOCKER_CMD} > ${LOG_FILE} 2>&1 &' \""
 }
 
 # *****************************************************************************
@@ -139,12 +158,54 @@ function run_dock_container() {
 }
 
 # *****************************************************************************
+# Purpose : Check whether docker is running fine.
+# Usage   : verify_docker_running <cloud_instance_name> <docker_name>
+# *****************************************************************************
+function verify_docker_running() {
+  local INSTANCE_NAME=$1
+  local DOCKER_NAME=$2
+
+  for i in `seq 1 5`; do
+    echo "Try$i: Checking whether ${DOCKER_NAME} is running ....?"
+    run_cmd_gci ${INSTANCE_NAME} "sudo docker ps | grep ${DOCK_NAME} &> /dev/null"
+    if [[ $? == 0 ]]; then
+      echo "Docker container is running"
+      return 0
+    fi
+    sleep 3
+  done
+  echo "Docker $DOCKER_NAME is not running.."
+  return 1
+}
+
+# *****************************************************************************
 # Purpose : Configure docker according to PG requirements.
 # *****************************************************************************
 function configure_docker() {
   local INSTANCE_NAME=$1
 
   run_cmd_gci ${INSTANCE_NAME} "echo 'DOCKER_OPTS=\"--mtu 1400 --insecure-registry pg-docker-repo:5000\"' | sudo tee /etc/default/docker && sudo service docker restart"
+}
+
+# *****************************************************************************
+# Purpose : Check whether docker is successfully committed.
+# Usage   : verify_docker_commited <cloud_instance_name> <docker_name>
+# *****************************************************************************
+function verify_docker_commited() {
+  local INSTANCE_NAME=$1
+  local DOCK_NAME=$2
+
+  for i in `seq 1 5`; do
+    echo "Try$i: Checking whether ${DOCKER_NAME} is running ....?"
+    run_cmd_gci ${INSTANCE_NAME} "sudo docker images | grep ${DOCK_NAME} &> /dev/null"
+    if [[ $? == 0 ]]; then
+      echo "Docker container is running"
+      return 0
+    fi
+    sleep 3
+  done
+  echo "Docker $DOCKER_NAME is not running.."
+  return 1
 }
 
 function setup_forwarding() {
@@ -233,14 +294,15 @@ function get_latest_logs() {
 function run_poll_cmd() {
   local INSTANCE_NAME=$1
   local process=$2
-  local SSH_FLAGS=${3:-t}
+  local LOG_FILE=$3
+  local SSH_FLAGS=${4:-t}
   local local_file=$(mktemp /tmp/poll_gcloud_cmd-XXXXX.sh)
 
   # Create a script that will constantly poll for the running process and exit only when it has ended
   cat /dev/null > ${local_file}
   echo "#!/bin/bash" >> ${local_file}
   echo "echo \"Waiting for command to finish \"" >> ${local_file}
-  echo "while [[ ! -z \`pidof -x ${process}\` ]]; do echo -n \"..\"; sleep 5; done; echo \"$process completely successfully, exiting\"" >> ${local_file}
+  echo "while [[ ! -z \`pgrep -f ${process}\` ]]; do echo -n \"..\"; sleep 5; done; echo \"$process completely successfully, exiting\"" >> ${local_file}
   gcloud compute copy-files ${local_file} $USER@${INSTANCE_NAME}:/tmp
   rm ${local_file}
   run_cmd_docker ${INSTANCE_NAME} "'bash -s' < ${local_file}"

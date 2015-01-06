@@ -127,6 +127,7 @@ function build_image() {
   5)
     echo "starting the pgdev container"
     tryexec run_dock_container ${INSTANCE_NAME} ${DOCK_NAME} "./local_docker_id" "./local_docker_ip"
+    tryexec verify_docker_running ${INSTANCE_NAME} ${DOCK_NAME}
     record_step $step
     ;;
 
@@ -175,8 +176,8 @@ function build_image() {
   12)
     # Adding polling as a separate step, so that if the connection broke at the previous step,
     # this step can be run directly to see if the previous command is still running
-    echo "Polling for build-all (tail \"/tmp/build_all.log\" for complete logs)"
-    run_poll_cmd ${INSTANCE_NAME} "build-all.sh"
+    echo "Polling for build-all (tailing \"/tmp/build_all.log\" for complete logs)"
+    run_poll_cmd ${INSTANCE_NAME} "run_build_all.sh" "/tmp/build_all.log"
     record_step $step
     ;;
 
@@ -188,6 +189,11 @@ function build_image() {
     ;;
 
   14)
+    echo "Making sure docker(pg_dev_${INSTANCE_NAME}:latest) is commited successfully"
+    tryexec verify_docker_commited ${INSTANCE_NAME} "pg_dev_${INSTANCE_NAME}:latest"
+    ;;
+
+  15)
     BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${gerritid}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
     tryexec gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
@@ -199,7 +205,7 @@ function build_image() {
     record_step $step
     ;;
 
-  15)
+  16)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec gcloud compute instances delete ${INSTANCE_NAME} --delete-disks all  -q
     record_step $step

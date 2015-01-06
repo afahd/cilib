@@ -154,7 +154,7 @@ function run_aurora_build() {
   local PROJ=$2
   local BRANCH=$3
   local START_STEP=1
-  local END_STEP=15
+  local END_STEP=16
   local MOD_REFSPEC=$(echo "$REFSPEC" | tr / -)
   MOD_REFSPEC=${MOD_REFSPEC:13}
   local INSTANCE_NAME=${gerritid}-bld-${MOD_REFSPEC}
