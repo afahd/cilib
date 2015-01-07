@@ -1,7 +1,7 @@
 #!/bin/bash -e
 source aurora_infra_settings.conf
 source gc_helpers.sh
-source /home/$USER/.aurora.conf
+source ~/.aurora.conf
 
 if [ -z ${gerritid+x} ]; then
   echo "ERROR: gerritid has not been defined. Please make sure to run aurora init. Exiting"
@@ -188,7 +188,7 @@ function run_aurora_run() {
   local INSTANCE_NAME=`echo ${BUILD_ID}-${SUUID} | sed 's/bld/run/'`
   local step_rec_file=/tmp/${INSTANCE_NAME}-last-successful-step
   #Validate Inputs
-  check_run_inputs $USER_BUILD_ID $TEST_SCRIPT
+  check_run_inputs $BUILD_ID $TEST_SCRIPT
   # If "continue" switch has been given then do following steps
   #   a. Get the RUN-ID provided by user.
   #   b. Get the last successfully completed step.
@@ -210,4 +210,3 @@ function run_aurora_run() {
   fi
   aurora_run.sh -Q run -R ${START_STEP} -E ${END_STEP} -B ${BUILD_ID} -T ${TEST_SCRIPT} -U ${SUUID} -I ${INSTANCE_NAME}
 }
-

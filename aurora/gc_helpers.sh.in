@@ -413,7 +413,6 @@ function check_build_inputs() {
   local REFSPEC=$2
   local BRANCH=$3
   local RESULT=1
-  echo "Validating Inputs"
   #Check project name
   local project_list=$(ssh -p ${GERRIT_PORT} ${gerritid}@${GERRIT_IP} gerrit ls-projects)
   for project_name in ${project_list}; do
@@ -457,7 +456,6 @@ function check_run_inputs() {
   local TESTNAME=$2
   local RESULT
 
-  echo "Validating inputs"
   gcloud compute snapshots list ${BUILDID}-ssd1 | grep "${BUILDID}-ssd1" || RESULT=$?
   if [[ $RESULT -ne 0 ]];then
     echo "Snapshot ${BUILDID}-ssd1 does not exist, wrong Build-ID"

@@ -1,7 +1,7 @@
 #!/bin/bash -e
 export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
 . gc_helpers.sh
-if [ -f /home/$USER/.aurora.conf ]; then
+if [ $1 != "init" ]; then
     . aurora_utils.sh
 fi
 
