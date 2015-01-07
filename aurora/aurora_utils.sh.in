@@ -159,7 +159,8 @@ function run_aurora_build() {
   MOD_REFSPEC=${MOD_REFSPEC:13}
   local INSTANCE_NAME=${gerritid}-bld-${MOD_REFSPEC}
   local step_rec_file=/tmp/${INSTANCE_NAME}-last-successful-step
-
+  #Validate Inputs
+  check_build_inputs $PROJ $REFSPEC $BRANCH
   # If "continue" switch has been given then do following steps
   #   a. Get the last successfully completed step.
   #   b. Start the build process from step next to last completed step.
@@ -186,7 +187,8 @@ function run_aurora_run() {
   BUILD_ID=${gerritid}-${USER_BUILD_ID}
   local INSTANCE_NAME=`echo ${BUILD_ID}-${SUUID} | sed 's/bld/run/'`
   local step_rec_file=/tmp/${INSTANCE_NAME}-last-successful-step
-
+  #Validate Inputs
+  check_run_inputs $USER_BUILD_ID $TEST_SCRIPT
   # If "continue" switch has been given then do following steps
   #   a. Get the RUN-ID provided by user.
   #   b. Get the last successfully completed step.

@@ -372,7 +372,7 @@ function create_snapshot {
 # Prereq  :
 # *****************************************************************************
 function cleanup() {
-  delete_instances ${INSTANCE_NAME} -f
+  gcloud compute instances delete $INSTANCE_NAME -q --delete-disks all
 }
 
 # *****************************************************************************
@@ -417,7 +417,6 @@ function check_build_inputs() {
   #Check project name
   local project_list=$(ssh -p ${GERRIT_PORT} ${gerritid}@${GERRIT_IP} gerrit ls-projects)
   for project_name in ${project_list}; do
-    echo "${project_name}"
     if [[ $project_name =~ $PROJECT ]]; then
       RESULT=0
       break
@@ -431,7 +430,7 @@ function check_build_inputs() {
 
   #Check refspec format
   if [[ ! $REFSPEC =~ ^refs/changes/[0-9]+/[0-9]+/[0-9]+$ ]]; then
-    echo "ERROR: Invalid refspec format"
+    echo "Invalid refspec format"
     exit 1
   fi
   #Check if refespec exists for the project
