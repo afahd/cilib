@@ -54,12 +54,11 @@ function download_from_docker() {
 # *****************************************************************************
 function list_instances() {
   local file=$(mktemp /tmp/${gerritid}-instance-list-XXXXX)
-
   echo "Listing instances for the user:$gerritid"
   gcloud compute instances list --regexp "$gerritid-.*" > ${file}
   sed -ie "s/${gerritid}-//g" ${file}
   cat ${file}
-  rm ${file}
+  rm -f ${file}*
 }
 
 # *****************************************************************************
@@ -75,7 +74,7 @@ function list_snapshots() {
   gcloud compute snapshots list --regexp "$gerritid-.*" > ${file}
   sed -ie "s/${gerritid}-//g" ${file}
   cat ${file}
-  rm ${file}
+  rm ${file}*
 }
 
 # *****************************************************************************
@@ -178,6 +177,7 @@ function run_aurora_build() {
 function run_aurora_run() {
   local USER_BUILD_ID=$1
   local TEST_SCRIPT=$2
+  local RUNID=$4
   local START_STEP=1
   local END_STEP=13
   local UUID=`uuidgen`
@@ -197,7 +197,7 @@ function run_aurora_run() {
     # User must give the run-id(SUUID generated during first time execution of run process.)
     # along with continue such that we can know that which "aurora run" he needs to resume.
     # TODO: Exit if user does not give the run-id.
-    if [ -z ${var+x} ]; then
+    if [ -z ${RUNID+x} ]; then
       echo "Please provide the RUN-ID which you want to continue e.g. f82ba2b78256"
       exit
     fi

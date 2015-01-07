@@ -57,6 +57,7 @@ function run_cmd_docker() {
   local INSTANCE_NAME=$1
   local DOCKER_CMD=$2
 
+  echo run_cmd_gci ${INSTANCE_NAME} "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ${DOCKER_CMD}"
   run_cmd_gci ${INSTANCE_NAME} "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ${DOCKER_CMD}"
 }
 
@@ -299,18 +300,19 @@ function run_poll_cmd() {
   local process=$2
   local LOG_FILE=$3
   local SSH_FLAGS=${4:-t}
-  local local_file=$(mktemp /tmp/poll_gcloud_cmd-XXXXX.sh)
+  local local_file=$(mktemp /tmp/poll_gcloud_cmd-XXXXX)
 
   # Create a script that will constantly poll for the running process and exit only when it has ended
   cat /dev/null > ${local_file}
   echo "#!/bin/bash" >> ${local_file}
-  echo "echo \"Waiting for command to finish \"" >> ${local_file}
+  echo "echo \"Waiting for command to finish ... (Log will be tailed below) \"" >> ${local_file}
   echo "tail -f $LOG_FILE &" >> ${local_file}
-  echo "while [[ ! -z \`pgrep -f ${process}\` ]]; do sleep 5; done; echo \"$process completely successfully, exiting\"" >> ${local_file}
-  gcloud compute copy-files ${local_file} $USER@${INSTANCE_NAME}:/tmp
+  echo "while [[ ! -z \`pgrep -f ${process}\` ]]; do sleep 5; done;" >> ${local_file}
+  echo "echo \"$process completely successfully, exiting\"" >> ${local_file}
+  echo gcloud compute copy-files ${local_file} $USER@${INSTANCE_NAME}:/tmp
+  upload_to_docker ${INSTANCE_NAME} ${local_file} ${local_file}
   rm ${local_file}
-  run_cmd_docker ${INSTANCE_NAME} "'bash -s' < ${local_file}"
-
+  run_cmd_docker ${INSTANCE_NAME} "bash ${local_file}"
 }
 
 # *****************************************************************************
