@@ -5,3 +5,4 @@ configure_file(aurora_run.sh.in "${CMAKE_CURRENT_BINARY_DIR}/aurora_run.sh" @ONL
 configure_file(aurora_utils.sh.in "${CMAKE_CURRENT_BINARY_DIR}/aurora_utils.sh" @ONLY)
 configure_file(write_gitsync.sh.in "${CMAKE_CURRENT_BINARY_DIR}/write_gitsync.sh" @ONLY)
 configure_file(gc_helpers.sh.in "${CMAKE_CURRENT_BINARY_DIR}/gc_helpers.sh" @ONLY)
+configure_file(help.sh.in "${CMAKE_CURRENT_BINARY_DIR}/help.sh" @ONLY)

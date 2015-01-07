@@ -1,6 +1,7 @@
 #!/bin/bash -e
 export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
 source aurora_infra_settings.conf
+source help.sh
 
 function init_id() {
   conf_file="/home/$USER/.aurora.conf"
@@ -427,24 +428,28 @@ function check_build_inputs() {
 
   if [[ $RESULT -eq 1 ]]; then
     echo "Invalid project name: ${PROJECT}"
+    show_build_help
     exit 1
   fi
 
   #Check refspec format
   if [[ ! $REFSPEC =~ ^refs/changes/[0-9]+/[0-9]+/[0-9]+$ ]]; then
     echo "Invalid refspec format"
+    show_build_help
     exit 1
   fi
   #Check if refespec exists for the project
   git ls-remote ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/${PROJECT} "${REFSPEC}" | grep "${REFSPEC}" || RESULT=$?
   if [[ $RESULT -ne 0 ]];then
     echo "Refspec: $REFSPEC does not exist for the project: ${PROJECT}"
+    show_build_help
     exit 1
   fi
   #Check if branch exists
   git ls-remote ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/${PROJECT} "${BRANCH}" | grep "${BRANCH}" || RESULT=$?
     if [[ $RESULT -ne 0 ]];then
     echo "Branch: $BRANCH does not exist for the project: ${PROJECT}"
+    show_build_help
     exit 1
   fi
 }
@@ -462,17 +467,20 @@ function check_run_inputs() {
   gcloud compute snapshots list ${BUILDID}-ssd1 | grep "${BUILDID}-ssd1" || RESULT=$?
   if [[ $RESULT -ne 0 ]];then
     echo "Snapshot ${BUILDID}-ssd1 does not exist, wrong Build-ID"
+    show_run_help
     exit 1
   fi
 
   gcloud compute snapshots list ${BUILDID}-ssd2 | grep "${BUILDID}-ssd2" || RESULT=$?
   if [[ $RESULT -ne 0 ]];then
     echo "Snapshot ${BUILDID}-ssd2 does not exist, wrong Build-ID"
+    show_run_help
     exit 1
   fi
 
   if [ ! -f "$TESTNAME" ]; then
     echo "Test file not found!"
+    show_run_help
     exit 1
   fi
 }

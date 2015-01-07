@@ -1,0 +1,107 @@
+#!/bin/bash
+
+function show_build_help() {
+    cat << BUILDHELP
+build
+  Build a new image with given COMMIT-ID/TAG/LOCAL-CHANGES.
+  -r, --refspec       Gerrit RefSpec. e.g. refs/changes/20/11020/1
+  -p, --proj          Project with which commit belongs e.g. alps, pg_ui, pg_cli
+  -b, --branch        Branch on which you want to test e.g. master, stable_4_0
+  -c, --continue      [optional] --continue option will resume the script from the point where it
+                      stopped (because of broken ssh connection or simply because you powered-off
+                      your machine).
+                      It is also useful in case script hits some failures. Rather than running
+                      whole script from scratch, --continue switch will make sure to run only those
+                      steps which had hit failures or had not been run at all.
+
+BUILDHELP
+}
+
+function show_run_help() {
+    cat << RUNHELP
+run
+  Run test script on cloud instance with aurora BUILD-ID.
+  -l, --buildid       Build on which you want to run test.
+  -s, --script        Test script which you want to run (please see sample_test1.sh to get further idea)
+  -c, --continue      [optional] --continue option will resume the script from the point where it
+                      stopped (because of broken ssh connection or simply because you powered-off
+                      your machine).
+                      It is also useful in case script hits some failures. Rather than running
+                      whole script from scratch, --continue switch will make sure to run only those
+                      steps which had hit failures or had not been run at all.
+  -n, --runid         To use along with --continue:
+                      12 digit identifier for specific run (e.g e992a1fffaf8).
+                      It is being printed out on screen immediately after you kick off the "aurora run"
+                      first time.
+                      It is part of your run-instance name as well [aurora ls instances].
+
+RUNHELP
+}
+
+function show_init_help() {
+   cat << INITHELP
+  init                Setup aurora environment
+
+INITHELP
+}
+
+function show_upload_help() {
+   cat << HELP
+upload
+  Upload some local file to docker container.
+  -i, --instance      Instance name.
+  -f, --file          Local file which you want to upload
+  -d, --dest          Destination path where you want to upload
+
+HELP
+}
+
+function show_download_help() {
+   cat << HELP
+download
+  Download file from docker container to local machine.
+  -i, --instance      Instance name.
+  -f, --file          Remote file which you want to download
+  -d, --dest          Destination path where you want to download.
+
+HELP
+}
+
+function show_ls_help() {
+   cat << HELP
+ls
+  List all currently active cloud instances or snapshots
+  -e, --entity        Value can be either "instances" or "snapshots"
+
+HELP
+}
+
+function show_delete_help() {
+   cat << HELP
+delete
+  -e, --entity        Value can be either "instances" or "snapshots"
+  -x, --regex         Regex to match. e.g "run" will delete all instances or snapshots
+                      having 'run' as part of name.
+HELP
+}
+
+function show_login_help() {
+   cat << HELP
+login
+  Login to the specified instance
+  -i, --instance      Instance name
+
+HELP
+}
+
+function show_help() {
+  show_init_help
+  show_build_help
+  show_run_help
+  show_download_help
+  show_upload_help
+  show_ls_help
+  show_delete_help
+  show_ls_help
+  show_login_help
+}

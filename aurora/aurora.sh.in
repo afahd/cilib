@@ -1,6 +1,7 @@
 #!/bin/bash -e
 export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
 . gc_helpers.sh
+source help.sh
 if [ $1 != "init" ]; then
     . aurora_utils.sh
 fi
@@ -23,104 +24,91 @@ function check_parameters() {
   fi
 }
 
-function show_help() {
-    cat << ENDHELP
-init                        : Setup aurora environment
+# read the options
+TEMP=`getopt -o r:p:b:l:s:cn:i:f:d:e:x:h --long refspec:,proj:,branch:,buildid:,script:,\continue,runid:,instance:,file:,dest:,entity:,regex:,help -n 'aurora.sh' -- "$@"`
+eval set -- "$TEMP"
 
-build <Gerrit-RefSpec> <Project> <Branch>
-                      : Build a new image with given COMMIT-ID/TAG/LOCAL-CHANGES.
-build <Gerrit-RefSpec> <Project> <Branch> --continue
-                      : --continue option will resume the script from the point where it
-                        stopped (because of broken ssh connection or simply because you powered-off
-                        your machine).
-                        It is also useful in case script hits some failures. Rather than running
-                        whole script from scratch, --continue switch will make sure to run only those
-                        steps which had hit failures or had not been run at all.
-
-run <Build ID> <Test Script>
-                      :  Run test script on cloud instance with aurora BUILD-ID.
-run <Build ID> <Test Script> --continue <RUNID>
-                      : --continue option will resume the script from the point where it
-                        stopped (because of broken ssh connection or simply because you powered-off
-                        your machine).
-                        It is also useful in case script hits some failures. Rather than running
-                        whole script from scratch, --continue switch will make sure to run only those
-                        steps which had hit failures or had not been run at all.
-                        <RUNID> is the unique 12 digit identifier for your specific run (e.g e992a1fffaf8).
-                        It is being printed out on screen immediately after you kick off the "aurora run"
-                        It is part of your run-instance name as well [aurora ls instances].
-
-upload <Instance Name> <File To Upload> <Destination Path>
-                      : Upload some local file to docker container.
-
-download <Instance Name> <Location of File to download> <Path where you need to keep>
-                      : Download file from docker container to local machine.
-
-ls instance
-                      : List all cloud instances currently running by user
-
-ls snapshots
-                      : List all cloud snapshots currently running by user
-
-delete instances <regex> <-f, --force>
-                      : Deletes the instance specified
-
-delete snapshots <regex> <-f, --force>
-                      : Deletes the snapshots specified
-
-login <instance name>
-                      : Login to the specified instance
-ENDHELP
-}
+CONTINUE=""
+# extract options and their arguments into variables.
+while true ; do
+  case "$1" in
+    -r|--refspec)
+      REFSPEC=$2 ; shift 2 ;;
+    -p|--proj)
+      PROJ=$2 ; shift 2 ;;
+    -b|--branch)
+      BRANCH=$2 ; shift 2 ;;
+    -l|--buildid)
+      BUILDID=$2 ; shift 2 ;;
+    -s|--script)
+      SCRIPT=$2 ; shift 2 ;;
+    -c|--continue)
+      CONTINUE="--continue" ; shift 1 ;;
+    -n|--runid)
+      RUNID=$2 ; shift 2 ;;
+    -i|--instance)
+      INSTANCE=$2 ; shift 2 ;;
+    -f|--file)
+      FILE=$2 ; shift 2 ;;
+    -d|--dest)
+      DEST=$2 ; shift 2 ;;
+    -e|--entity)
+      ENTITY=$2 ; shift 2 ;;
+    -x|--regex)
+      REGEX=$2 ; shift 2 ;;
+    -h|--help)
+      shift ;;
+    --) shift ; break ;;
+    *) exit 1 ;;
+  esac
+done
 
 case $1 in
-    --help)
-        show_help
-      ;;
     init)
-      check_parameters $@ 1
       init_id
       ;;
     ls)
-      check_parameters $@ 2
-      if [[ $2 == "instances" ]] ; then
+      if [[ $ENTITY == "instances" ]] ; then
         list_instances
-      elif [[ $2 == "snapshots" ]] ; then
+      elif [[ $ENTITY == "snapshots" ]] ; then
         list_snapshots
       else
-        echo "ERROR: invalid second argument $2: It can be either 'instances' or 'snapshots'"
+        #echo "ERROR: invalid entity: It can be either 'instances' or 'snapshots'"
+        show_ls_help
       fi
       ;;
     delete)
-      check_parameters $@ 3
-      if [[ $2 == "instances" ]] ; then
-        delete_instances ${3} ${4}
-      elif [[ $2 == "snapshots" ]] ; then
-        delete_snapshots ${3} ${4}
+      if [[ $ENTITY == "instances" ]] ; then
+        delete_instances ${REGEX} ${4}
+      elif [[ $ENTITY == "snapshots" ]] ; then
+        delete_snapshots ${REGEX} ${4}
       else
-        echo "ERROR: invalid second argument $2: It can be either 'instances' or 'snapshots'"
+        show_delete_help
+        #echo "ERROR: invalid second argument $2: It can be either 'instances' or 'snapshots'"
       fi
-
       ;;
     login)
-      check_parameters $@ 2
-      login_instance ${2}
+      login_instance ${INSTANCE}
       ;;
     build)
-      check_parameters $@ 4
-      run_aurora_build $2 $3 $4 $5
+      if [[ $2 == "help" ]] ; then
+        show_build_help
+      else
+        run_aurora_build $REFSPEC $PROJ $BRANCH $CONTINUE
+      fi
       ;;
     run)
-      check_parameters $@ 3
-      run_aurora_run $2 $3 $4 $5
+      if [[ $2 == "help" ]] ; then
+        show_run_help
+      else
+        run_aurora_run $BUILDID $SCRIPT $CONTINUE $RUNID
+      fi
       ;;
     upload)
-      check_parameters $@ 4
-      upload_to_docker ${2} ${3} ${4}
+      upload_to_docker ${INSTANCE} ${FILE} ${DEST}
     ;;
     download)
-      check_parameters $@ 4
-      download_from_docker ${2} ${3} ${4}
+      download_from_docker ${INSTANCE} ${FILE} ${DEST}
     ;;
     *)
         echo "USAGE:"

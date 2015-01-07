@@ -84,8 +84,9 @@ function list_snapshots() {
 # Prereq: Aurora init has been called.
 # *****************************************************************************
 function delete_instances() {
-  local INSTANCE_NAME="${gerritid}-$1"
-  local user_instances=$(gcloud compute instances list --regexp "${INSTANCE_NAME}.*" | grep $gerritid | cut -d ' ' -f 1)
+  local REGEX=".*$1.*"
+  #echo "gcloud compute instances list --regexp \"${REGEX}\" | grep $gerritid | cut -d ' ' -f 1"
+  local user_instances=$(gcloud compute instances list --regexp "${REGEX}" | grep $gerritid | cut -d ' ' -f 1)
 
   # TODO: Print message if no instance matches with given criteria and exit
   echo "The following instances will be permanently deleted: "
@@ -114,8 +115,8 @@ function delete_instances() {
 # Prereq: Aurora init has been called.
 # *****************************************************************************
 function delete_snapshots() {
-  local SNAPSHOT_NAME="${gerritid}-$1"
-  local user_snapshots=$(gcloud compute snapshots list --regexp "${SNAPSHOT_NAME}.*" | grep $gerritid | cut -d ' ' -f 1)
+  local REGEX=".*$1.*"
+  local user_snapshots=$(gcloud compute snapshots list --regexp "${REGEX}" | grep $gerritid | cut -d ' ' -f 1)
 
   echo "The following instances will be permanently deleted: "
   for snapshot in $user_snapshots; do
@@ -145,6 +146,12 @@ function delete_snapshots() {
 # *****************************************************************************
 function login_instance() {
   local INSTANCE_NAME="${gerritid}-$1"
+  gcloud compute instances list ${INSTANCE_NAME} | grep "${INSTANCE_NAME}" || RESULT=$? &> /dev/null
+  if [[ $RESULT -ne 0 ]];then
+    echo "INSTANCE ${INSTANCE_NAME} does not exist"
+    show_login_help
+    exit 1
+  fi
   run_cmd_docker ${INSTANCE_NAME} "/bin/bash"
 }
 
