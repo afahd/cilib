@@ -305,7 +305,8 @@ function run_poll_cmd() {
   cat /dev/null > ${local_file}
   echo "#!/bin/bash" >> ${local_file}
   echo "echo \"Waiting for command to finish \"" >> ${local_file}
-  echo "while [[ ! -z \`pgrep -f ${process}\` ]]; do echo -n \"..\"; sleep 5; done; echo \"$process completely successfully, exiting\"" >> ${local_file}
+  echo "tail -f $LOG_FILE &" >> ${local_file}
+  echo "while [[ ! -z \`pgrep -f ${process}\` ]]; do sleep 5; done; echo \"$process completely successfully, exiting\"" >> ${local_file}
   gcloud compute copy-files ${local_file} $USER@${INSTANCE_NAME}:/tmp
   rm ${local_file}
   run_cmd_docker ${INSTANCE_NAME} "'bash -s' < ${local_file}"
