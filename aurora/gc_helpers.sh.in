@@ -196,15 +196,15 @@ function verify_docker_commited() {
   local DOCK_NAME=$2
 
   for i in `seq 1 5`; do
-    echo "Try$i: Checking whether ${DOCKER_NAME} is running ....?"
+    echo "Try$i: Checking whether ${DOCK_NAME} is committed ....?"
     run_cmd_gci ${INSTANCE_NAME} "sudo docker images | grep ${DOCK_NAME} &> /dev/null"
     if [[ $? == 0 ]]; then
-      echo "Docker container is running"
+      echo "Docker container is committed"
       return 0
     fi
     sleep 3
   done
-  echo "Docker $DOCKER_NAME is not running.."
+  echo "Docker $DOCKER_NAME is not committed.."
   return 1
 }
 

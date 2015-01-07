@@ -190,7 +190,8 @@ function build_image() {
 
   14)
     echo "Making sure docker(pg_dev_${INSTANCE_NAME}:latest) is commited successfully"
-    tryexec verify_docker_commited ${INSTANCE_NAME} "pg_dev_${INSTANCE_NAME}:latest"
+    tryexec verify_docker_commited ${INSTANCE_NAME} "pg_dev_${INSTANCE_NAME}"
+    record_step $step
     ;;
 
   15)
