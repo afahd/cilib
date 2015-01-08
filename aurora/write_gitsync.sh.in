@@ -39,8 +39,10 @@ cat /dev/null > ${git_script}
 echo "#!/bin/bash -e" >> ${git_script}
 echo ". /opt/pg/env/alps.bashrc" >> ${git_script}
 
+#GPG keys expire after ~10 days, after which /opt/pg/var/www needs to
+#be nuked for master as well and fresh build-all.sh needs to be run
+echo "sudo rm -rf /opt/pg/var/www/*" >> ${git_script}
 if [[ $branch != "master" ]]; then
-  echo "sudo rm -rf /opt/pg/var/www/*" >> ${git_script}
   for p in ${PROJECT_LIST[@]}; do
     echo "cd /home/plumgrid/work/${p}/build && sudo rm -rf *" >> ${git_script}
   done
