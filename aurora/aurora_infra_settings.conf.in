@@ -16,3 +16,4 @@ VERBOSITY=error
 GERRIT_IP=192.168.10.77
 GERRIT_PORT=29418
 PROJECT_LIST=(pkg pg_cli pg_ui sal alps python-plumgridlib)
+COMM_IP=130.211.135.187

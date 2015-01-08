@@ -24,8 +24,8 @@ function upload_to_docker() {
 
   echo "** $INSTANCE_NAME $FILE $DESTINATION **"
   FILE_NAME="${FILE##*/}"
-  gcloud compute copy-files $FILE "${USER}@${INSTANCE_NAME}:/tmp/"
-  gcloud compute -q ssh  ${USER}@${INSTANCE_NAME} --ssh-flag='-tA' --ssh-flag="-o ServerAliveInterval=5" --command "scp -r -o StrictHostKeyChecking=no /tmp/${FILE_NAME} plumgrid@\`cat local_docker_ip\`:$DESTINATION"
+  scp -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" -r -o StrictHostKeyChecking=no $FILE "${USER}@${INSTANCE_NAME}:/tmp/"
+  ssh -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" -tA -o ServerAliveInterval=5 ${USER}@${INSTANCE_NAME} "scp -r -o StrictHostKeyChecking=no /tmp/${FILE_NAME} plumgrid@\`cat local_docker_ip\`:$DESTINATION"
 }
 
 # *****************************************************************************
@@ -42,8 +42,8 @@ function download_from_docker() {
   DESTINATION=$3
 
   FILE_NAME="${FILE##*/}"
-  gcloud compute -q ssh  ${USER}@${INSTANCE_NAME} --ssh-flag='-tA' --ssh-flag="-o ServerAliveInterval=5" --command "scp -r -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\`:$FILE /tmp/$FILE_NAME"
-  gcloud compute copy-files "${USER}@${INSTANCE_NAME}:/tmp/$FILE_NAME" ${DESTINATION}
+  ssh  -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" -tA -o ServerAliveInterval=5 ${USER}@${INSTANCE_NAME} "scp -r -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\`:$FILE /tmp/$FILE_NAME"
+  scp -r -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" -o StrictHostKeyChecking=no "${USER}@${INSTANCE_NAME}:/tmp/$FILE_NAME" ${DESTINATION}
 }
 
 # *****************************************************************************

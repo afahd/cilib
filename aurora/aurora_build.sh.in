@@ -108,7 +108,7 @@ function build_image() {
       --machine-type "$MACHINETYPE" --network "net-10-10" --maintenance-policy \
       "MIGRATE" --scopes "https://www.googleapis.com/auth/devstorage.read_only" \
       --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
-      --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes"
+      --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip"
     record_step $step
     ;;
 
@@ -141,7 +141,7 @@ function build_image() {
 
   7)
     echo "Copy local key to pgdev container"
-    tryexec gcloud compute copy-files ~/.ssh/id_rsa.pub ${USER}@${INSTANCE_NAME}:./auth-key.pub
+    tryexec scp -o StrictHostKeyChecking=no -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" ~/.ssh/id_rsa.pub ${USER}@${INSTANCE_NAME}:./auth-key.pub
     tryexec run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat /home/$USER/auth-key.pub >> \
       /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
     record_step $step
@@ -197,9 +197,9 @@ function build_image() {
   15)
     BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${gerritid}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
-    tryexec gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
-    tryexec gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${INSTANCE_NAME}-ssd2 > ~/build_d2_snapshot"
-    tryexec gcloud compute -q ssh ${USER}@${INSTANCE_NAME} --ssh-flag='-t' --command "echo ${SN_ID} > ~/primary_snapshot"
+    tryexec ssh -o StrictHostKeyChecking=no -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" ${USER}@${INSTANCE_NAME} -t "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
+    tryexec ssh -o StrictHostKeyChecking=no -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" ${USER}@${INSTANCE_NAME} -t "echo ${INSTANCE_NAME}-ssd2 > ~/build_d2_snapshot"
+    tryexec ssh -o StrictHostKeyChecking=no -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" ${USER}@${INSTANCE_NAME} -t "echo ${SN_ID} > ~/primary_snapshot"
     create_snapshot ${INSTANCE_NAME}-d1 ${INSTANCE_NAME}-ssd1
     create_snapshot ${INSTANCE_NAME}-d2 ${INSTANCE_NAME}-ssd2
     echo " BUILD-ID = ${BUILD_ID} "
