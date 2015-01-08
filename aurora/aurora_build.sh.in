@@ -202,7 +202,7 @@ function build_image() {
     ;;
 
   15)
-    BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${gerritid}-//"`
+    BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${gerritid_lower}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
     tryexec ssh -o StrictHostKeyChecking=no -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" ${USER}@${INSTANCE_NAME} -t "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
     tryexec ssh -o StrictHostKeyChecking=no -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" ${USER}@${INSTANCE_NAME} -t "echo ${INSTANCE_NAME}-ssd2 > ~/build_d2_snapshot"

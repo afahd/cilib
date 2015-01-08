@@ -54,9 +54,9 @@ function download_from_docker() {
 # *****************************************************************************
 function list_instances() {
   local file=$(mktemp /tmp/${gerritid}-instance-list-XXXXX)
-  echo "Listing instances for the user:$gerritid"
-  gcloud compute instances list --regexp "$gerritid-.*" > ${file}
-  sed -ie "s/${gerritid}-//g" ${file}
+  echo "Listing instances for the user:$gerritid_lower"
+  gcloud compute instances list --regexp "${gerritid_lower}-.*" > ${file}
+  sed -ie "s/${gerritid_lower}-//g" ${file}
   cat ${file}
   rm -f ${file}*
 }
@@ -71,8 +71,8 @@ function list_snapshots() {
   local file=$(mktemp /tmp/${gerritid}-snapshot-list-XXXXX)
 
   echo "Listing instances for the user:$gerritid"
-  gcloud compute snapshots list --regexp "$gerritid-.*" > ${file}
-  sed -ie "s/${gerritid}-//g" ${file}
+  gcloud compute snapshots list --regexp "${gerritid_lower}-.*" > ${file}
+  sed -ie "s/${gerritid_lower}-//g" ${file}
   cat ${file}
   rm ${file}*
 }
@@ -85,8 +85,7 @@ function list_snapshots() {
 # *****************************************************************************
 function delete_instances() {
   local REGEX=".*$1.*"
-  #echo "gcloud compute instances list --regexp \"${REGEX}\" | grep $gerritid | cut -d ' ' -f 1"
-  local user_instances=$(gcloud compute instances list --regexp "${REGEX}" | grep $gerritid | cut -d ' ' -f 1)
+  local user_instances=$(gcloud compute instances list --regexp "${REGEX}" | grep ${gerritid_lower} | cut -d ' ' -f 1)
 
   # TODO: Print message if no instance matches with given criteria and exit
   echo "The following instances will be permanently deleted: "
@@ -116,7 +115,7 @@ function delete_instances() {
 # *****************************************************************************
 function delete_snapshots() {
   local REGEX=".*$1.*"
-  local user_snapshots=$(gcloud compute snapshots list --regexp "${REGEX}" | grep $gerritid | cut -d ' ' -f 1)
+  local user_snapshots=$(gcloud compute snapshots list --regexp "${REGEX}" | grep ${gerritid_lower} | cut -d ' ' -f 1)
 
   echo "The following instances will be permanently deleted: "
   for snapshot in $user_snapshots; do
@@ -145,7 +144,7 @@ function delete_snapshots() {
 # Prereq: The instance should exsist.
 # *****************************************************************************
 function login_instance() {
-  local INSTANCE_NAME="${gerritid}-$1"
+  local INSTANCE_NAME="${gerritid_lower}-$1"
   gcloud compute instances list ${INSTANCE_NAME} | grep "${INSTANCE_NAME}" || RESULT=$? &> /dev/null
   if [[ $RESULT -ne 0 ]];then
     echo "INSTANCE ${INSTANCE_NAME} does not exist"
@@ -163,7 +162,7 @@ function run_aurora_build() {
   local END_STEP=16
   local MOD_REFSPEC=$(echo "$REFSPEC" | tr / -)
   MOD_REFSPEC=${MOD_REFSPEC:13}
-  local INSTANCE_NAME=${gerritid}-bld-${MOD_REFSPEC}
+  local INSTANCE_NAME=${gerritid_lower}-bld-${MOD_REFSPEC}
   local step_rec_file=/tmp/${INSTANCE_NAME}-last-successful-step
   #Validate Inputs
   check_build_inputs $PROJ $REFSPEC $BRANCH
@@ -191,7 +190,7 @@ function run_aurora_run() {
   local SUUID_="${UUID##*-}"
   SUUID="${SUUID_,,}"
 
-  BUILD_ID=${gerritid}-${USER_BUILD_ID}
+  BUILD_ID=${gerritid_lower}-${USER_BUILD_ID}
   local INSTANCE_NAME=`echo ${BUILD_ID}-${SUUID} | sed 's/bld/run/'`
   local step_rec_file=/tmp/${INSTANCE_NAME}-last-successful-step
   #Validate Inputs
