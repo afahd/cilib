@@ -117,7 +117,14 @@ function run_test() {
     ;;
 
   7)
-    tryexec check_ssh_server_status ${INSTANCE_NAME}
+    check_ssh_server_status ${INSTANCE_NAME}
+    if [[ $retval == 1 ]]; then
+      run_cmd_gci ${INSTANCE_NAME} "sudo docker ps"
+      echo "Dokcer stopped.. Please run aurora build with --continue to retry!!"
+      record_step 4
+      exit $retval
+    fi
+
     record_step $step
     ;;
 
