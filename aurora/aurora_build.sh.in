@@ -113,6 +113,7 @@ function build_image() {
     ;;
 
   3)
+    ssh-keygen -R ${INSTANCE_NAME}
     echo "Waiting for the machine to boot up and allow ssh access"
     wait_for_instance ${INSTANCE_NAME}
     record_step $step
