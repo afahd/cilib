@@ -272,21 +272,20 @@ function modify_git_config() {
 # *****************************************************************************
 function get_latest_logs() {
   local INSTANCE_NAME=$1
-  local log_dir_base
-  echo "Downloading PG logs to local machine"
-  #Get the latest directory created and save it in a file in the cloud instance
-  run_cmd_docker ${INSTANCE_NAME} "ls -rtd /opt/pg/log/*/ | tail -1 > /tmp/latest_log_dir"
-  #Extracting the latest directory name, removing the trailing \r
-  log_dir_base=$(run_cmd_gci ${INSTANCE_NAME} "cat /tmp/latest_log_dir")
-  log_dir_base=$(echo "$log_dir_base" | tr -d '\r')
-  log_dir_base=${log_dir_base%/}
-  #tar the directory
-  run_cmd_docker ${INSTANCE_NAME} "/bin/bash -c \'tar -zcvf ${log_dir_base}.tar ${log_dir_base}\'"
-  #Copy the tar file to the local machine
-  download_from_docker ${INSTANCE_NAME} $log_dir_base.tar /tmp/${INSTANCE_NAME}-logs.tar
+  local local_file=$(mktemp /tmp/collect_log-XXXXX)
+  cat /dev/null > ${local_file}
+  echo "#!/bin/bash" >> ${local_file}
+  echo "ls -rtd /opt/pg/log/*/ | tail -1 > /tmp/latest_log_dir" >> ${local_file}
+  echo "LOG_FNAME=\$(cat /tmp/latest_log_dir |cut -d '/' -f 5)" >> ${local_file}
+  echo "tar -zcf /tmp/\${LOG_FNAME}.tar \`cat /tmp/latest_log_dir\`" >> ${local_file}
+  echo "echo \${LOG_FNAME} > /tmp/latest_log_filename"  >> ${local_file}
+  upload_to_docker ${INSTANCE_NAME} ${local_file} ${local_file}
+  rm ${local_file}
+  run_cmd_docker ${INSTANCE_NAME} "bash ${local_file}"
+  download_from_docker ${INSTANCE_NAME} /tmp/latest_log_filename /tmp/latest_log_filename
+  local log_tar=$(cat /tmp/latest_log_filename)
+  download_from_docker ${INSTANCE_NAME} /tmp/${log_tar}.tar /tmp/${INSTANCE_NAME}-logs.tar
   echo "Logs have been placed at /tmp/${INSTANCE_NAME}-logs.tar"
-  #Deleting the .tar file
-  run_cmd_docker ${INSTANCE_NAME} "/bin/bash -c \'rm $log_dir_base.tar \'"
 }
 
 # ******************************************************************************
@@ -310,7 +309,6 @@ function run_poll_cmd() {
   echo "tail -f $LOG_FILE &" >> ${local_file}
   echo "while [[ ! -z \`pgrep -f ${process}\` ]]; do sleep 5; done;" >> ${local_file}
   echo "echo \"$process completely successfully, exiting\"" >> ${local_file}
-  echo gcloud compute copy-files ${local_file} $USER@${INSTANCE_NAME}:/tmp
   upload_to_docker ${INSTANCE_NAME} ${local_file} ${local_file}
   rm ${local_file}
   run_cmd_docker ${INSTANCE_NAME} "bash ${local_file}"
@@ -479,7 +477,7 @@ function check_run_inputs() {
   fi
 
   if [ ! -f "$TESTNAME" ]; then
-    echo "Test file not found!"
+    echo "Test file \"$TESTNAME\" not found!"
     show_run_help
     exit 1
   fi
