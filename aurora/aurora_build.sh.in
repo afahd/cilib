@@ -133,7 +133,7 @@ function build_image() {
 
   6)
     echo "Copy build-instance key to pgdev container"
-    tryexec run_cmd_gci ${INSTANCE_NAME} "ssh-keygen -t rsa -N \"\" -f ~/.ssh/id_rsa"
+    tryexec run_cmd_gci ${INSTANCE_NAME} "echo -e  'y\n'|ssh-keygen -t rsa -N \"\" -f ~/.ssh/id_rsa"
     tryexec run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat /home/$USER/.ssh/id_rsa.pub >> \
       /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
     record_step $step
@@ -148,7 +148,13 @@ function build_image() {
     ;;
 
   8)
-    tryexec check_ssh_server_status ${INSTANCE_NAME}
+    check_ssh_server_status ${INSTANCE_NAME} || retval=$?
+    if [[ $retval == 1 ]]; then
+      run_cmd_gci ${INSTANCE_NAME} "sudo docker ps"
+      echo "Dokcer stopped.. Please run aurora build with --continue to retry!!"
+      record_step 4
+      exit $retval
+    fi
     record_step $step
     ;;
 
