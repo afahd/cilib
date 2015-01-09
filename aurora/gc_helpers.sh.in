@@ -13,8 +13,8 @@ function init_id() {
   gcloud config set compute/region $REGION
 
   ## Set the SSH keys for google compute cloud engine
-  echo "Generate the ssh-keys for Google compute cloud engine."
-  ssh-keygen -N "" -t rsa -f $HOME/.ssh/google_compute_engine
+  echo "Configure the ssh-keys for Google compute cloud engine."
+  gcloud compute ssh aurora-comm-hub --ssh-key-file ~/.ssh/id_rsa --command "echo \"SSH Keys transferred\""
 }
 
 # *****************************************************************************
