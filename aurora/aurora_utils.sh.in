@@ -151,7 +151,7 @@ function login_instance() {
     show_login_help
     exit 1
   fi
-  run_cmd_docker ${INSTANCE_NAME} "/bin/bash"
+  run_cmd_docker_sshforwarding ${INSTANCE_NAME} "/bin/bash"
 }
 
 function run_aurora_build() {

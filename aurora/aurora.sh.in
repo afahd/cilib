@@ -1,4 +1,5 @@
 #!/bin/bash -e
+set -e
 export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
 . gc_helpers.sh
 source help.sh
@@ -57,6 +58,8 @@ while true ; do
     -x|--regex)
       REGEX=$2 ; shift 2 ;;
     -h|--help)
+      show_help
+      exit 0
       shift ;;
     --) shift ; break ;;
     *) exit 1 ;;
@@ -68,7 +71,9 @@ case $1 in
       init_id
       ;;
     ls)
-      if [[ $ENTITY == "instances" ]] ; then
+      if [[ $2 != "" ]] ; then 
+        show_ls_help
+      elif [[ $ENTITY == "instances" || $ENTITY == "" ]] ; then
         list_instances
       elif [[ $ENTITY == "snapshots" ]] ; then
         list_snapshots
@@ -78,7 +83,9 @@ case $1 in
       fi
       ;;
     delete)
-      if [[ $ENTITY == "instances" ]] ; then
+      if [[ $2 != "" || ${REGEX} == "" ]] ; then 
+        show_delete_help
+      elif [[ $ENTITY == "instances"  || $ENTITY == "" ]] ; then
         delete_instances ${REGEX} ${4}
       elif [[ $ENTITY == "snapshots" ]] ; then
         delete_snapshots ${REGEX} ${4}

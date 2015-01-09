@@ -28,7 +28,7 @@ function run_cmd_gci() {
   local CMD=$2
   local SSH_FLAGS=${3:-t}
 
-  ssh -${SSH_FLAGS} -o StrictHostKeyChecking=no -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" -o ServerAliveInterval=5  ${USER}@${INSTANCE_NAME} "$CMD"
+  ssh -${SSH_FLAGS} -o StrictHostKeyChecking=no -o "ProxyCommand ssh  $COMM_IP nc ${INSTANCE_NAME} 22" -o ServerAliveInterval=5  ${USER}@${INSTANCE_NAME} "$CMD"
 }
 
 # *****************************************************************************
@@ -88,7 +88,7 @@ function run_cmd_docker_sshforwarding() {
   local INSTANCE_NAME=$1
   local DOCKER_CMD=$2
 
-  run_cmd_gci_sshforwarding ${INSTANCE_NAME} "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ${DOCKER_CMD}"
+  run_cmd_gci_sshforwarding ${INSTANCE_NAME} "ssh -tA  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ${DOCKER_CMD}"
 }
 
 # *****************************************************************************

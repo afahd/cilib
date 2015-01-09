@@ -37,6 +37,7 @@ fi
 echo "Writing to the $git_script script"
 cat /dev/null > ${git_script}
 echo "#!/bin/bash -e" >> ${git_script}
+echo "set -e" >> ${git_script}
 echo ". /opt/pg/env/alps.bashrc" >> ${git_script}
 
 #GPG keys expire after ~10 days, after which /opt/pg/var/www needs to
@@ -49,25 +50,59 @@ if [[ $branch != "master" ]]; then
 fi
 ## Update and install the tools in the snapshot in case some new packages were added.
 modify_git_config "tools" "${gerritid}" "${git_script}"
-echo "cd /home/plumgrid/work/tools && git reset --hard && git pull --rebase" >> ${git_script}
-echo "cd /home/plumgrid/work/tools/build && cmake .. && sudo make packages && make -C packages install && make -j4 install" >> ${git_script}
+echo "echo 'Extracting and rebuild tools'"  >> ${git_script}
+echo "cd /home/plumgrid/work/tools" >> ${git_script}
+echo "git fetch" >> ${git_script}
+echo "git checkout master"  >> ${git_script}
+echo "git reset --hard origin/master" >> ${git_script}
 
 ## Update and install iovisor.
 modify_git_config "iovisor" "${gerritid}" "${git_script}"
-echo "cd /home/plumgrid/work/iovisor && git reset --hard && git pull --rebase" >> ${git_script}
-echo "cd /home/plumgrid/work/iovisor/bld && make -j4 -k && sudo make install" >> ${git_script}
+echo "echo 'Extracting and rebuild iovisor'"  >> ${git_script}
+echo "cd /home/plumgrid/work/iovisor" >> ${git_script}
+echo "git fetch" >> ${git_script}
+echo "git checkout master"  >> ${git_script}
+echo "git reset --hard origin/master" >> ${git_script}
 
 
 ## Checkout the requested branch on all the projects
 for p in ${PROJECT_LIST[@]}; do
   modify_git_config "${p}" "${gerritid}" "${git_script}"
-  echo "cd /home/plumgrid/work/${p} && git reset --hard && git checkout ${branch}" >> ${git_script}
-  echo "cd /home/plumgrid/work/${p}/build && export APT_COMPONENT=${APT_COMPONENT} && cmake .." >> ${git_script}
+  echo "echo \"Extracting and rebuilding $p for branch ${branch}\""
+  echo "cd /home/plumgrid/work/${p}" >> ${git_script}
+  echo "git fetch" >> ${git_script}
+  echo "git checkout ${branch}" >> ${git_script}
+  echo "git reset --hard origin/${branch}" >> ${git_script}
 done
 
-echo "cd /home/plumgrid/work/pkg/scripts && sed -i \"/export APT_REPO_HOST/ c\export APT_REPO_HOST=127.0.0.1 && export APT_COMPONENT=${APT_COMPONENT}\" build-all.sh" >> $git_script
+echo "cd /home/plumgrid/work/pkg/scripts" >> $git_script
+echo "sed -i \"/export APT_REPO_HOST/ c\export APT_REPO_HOST=127.0.0.1" >> $git_script
+echo "export APT_COMPONENT=${APT_COMPONENT}\" build-all.sh" >> $git_script
 
 ## Checkout the request commit in the request project
-echo "cd /home/plumgrid/work/${project} && git fetch ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/${project} ${refspec} && git checkout FETCH_HEAD" >> $git_script
-echo "cd /home/plumgrid/work/${project}/build && export APT_COMPONENT=${APT_COMPONENT} && cmake .." >> ${git_script}
+echo "cd /home/plumgrid/work/${project}" >> $git_script
+echo "git fetch ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/${project} ${refspec}" >> $git_script
+echo "git checkout FETCH_HEAD" >> $git_script
 
+
+echo "cd /home/plumgrid/work/tools/build" >> ${git_script}
+echo "cmake .." >> ${git_script}
+echo "sudo make packages" >> ${git_script}
+echo "make -C packages install" >> ${git_script}
+echo "make -j4 install" >> ${git_script}
+
+echo "cd /home/plumgrid/work/iovisor/bld" >> ${git_script}
+echo "make -j4 -k" >> ${git_script}
+echo "sudo make install" >> ${git_script}
+
+## Checkout the requested branch on all the projects
+for p in ${PROJECT_LIST[@]}; do
+  echo "cd /home/plumgrid/work/${p}/build" >> ${git_script}
+  echo "export APT_COMPONENT=${APT_COMPONENT}" >> ${git_script}
+  echo "cmake .." >> ${git_script}
+done
+
+
+echo "cd /home/plumgrid/work/${project}/build" >> ${git_script}
+echo "export APT_COMPONENT=${APT_COMPONENT}" >> ${git_script}
+echo "cmake .." >> ${git_script}
