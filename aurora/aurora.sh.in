@@ -26,10 +26,12 @@ function check_parameters() {
 }
 
 # read the options
-TEMP=`getopt -o r:p:b:l:s:cn:i:f:d:e:x:h --long refspec:,proj:,branch:,buildid:,script:,\continue,runid:,instance:,file:,dest:,entity:,regex:,help -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o r:p:b:l:s:cn:i:f:d:e:x:hk --long refspec:,proj:,branch:,buildid:,script:,\continue,runid:,instance:,file:,dest:,entity:,regex:,help,keep-running,skip-automaton-init -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 
 CONTINUE=""
+KEEP_RUNNING=0
+SKIP_AUTOMATON_INIT=0
 # extract options and their arguments into variables.
 while true ; do
   case "$1" in
@@ -61,6 +63,10 @@ while true ; do
       show_help
       exit 0
       shift ;;
+    -k|--keep-running)
+      KEEP_RUNNING=1 ; shift ;;
+    --skip-automaton-init)
+      SKIP_AUTOMATON_INIT=1 ; shift ;;
     --) shift ; break ;;
     *) exit 1 ;;
   esac
@@ -108,7 +114,7 @@ case $1 in
       if [[ $2 == "help" ]] ; then
         show_run_help
       else
-        run_aurora_run $BUILDID $SCRIPT $CONTINUE $RUNID
+        run_aurora_run $BUILDID $SCRIPT $KEEP_RUNNING $SKIP_AUTOMATON_INIT $CONTINUE $RUNID
       fi
       ;;
     upload)

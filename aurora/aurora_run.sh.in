@@ -47,7 +47,8 @@ while [[ $# -gt 0 ]]; do
     -I| --instance_name ) INSTANCE_NAME=$2; shift ;;
     -U| --test_uuid ) SUUID=$2; shift ;;
     -O| --stop ) STOP=1; ;;
-    -h | --help ) usage; ;;
+    -h| --help ) usage; ;;
+    --skip-automaton-init ) SKIP_AUTOMATON_INIT="$2"; shift ;;
     -- ) shift; break ;;
     * )
       echo "Unknown parameter: $1";
@@ -138,15 +139,19 @@ function run_test() {
     ;;
 
   9)
-    echo "Execute the run-automaton script on docker container"
-    tryexec run_cmd_docker_sshforwarding_bg ${INSTANCE_NAME} "/bin/bash run_automaton_init.sh" "/tmp/automaton_init.log"
-    record_step $step
+    if [[ $SKIP_AUTOMATON_INIT != 1 ]]; then
+      echo "Execute the run-automaton script on docker container"
+      tryexec run_cmd_docker_sshforwarding_bg ${INSTANCE_NAME} "/bin/bash run_automaton_init.sh" "/tmp/automaton_init.log"
+      record_step $step
+    fi
     ;;
 
   10)
-    echo "Poll the automaton-init cmd (tailing \"/tmp/automaton_init.log\" for complete logs)"
-    tryexec run_poll_cmd ${INSTANCE_NAME} "run_automaton_init.sh" "/tmp/automaton_init.log"
-    record_step $step
+    if [[ $SKIP_AUTOMATON_INIT != 1 ]]; then
+      echo "Poll the automaton-init cmd (tailing \"/tmp/automaton_init.log\" for complete logs)"
+      tryexec run_poll_cmd ${INSTANCE_NAME} "run_automaton_init.sh" "/tmp/automaton_init.log"
+      record_step $step
+    fi
     ;;
 
   11)

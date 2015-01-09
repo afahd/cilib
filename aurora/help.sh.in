@@ -21,19 +21,21 @@ function show_run_help() {
     cat << RUNHELP
 run
   Run test script on cloud instance with aurora BUILD-ID.
-  -l, --buildid       Build on which you want to run test.
-  -s, --script        Test script which you want to run (please see sample_test1.sh to get further idea)
-  -c, --continue      [optional] --continue option will resume the script from the point where it
-                      stopped (because of broken ssh connection or simply because you powered-off
-                      your machine).
-                      It is also useful in case script hits some failures. Rather than running
-                      whole script from scratch, --continue switch will make sure to run only those
-                      steps which had hit failures or had not been run at all.
-  -n, --runid         To use along with --continue:
-                      12 digit identifier for specific run (e.g e992a1fffaf8).
-                      It is being printed out on screen immediately after you kick off the "aurora run"
-                      first time.
-                      It is part of your run-instance name as well [aurora ls instances].
+  -l, --buildid         Build on which you want to run test.
+  -s, --script          Test script which you want to run (please see sample_test1.sh to get further idea)
+  -k, --keep-running    [optional] Instance will be left running after aurora run ends.
+  --skip-automaton-init [optional] Skip running automaton-init.sh on the instance
+  -c, --continue        [optional] --continue option will resume the script from the point where it
+                        stopped (because of broken ssh connection or simply because you powered-off
+                        your machine).
+                        It is also useful in case script hits some failures. Rather than running
+                        whole script from scratch, --continue switch will make sure to run only those
+                        steps which had hit failures or had not been run at all.
+  -n, --runid           To use along with --continue:
+                        12 digit identifier for specific run (e.g e992a1fffaf8).
+                        It is being printed out on screen immediately after you kick off the "aurora run"
+                        first time.
+                        It is part of your run-instance name as well [aurora ls instances].
 
 RUNHELP
 }
