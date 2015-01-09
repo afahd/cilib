@@ -4,7 +4,9 @@ function show_build_help() {
     cat << BUILDHELP
 build
   Build a new image with given COMMIT-ID/TAG/LOCAL-CHANGES.
-  -r, --refspec       Gerrit RefSpec. e.g. refs/changes/20/11020/1
+  -r, --refspec       [optional] Gerrit RefSpec. e.g. refs/changes/20/11020/1.
+                      Not specifying a refspec will build an instance without any changes
+                      on the specified branch.
   -p, --proj          Project with which commit belongs e.g. alps, pg_ui, pg_cli
   -b, --branch        Branch on which you want to test e.g. master, stable_4_0
   -c, --continue      [optional] --continue option will resume the script from the point where it

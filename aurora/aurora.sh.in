@@ -32,6 +32,7 @@ eval set -- "$TEMP"
 CONTINUE=""
 KEEP_RUNNING=0
 SKIP_AUTOMATON_INIT=0
+REFSPEC="none"
 # extract options and their arguments into variables.
 while true ; do
   case "$1" in

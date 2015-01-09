@@ -441,19 +441,20 @@ function check_build_inputs() {
     show_build_help
     exit 1
   fi
-
-  #Check refspec format
-  if [[ ! $REFSPEC =~ ^refs/changes/[0-9]+/[0-9]+/[0-9]+$ ]]; then
-    echo "Invalid refspec format"
-    show_build_help
-    exit 1
-  fi
-  #Check if refespec exists for the project
-  git ls-remote ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/${PROJECT} "${REFSPEC}" | grep "${REFSPEC}" || RESULT=$?
-  if [[ $RESULT -ne 0 ]];then
-    echo "Refspec: $REFSPEC does not exist for the project: ${PROJECT}"
-    show_build_help
-    exit 1
+  if [[ "$REFSPEC" != "none" ]]; then
+    #Check refspec format
+    if [[ ! $REFSPEC =~ ^refs/changes/[0-9]+/[0-9]+/[0-9]+$ ]]; then
+      echo "Invalid refspec format"
+      show_build_help
+      exit 1
+    fi
+    #Check if refespec exists for the project
+    git ls-remote ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/${PROJECT} "${REFSPEC}" | grep "${REFSPEC}" || RESULT=$?
+    if [[ $RESULT -ne 0 ]];then
+      echo "Refspec: $REFSPEC does not exist for the project: ${PROJECT}"
+      show_build_help
+      exit 1
+    fi
   fi
   #Check if branch exists
   git ls-remote ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/${PROJECT} "${BRANCH}" | grep "${BRANCH}" || RESULT=$?

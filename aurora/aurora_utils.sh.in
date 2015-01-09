@@ -197,18 +197,27 @@ function run_aurora_build() {
   local REFSPEC=$1
   local PROJ=$2
   local BRANCH=$3
+  local CONTINUE=$4
   local START_STEP=1
   local END_STEP=16
   local MOD_REFSPEC=$(echo "$REFSPEC" | tr / -)
   MOD_REFSPEC=${MOD_REFSPEC:13}
-  local INSTANCE_NAME=${gerritid_lower}-bld-${MOD_REFSPEC}
+  #Append UUID instead of refspec if building without changes.
+  if [[ $REFSPEC == "none" ]]; then
+    local UUID=`uuidgen`
+    local SUUID_="${UUID##*-}"
+    SUUID="${SUUID_,,}"
+    local INSTANCE_NAME=${gerritid_lower}-bld-${SUUID}
+  else
+    local INSTANCE_NAME=${gerritid_lower}-bld-${MOD_REFSPEC}
+  fi
   local step_rec_file=/tmp/${INSTANCE_NAME}-last-successful-step
   #Validate Inputs
   check_build_inputs $PROJ $REFSPEC $BRANCH
   # If "continue" switch has been given then do following steps
   #   a. Get the last successfully completed step.
   #   b. Start the build process from step next to last completed step.
-  if [[ $4 == "--continue" ]] ; then
+  if [[ $CONTINUE == "--continue" ]] ; then
     # Get the last successfull step from /tmp/${INSTANCE_NAME}-last-successful-step
     LAST_SUCCESSFULL_STEP=( $(<${step_rec_file}) )
     START_STEP=$((LAST_SUCCESSFULL_STEP+1))
