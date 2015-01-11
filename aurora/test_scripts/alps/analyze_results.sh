@@ -4,7 +4,9 @@ DB="$HOME/.alps.test.db"
 # from aurora run's
 # this script when run like "analyze_results.sh build" will create a new database
 # then it can be run to create tests splits "analyze_results.sh 10" will generate the test splits for
-# running in 10 VM's
+# running in 10 VM's and display on the screen
+# then it can be run to create tests splits "analyze_results.sh 10 run_tests.sh" will gerates the scripts
+# run_tests.sh-1..10 with the splits to run the tests in 10 vm's
 
 if [[ $1 == "build" ]] ; then
     if [ ! -e "$DB" ] ; then
@@ -43,7 +45,8 @@ if [[ $1 == "build" ]] ; then
 
 else
     let SPLIT=$1
-
+    ScriptName=$2
+    ITERATIONS=1
     TotalTestRuntime=$(sqlite3 $DB "select sum(RunTime) from tests;")
     MaxTestID=$(sqlite3 $DB "select max(id) from tests;")
     TestCount=$(sqlite3 $DB "select count(id) from tests;")
@@ -67,8 +70,18 @@ else
         TestTime=${TestTime%.*}
         let RunTime=TestTime-CurrentTime
         let NoTest=TestID-CurrentTest
-        echo "Split [$ITR] :: Test[$NoTest] "$'\t'" $CurrentTest - $TestID "$'\t'", RunTime : $RunTime"
-        CurrentTest=$TestID
+        if [[ ! -z $ScriptName ]] ; then
+            DScript="${ScriptName}-$ITR"
+            echo "[$DScript]"$'\t'":: Test[$NoTest] "$'\t'" $CurrentTest - $TestID "$'\t'", RunTime : $RunTime"
+            cp $ScriptName $DScript
+            sed -i 's/CTEST_ST=[0-9]*/CTEST_ST='${CurrentTest}'/' $DScript
+            sed -i 's/CTEST_ED=[0-9]*/CTEST_ED='${TestID}'/' $DScript
+            sed -i 's/itr=[0-9]*/itr='${ITERATIONS}'/' $DScript
+        else
+            echo "Split [$ITR] :: Test[$NoTest] "$'\t'" $CurrentTest - $TestID "$'\t'", RunTime : $RunTime"
+        fi
+
+        let CurrentTest=TestID+1
         CurrentTime=$TestTime
     done
 
