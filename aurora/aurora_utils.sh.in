@@ -54,7 +54,7 @@ function download_from_docker() {
 # *****************************************************************************
 function list_instances() {
   local file=$(mktemp /tmp/${gerritid}-instance-list-XXXXX)
-  echo "Listing instances for the user:$gerritid_lower"
+  echo "Listing instances for the user:$gerritid"
   gcloud compute instances list --regexp "${gerritid_lower}-.*" > ${file}
   sed -ie "s/${gerritid_lower}-//g" ${file}
   cat ${file}

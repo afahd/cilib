@@ -166,6 +166,7 @@ function run_dock_container() {
     --lxc-conf='lxc.aa_profile=unconfined' --privileged -d ${DOCK_NAME} /home/plumgrid/startup.sh) && \
     echo \$DID > ${DOCK_ID_FILE} && \
     sudo docker inspect --format '{{ .NetworkSettings.IPAddress }}' \$DID > ${DOCK_IP_FILE}"
+  rm ${local_file}
 }
 
 # *****************************************************************************
@@ -493,5 +494,7 @@ function check_run_inputs() {
 }
 
 function record_step() {
-  echo $1 > /tmp/${INSTANCE_NAME}-last-successful-step
+  local step=$1
+  local step_file=$2
+  echo $step > ${step_file}
 }

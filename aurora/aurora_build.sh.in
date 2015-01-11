@@ -80,7 +80,7 @@ for key in ${!branch_to_component[@]}; do
     break
   fi
 done
-
+step_file=/tmp/${INSTANCE_NAME}-last-successful-step
 
 function init_id() {
   conf_file="/opt/pg/scripts/aurora.conf"
@@ -99,7 +99,7 @@ function build_image() {
       --source-snapshot "${SNAP1}" --type "pd-standard" --size="$DISK1_SIZE"
     tryexec gcloud -q --verbosity ${VERBOSITY} compute disks create "${INSTANCE_NAME}-d2" \
       --source-snapshot "${SNAP2}" --type "pd-standard" --size="$DISK2_SIZE"
-    record_step $step
+    record_step $step $step_file
     ;;
 
   2)
@@ -109,27 +109,27 @@ function build_image() {
       "MIGRATE" --scopes "https://www.googleapis.com/auth/devstorage.read_only" \
       --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
       --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip"
-    record_step $step
+    record_step $step $step_file
     ;;
 
   3)
     ssh-keygen -R ${INSTANCE_NAME}
     echo "Waiting for the machine to boot up and allow ssh access"
     wait_for_instance ${INSTANCE_NAME}
-    record_step $step
+    record_step $step $step_file
     ;;
 
   4)
     echo "setting up forward on ${INSTANCE_NAME} Machine "
     tryexec run_cmd_gci ${INSTANCE_NAME} "echo 'host *' > ~/.ssh/config; echo '    ForwardAgent yes'>>~/.ssh/config"
-    record_step $step
+    record_step $step $step_file
     ;;
 
   5)
     echo "starting the pgdev container"
     tryexec run_dock_container ${INSTANCE_NAME} ${DOCK_NAME} "./local_docker_id" "./local_docker_ip"
     tryexec verify_docker_running ${INSTANCE_NAME} ${DOCK_NAME}
-    record_step $step
+    record_step $step $step_file
     ;;
 
   6)
@@ -137,7 +137,7 @@ function build_image() {
     tryexec run_cmd_gci ${INSTANCE_NAME} "echo -e  'y\n'|ssh-keygen -t rsa -N \"\" -f ~/.ssh/id_rsa"
     tryexec run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat /home/$USER/.ssh/id_rsa.pub >> \
       /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
-    record_step $step
+    record_step $step $step_file
     ;;
 
   7)
@@ -145,7 +145,7 @@ function build_image() {
     tryexec scp -o StrictHostKeyChecking=no -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" ~/.ssh/id_rsa.pub ${USER}@${INSTANCE_NAME}:./auth-key.pub
     tryexec run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat /home/$USER/auth-key.pub >> \
       /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
-    record_step $step
+    record_step $step $step_file
     ;;
 
   8)
@@ -153,10 +153,10 @@ function build_image() {
     if [[ $retval == 1 ]]; then
       run_cmd_gci ${INSTANCE_NAME} "sudo docker ps"
       echo "Dokcer stopped.. Please run aurora build with --continue to retry!!"
-      record_step 4
+      record_step 4 $step_file
       exit $retval
     fi
-    record_step $step
+    record_step $step $step_file
     ;;
 
   9)
@@ -164,20 +164,20 @@ function build_image() {
     echo "Generate script for syncing the gerrit repo"
     tryexec write_gitsync.sh "${GIT_SYNC_SCRIPT}" "${BRANCH}" "${PROJECT}" "${REFSPEC}"
     tryexec upload_to_docker ${INSTANCE_NAME} ${GIT_SYNC_SCRIPT} /tmp/
-    record_step $step
+    record_step $step $step_file
     ;;
 
   10)
     echo "Execute the gitsynch script on docker container"
     tryexec check_ssh_server_status ${INSTANCE_NAME}
     tryexec run_cmd_docker_sshforwarding ${INSTANCE_NAME} "bash ${GIT_SYNC_SCRIPT}"
-    record_step $step
+    record_step $step $step_file
     ;;
 
   11)
     echo "Starting build-all.sh for ${APT_COMPONENT}==="
     tryexec run_cmd_docker_sshforwarding_bg ${INSTANCE_NAME} "/bin/bash /home/plumgrid/run_build_all.sh ${APT_COMPONENT}" "/tmp/build_all.log"
-    record_step $step
+    record_step $step $step_file
     ;;
 
   12)
@@ -185,20 +185,20 @@ function build_image() {
     # this step can be run directly to see if the previous command is still running
     echo "Polling for build-all (tailing \"/tmp/build_all.log\" for complete logs)"
     run_poll_cmd ${INSTANCE_NAME} "run_build_all.sh" "/tmp/build_all.log"
-    record_step $step
+    record_step $step $step_file
     ;;
 
   13)
     echo "Making a snapshot for the container"
     tryexec run_cmd_gci ${INSTANCE_NAME} "echo \"pg_dev_${INSTANCE_NAME}\" > docker_build_id" "t"
     tryexec run_cmd_gci ${INSTANCE_NAME} "sudo docker commit \`cat ./local_docker_id\` pg_dev_${INSTANCE_NAME}:latest"
-    record_step $step
+    record_step $step $step_file
     ;;
 
   14)
     echo "Making sure docker(pg_dev_${INSTANCE_NAME}:latest) is commited successfully"
     tryexec verify_docker_commited ${INSTANCE_NAME} "pg_dev_${INSTANCE_NAME}"
-    record_step $step
+    record_step $step $step_file
     ;;
 
   15)
@@ -210,13 +210,13 @@ function build_image() {
     create_snapshot ${INSTANCE_NAME}-d1 ${INSTANCE_NAME}-ssd1
     create_snapshot ${INSTANCE_NAME}-d2 ${INSTANCE_NAME}-ssd2
     echo " BUILD-ID = ${BUILD_ID} "
-    record_step $step
+    record_step $step $step_file
     ;;
 
   16)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec gcloud compute instances delete ${INSTANCE_NAME} --delete-disks all  -q
-    record_step $step
+    rm $step_file
     printf "\n\n *********************** BUILD-ID = ${BUILD_ID} *********************** \n\n"
     ;;
 

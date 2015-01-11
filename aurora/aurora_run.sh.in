@@ -62,6 +62,7 @@ if [ -z ${SUUID+x} ]; then
   echo "Input parameter -U is required"
   exit 1
 fi
+step_file=/tmp/${INSTANCE_NAME}-last-successful-step
 
 # TODO: Get the latest snapshot id and use that in below variables
 DOCK_NAME="pg_dev_${BUILD_ID}:latest"
@@ -76,7 +77,7 @@ function run_test() {
       --source-snapshot "${BUILD_ID}-ssd1" --type "pd-standard" --size="$DISK1_SIZE"
     tryexec gcloud -q --verbosity error compute disks create "${INSTANCE_NAME}-d2" \
       --source-snapshot "${BUILD_ID}-ssd2" --type "pd-standard" --size="$DISK2_SIZE"
-    record_step $step
+    record_step $step $step_file
     ;;
 
   2)
@@ -86,27 +87,27 @@ function run_test() {
       "MIGRATE" --scopes "https://www.googleapis.com/auth/devstorage.read_only" \
       --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
       --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip"
-    record_step $step
+    record_step $step $step_file
     ;;
 
   3)
     echo "Waiting for the machine to boot up and allow ssh access"
     tryexec wait_for_instance ${INSTANCE_NAME}
-    record_step $step
+    record_step $step $step_file
     ;;
 
   4)
     echo "starting the pgdev container ${DOCK_NAME}"
     tryexec run_dock_container ${INSTANCE_NAME} ${DOCK_NAME} "./local_docker_id" "./local_docker_ip"
-    record_step $step
+    record_step $step $step_file
     ;;
 
   5)
     echo "Copy build-instance key to pgdev container"
-    #run_cmd_gci ${INSTANCE_NAME} "ssh-keygen -t rsa -N \"\" -f ~/.ssh/id_rsa"
+    run_cmd_gci ${INSTANCE_NAME} "ssh-keygen -t rsa -N \"\" -f ~/.ssh/id_rsa"
     tryexec run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat /home/$USER/.ssh/id_rsa.pub >> \
       /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
-    record_step $step
+    record_step $step $step_file
     ;;
 
   6)
@@ -114,7 +115,7 @@ function run_test() {
     tryexec scp -o StrictHostKeyChecking=no -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" ~/.ssh/id_rsa.pub ${USER}@${INSTANCE_NAME}:./auth-key.pub
     tryexec run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat /home/$USER/auth-key.pub >> \
       /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
-    record_step $step
+    record_step $step $step_file
     ;;
 
   7)
@@ -122,11 +123,11 @@ function run_test() {
     if [[ $retval == 1 ]]; then
       run_cmd_gci ${INSTANCE_NAME} "sudo docker ps"
       echo "Dokcer stopped.. Please run aurora build with --continue to retry!!"
-      record_step 4
+      record_step 3 $step_file
       exit $retval
     fi
 
-    record_step $step
+    record_step $step $step_file
     ;;
 
   8)
@@ -135,14 +136,14 @@ function run_test() {
     echo "sed -i '/restart_lxc lvm/a tryexec lxc-attach -n lvm -- /bin/bash -c \"echo 'NOZEROCONF=true' >> /etc/sysconfig/network\"' /opt/pg/systest/lxc/automaton/automaton-helpers.sh" > /tmp/zeroconf.sh
     tryexec upload_to_docker ${INSTANCE_NAME} /tmp/zeroconf.sh /tmp/zeroconf.sh
     tryexec run_cmd_docker ${INSTANCE_NAME} "/bin/bash /tmp/zeroconf.sh"
-    record_step $step
+    record_step $step $step_file
     ;;
 
   9)
     if [[ $SKIP_AUTOMATON_INIT != 1 ]]; then
       echo "Execute the run-automaton script on docker container"
       tryexec run_cmd_docker_sshforwarding_bg ${INSTANCE_NAME} "/bin/bash run_automaton_init.sh" "/tmp/automaton_init.log"
-      record_step $step
+      record_step $step $step_file
     fi
     ;;
 
@@ -150,7 +151,7 @@ function run_test() {
     if [[ $SKIP_AUTOMATON_INIT != 1 ]]; then
       echo "Poll the automaton-init cmd (tailing \"/tmp/automaton_init.log\" for complete logs)"
       tryexec run_poll_cmd ${INSTANCE_NAME} "run_automaton_init.sh" "/tmp/automaton_init.log"
-      record_step $step
+      record_step $step $step_file
     fi
     ;;
 
@@ -158,24 +159,24 @@ function run_test() {
     tryexec upload_to_docker ${INSTANCE_NAME} ${TEST_SCRIPT} /tmp/user_test_script.sh
     # tryexec is not needed because test can fail as well
     run_cmd_docker_bg ${INSTANCE_NAME} "/bin/bash /tmp/user_test_script.sh" "/tmp/test.logs"
-    record_step $step
+    record_step $step $step_file
     ;;
 
   12)
     echo "Poll the test logs (tailing \"/tmp/test.log\")"
     tryexec run_poll_cmd ${INSTANCE_NAME} "/tmp/user_test_script.sh" "/tmp/test.logs"
-    record_step $step
+    record_step $step $step_file
     ;;
 
   13)
     tryexec get_latest_logs ${INSTANCE_NAME}
-    record_step $step
+    record_step $step $step_file
     ;;
 
   14)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec gcloud compute instances delete ${INSTANCE_NAME} --delete-disks all  -q
-    record_step $step
+    rm $step_file
     ;;
 
   *)
