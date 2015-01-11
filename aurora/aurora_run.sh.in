@@ -104,6 +104,7 @@ function run_test() {
 
   5)
     echo "Copy build-instance key to pgdev container"
+    run_cmd_gci ${INSTANCE_NAME} "rm -f ~/.ssh/id_rsa*"
     run_cmd_gci ${INSTANCE_NAME} "ssh-keygen -t rsa -N \"\" -f ~/.ssh/id_rsa"
     tryexec run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat /home/$USER/.ssh/id_rsa.pub >> \
       /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
