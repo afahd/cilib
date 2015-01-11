@@ -158,6 +158,7 @@ function run_dock_container() {
   cat /dev/null > ${local_file}
   echo "#!/bin/bash" >> ${local_file}
   echo "sudo docker inspect --format '{{json .Id}}' ${DOCK_NAME} | tr -d '\\\"' > /tmp/docker_image_id_t" >> ${local_file}
+  echo 'sudo sed -i "s/sudo rsyslogd$/sudo rsyslogd\&/" /var/lib/docker/btrfs/subvolumes/`cat /tmp/docker_image_id_t`/home/plumgrid/startup.sh' >> ${local_file}
   echo 'sudo sed -i "s/\/usr\/sbin\/sshd -D$/while :; do \/usr\/sbin\/sshd -D;sleep 1; done/" /var/lib/docker/btrfs/subvolumes/`cat /tmp/docker_image_id_t`/home/plumgrid/startup.sh' >> ${local_file}
   echo 'rm /tmp/docker_image_id_t' >> ${local_file}
   scp -o StrictHostKeyChecking=no -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" ${local_file} ${USER}@${INSTANCE_NAME}:${local_file}
