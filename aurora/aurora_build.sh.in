@@ -14,10 +14,7 @@ SNAP2=plumgrid-builder-v1-d2-${SN_ID}
 DOCK_NAME=pg-docker-repo:5000/pg_dev:${SN_ID}
 
 # TODO: Make a decision about machine type and Disk sizes.
-# TODO: Use values from aurora_settings.conf file
-MACHINETYPE="n1-standard-4"
-DISK1_SIZE=10
-DISK2_SIZE=200
+
 GIT_SYNC_SCRIPT="/tmp/gitsync.sh"
 BRANCH=""
 REFSPEC=""
@@ -96,17 +93,17 @@ function build_image() {
   1)
     echo "Creating the disk[${INSTANCE_NAME}-d1] and [${INSTANCE_NAME}-d2] for the instance in the cloud"
     tryexec gcloud -q --verbosity ${VERBOSITY} compute disks create "${INSTANCE_NAME}-d1" \
-      --source-snapshot "${SNAP1}" --type "pd-standard" --size="$DISK1_SIZE"
+      --source-snapshot "${SNAP1}" --type "$DISK_TYPE" --size="$DISK1_SIZE"
     tryexec gcloud -q --verbosity ${VERBOSITY} compute disks create "${INSTANCE_NAME}-d2" \
-      --source-snapshot "${SNAP2}" --type "pd-standard" --size="$DISK2_SIZE"
+      --source-snapshot "${SNAP2}" --type "$DISK_TYPE" --size="$DISK2_SIZE"
     record_step $step $step_file
     ;;
 
   2)
     echo "Creating the instance[$INSTANCE_NAME] in the cloud"
     tryexec gcloud -q --verbosity ${VERBOSITY} compute instances create "${INSTANCE_NAME}" \
-      --machine-type "$MACHINETYPE" --network "net-10-10" --maintenance-policy \
-      "MIGRATE" --scopes "https://www.googleapis.com/auth/devstorage.read_only" \
+      --machine-type "$MACHINE_TYPE" --network "$NETWORK" --maintenance-policy \
+      "MIGRATE" --scopes "$SCOPES" \
       --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
       --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip"
     record_step $step $step_file

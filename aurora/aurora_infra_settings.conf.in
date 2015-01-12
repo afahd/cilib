@@ -1,5 +1,5 @@
-PROJECT=festive-courier-755
-MACHINE_TYPE=n1-standard-1
+GCLOUD_PROJECT=festive-courier-755
+MACHINE_TYPE=n1-standard-4
 ZONE=us-central1-f
 REGION=us-central1
 SCOPES=https://www.googleapis.com/auth/devstorage.read_only
@@ -8,10 +8,6 @@ DISK_TYPE=pd-standard
 DISK1_SIZE=10
 DISK2_SIZE=200
 
-SN_ID=1418550446
-SNAP1=plumgrid-builder-v2-d1-${SN_ID}
-SNAP2=plumgrid-builder-v2-d2-${SN_ID}
-DOCK_NAME=pg-docker-repo:5000/pg_dev:${SN_ID}
 VERBOSITY=error
 GERRIT_IP=192.168.10.77
 GERRIT_PORT=29418

@@ -6,11 +6,8 @@ export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
 . gc_helpers.sh
 . aurora_utils.sh
 source /home/$USER/.aurora.conf
+source aurora_infra_settings.conf
 
-# TODO: Make a decision about machine type and Disk sizes.
-MACHINETYPE="n1-standard-4"
-DISK1_SIZE=10
-DISK2_SIZE=200
 
 declare -A MINOR_STEPS_ST
 declare -A MINOR_STEPS_ED
@@ -73,18 +70,18 @@ function run_test() {
   case "$step" in
   1)
     echo "Creating the disk[${INSTANCE_NAME}-d1] and [${INSTANCE_NAME}-d2] for the instance in the cloud from ${BUILD_ID}"
-    tryexec gcloud -q --verbosity error compute disks create "${INSTANCE_NAME}-d1" \
-      --source-snapshot "${BUILD_ID}-ssd1" --type "pd-standard" --size="$DISK1_SIZE"
-    tryexec gcloud -q --verbosity error compute disks create "${INSTANCE_NAME}-d2" \
-      --source-snapshot "${BUILD_ID}-ssd2" --type "pd-standard" --size="$DISK2_SIZE"
+    tryexec gcloud -q --verbosity ${VERBOSITY} compute disks create "${INSTANCE_NAME}-d1" \
+      --source-snapshot "${BUILD_ID}-ssd1" --type "$DISK_TYPE" --size="$DISK1_SIZE"
+    tryexec gcloud -q --verbosity ${VERBOSITY} compute disks create "${INSTANCE_NAME}-d2" \
+      --source-snapshot "${BUILD_ID}-ssd2" --type "$DISK_TYPE" --size="$DISK2_SIZE"
     record_step $step $step_file
     ;;
 
   2)
     echo "Creating the instance[$INSTANCE_NAME] in the cloud"
-    tryexec gcloud -q --verbosity error compute instances create "${INSTANCE_NAME}" \
-      --machine-type "$MACHINETYPE" --network "net-10-10" --maintenance-policy \
-      "MIGRATE" --scopes "https://www.googleapis.com/auth/devstorage.read_only" \
+    tryexec gcloud -q --verbosity ${VERBOSITY} compute instances create "${INSTANCE_NAME}" \
+      --machine-type "$MACHINE_TYPE" --network "$NETWORK" --maintenance-policy \
+      "MIGRATE" --scopes "$SCOPES" \
       --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
       --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip"
     record_step $step $step_file
