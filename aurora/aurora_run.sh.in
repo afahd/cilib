@@ -133,9 +133,15 @@ function run_test() {
   8)
     # This is here only untill https://gerrit:8443/#/c/10751/ gets merged.
     echo "Execute the pre run-automaton on docker container"
-    echo "sed -i '/restart_lxc lvm/a tryexec lxc-attach -n lvm -- /bin/bash -c \"echo 'NOZEROCONF=true' >> /etc/sysconfig/network\"' /opt/pg/systest/lxc/automaton/automaton-helpers.sh" > /tmp/zeroconf.sh
-    tryexec upload_to_docker ${INSTANCE_NAME} /tmp/zeroconf.sh /tmp/zeroconf.sh
-    tryexec run_cmd_docker ${INSTANCE_NAME} "/bin/bash /tmp/zeroconf.sh"
+    local local_file=$(mktemp /tmp/container_preinit.sh-XXXXX)
+    cat /dev/null > ${local_file}
+    echo "#!/bin/bash" >> ${local_file}
+    echo "sed -i '/restart_lxc lvm/a tryexec lxc-attach -n lvm -- /bin/bash -c \"echo 'NOZEROCONF=true' >> /etc/sysconfig/network\"' /opt/pg/systest/lxc/automaton/automaton-helpers.sh" >> ${local_file} 
+    echo "rm -f /opt/pg/var/www/temp" >> ${local_file}
+    echo "ln -s  /opt/pg/web/temp /opt/pg/var/www/" >> ${local_file}
+    tryexec upload_to_docker ${INSTANCE_NAME}  ${local_file} ${local_file}
+    rm ${local_file}
+    tryexec run_cmd_docker ${INSTANCE_NAME} "/bin/bash ${local_file}"
     record_step $step $step_file
     ;;
 
