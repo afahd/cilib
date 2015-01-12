@@ -28,11 +28,11 @@ for run in $(seq 1 $itr); do
   echo  "Running iteration number: ${run}"
   # need to recreate the directory every time, because we move it away at the end of the loop
   for testno in $(seq $CTEST_ST $CTEST_ED); do
-    test_name=$(ctest -N  -L ^type:local$ -I $testno,$testno | grep "Test.*#.*:" | cut -d ':' -f 2 | tr -d ' ')
+    test_name=$(ctest -N  -L ^type:local$ | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
     echo "Running $test_name"
     rm -rf /opt/pg/log/*
     touch /opt/pg/log/${test_name}
-    ctest --output-on-failure  -L ^type:local$ -I $testno,$testno >& "logs/ctestout_iter${run}_${test_name}.log" 
+    ctest --output-on-failure  -L ^type:local$ -R "^${test_name}$" >& "logs/ctestout_iter${run}_${test_name}.log"
     result="$?"
     if [[ "x$result" != "x0" ]] ; then 
       echo "                 FAILED"
