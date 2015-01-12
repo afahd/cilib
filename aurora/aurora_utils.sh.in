@@ -53,12 +53,17 @@ function download_from_docker() {
 # Prereq: Aurora init has been called.
 # *****************************************************************************
 function list_instances() {
-  local file=$(mktemp /tmp/${gerritid}-instance-list-XXXXX)
   echo "Listing instances for the user:$gerritid"
-  gcloud compute instances list --regexp "${gerritid_lower}-.*" > ${file}
-  sed -ie "s/${gerritid_lower}-//g" ${file}
-  cat ${file}
-  rm -f ${file}*
+  local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp  --regexp "${gerritid_lower}-.*" | sed -e "s/${gerritid_lower}-//g")
+  local instance_names=($(echo "$instance_list" | grep '^name'))
+  local instance_status=($(echo "$instance_list" | grep status))
+  local instance_creationtime=($(echo "$instance_list" | grep creationTimestamp))
+  local instance_internalip=($(echo "$instance_list" | grep "networkIP"))
+  printf "%-35s %-30s %-20s %-20s\n" "Name" "Creation Time" "Internal IP" "Status"
+  for (( i = 1 ; i < ${#instance_names[@]} ; i=i+2 )) do
+    printf "%-35s %-30s %-20s %-20s\n" ${instance_names[$i]} ${instance_creationtime[$i]} ${instance_internalip[$i]} ${instance_status[$i]}
+  done
+  echo "------------------------------------------------"
 }
 
 # *****************************************************************************
@@ -68,13 +73,17 @@ function list_instances() {
 # Prereq: Aurora init has been called.
 # *****************************************************************************
 function list_snapshots() {
-  local file=$(mktemp /tmp/${gerritid}-snapshot-list-XXXXX)
-
-  echo "Listing instances for the user:$gerritid"
-  gcloud compute snapshots list --regexp "${gerritid_lower}-.*" > ${file}
-  sed -ie "s/${gerritid_lower}-//g" ${file}
-  cat ${file}
-  rm ${file}*
+  echo "Listing snapshots for the user:$gerritid"
+  local snapshot_list=$(gcloud compute snapshots list --format=text --sort-by=creationTimestamp --regexp "${gerritid_lower}-.*" | sed -e "s/${gerritid_lower}-//g")
+  local snapshot_names=($(echo "$snapshot_list" | grep name))
+  local snapshot_status=($(echo "$snapshot_list" | grep status))
+  local snapshot_size=($(echo "$snapshot_list" | grep diskSizeGb))
+  local snapshot_creationtime=($(echo "$snapshot_list" | grep creationTimestamp))
+  printf "%-25s %-10s %-30s %-20s\n" "Name" "Size(GB)" "CreationTime" "Status"
+  for (( i = 1 ; i < ${#snapshot_names[@]} ; i=i+2 )) do
+    printf "%-25s %-10s %-30s %-20s\n" ${snapshot_names[$i]} ${snapshot_size[$i]} ${snapshot_creationtime[$i]} ${snapshot_status[$i]}
+  done
+  echo "------------------------------------------------"
 }
 # *****************************************************************************
 # Function: list_buildids
