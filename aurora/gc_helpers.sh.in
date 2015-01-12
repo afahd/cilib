@@ -12,23 +12,19 @@ function init_id() {
   gcloud config set project $GCLOUD_PROJECT
   gcloud config set compute/zone $ZONE
   gcloud config set compute/region $REGION
-
-  ## Set the SSH keys for google compute cloud engine
-  echo "Configure the ssh-keys for Google compute cloud engine."
-  gcloud compute ssh aurora-comm-hub --ssh-key-file ~/.ssh/id_rsa --command "echo \"SSH Keys transferred\""
 }
 
 # *****************************************************************************
 # Function: run_cmd_gci
 # Purpose : Run command on Google Cloud instance.
-# Usage   : run_cmd_gci <cloud_instance_name>
+# Usage   : run_cmd_gci <cloud_instance_ip>
 # *****************************************************************************
 function run_cmd_gci() {
-  local INSTANCE_NAME=$1
+  local INSTANCE_IP=$1
   local CMD=$2
   local SSH_FLAGS=${3:-t}
 
-  ssh -${SSH_FLAGS} -o StrictHostKeyChecking=no -o "ProxyCommand ssh  $COMM_IP nc ${INSTANCE_NAME} 22" -o ServerAliveInterval=5  ${USER}@${INSTANCE_NAME} "$CMD"
+  ssh -${SSH_FLAGS} -o StrictHostKeyChecking=no -o ServerAliveInterval=5 ${USER}@${INSTANCE_IP} "$CMD"
 }
 
 # *****************************************************************************
@@ -53,13 +49,13 @@ function check_and_start_ssh_agent() {
 # *****************************************************************************
 # Function: run_cmd_gci_sshforwarding
 # Purpose : Run command on Google Cloud instance with ssh forwarding.
-# Usage   : run_cmd_gci <cloud_instance_name>
+# Usage   : run_cmd_gci_sshforwarding <cloud_instance_ip>
 # *****************************************************************************
 function run_cmd_gci_sshforwarding() {
-  local INSTANCE_NAME=$1
+  local INSTANCE_IP=$1
   local CMD=$2
   check_and_start_ssh_agent
-  run_cmd_gci ${INSTANCE_NAME} "${CMD}" tA
+  run_cmd_gci ${INSTANCE_IP} "${CMD}" tA
 }
 
 # *****************************************************************************
@@ -69,11 +65,11 @@ function run_cmd_gci_sshforwarding() {
 # /_\ Caution: Not tested.
 # *****************************************************************************
 function run_cmd_docker() {
-  local INSTANCE_NAME=$1
+  local INSTANCE_IP=$1
   local DOCKER_CMD=$2
 
-  echo run_cmd_gci ${INSTANCE_NAME} "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ${DOCKER_CMD}"
-  run_cmd_gci ${INSTANCE_NAME} "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ${DOCKER_CMD}"
+  echo run_cmd_gci ${INSTANCE_IP} "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ${DOCKER_CMD}"
+  run_cmd_gci ${INSTANCE_IP} "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ${DOCKER_CMD}"
 }
 
 
@@ -84,11 +80,11 @@ function run_cmd_docker() {
 # /_\ Caution: Not tested.
 # *****************************************************************************
 function run_cmd_docker_bg() {
-  local INSTANCE_NAME=$1
+  local INSTANCE_IP=$1
   local DOCKER_CMD=$2
   local LOG_FILE=$3
 
-  run_cmd_gci ${INSTANCE_NAME} "ssh -t -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` \" nohup bash -c '${DOCKER_CMD} > ${LOG_FILE} 2>&1 &' \""
+  run_cmd_gci ${INSTANCE_IP} "ssh -t -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` \" nohup bash -c '${DOCKER_CMD} > ${LOG_FILE} 2>&1 &' \""
 }
 
 # *****************************************************************************
@@ -98,10 +94,10 @@ function run_cmd_docker_bg() {
 # /_\ Caution: Not tested.
 # *****************************************************************************
 function run_cmd_docker_sshforwarding() {
-  local INSTANCE_NAME=$1
+  local INSTANCE_IP=$1
   local DOCKER_CMD=$2
 
-  run_cmd_gci_sshforwarding ${INSTANCE_NAME} "ssh -tA  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ${DOCKER_CMD}"
+  run_cmd_gci_sshforwarding ${INSTANCE_IP} "ssh -tA -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ${DOCKER_CMD}"
 }
 
 # *****************************************************************************
@@ -111,35 +107,35 @@ function run_cmd_docker_sshforwarding() {
 # /_\ Caution: Not tested.
 # *****************************************************************************
 function run_cmd_docker_sshforwarding_bg() {
-  local INSTANCE_NAME=$1
+  local INSTANCE_IP=$1
   local DOCKER_CMD=$2
   local LOG_FILE=$3
 
-  run_cmd_gci_sshforwarding ${INSTANCE_NAME} "ssh -t -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` \" nohup bash -c '${DOCKER_CMD} > ${LOG_FILE} 2>&1 &' \""
+  run_cmd_gci_sshforwarding ${INSTANCE_IP} "ssh -t -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` \" nohup bash -c '${DOCKER_CMD} > ${LOG_FILE} 2>&1 &' \""
 }
 
 # *****************************************************************************
 # Function: wait_for_instance
 # Purpose : Wait Cloud instance to come up.
-# Usage   : wait_for_instance <cloud_instance_name>
+# Usage   : wait_for_instance <cloud_instance_ip>
 # *****************************************************************************
 function wait_for_instance() {
-  local INSTANCE_NAME=$1
+  local INSTANCE_IP=$1
   local RESULT=1
   for i in `seq 1 60`;
     do
       echo "Trying to ssh to ${INSTANCE_NAME} Iteration [$i]"
-      ssh -t -o "ProxyCommand ssh -o StrictHostKeyChecking=no $COMM_IP nc ${INSTANCE_NAME} 22" -o StrictHostKeyChecking=no -o ServerAliveInterval=5 ${USER}@${INSTANCE_NAME} ls >> /tmp/build_image.2.log 2>&1  && RESULT=0 && break
+      run_cmd_gci ${INSTANCE_IP} "ls" >> /tmp/build_image.2.log 2>&1  && RESULT=0 && break
       sleep 1
     done
   return $RESULT
 }
 # *****************************************************************************
 # Purpose : Check whether ssh server is up and running.
-# Usage   : wait_for_instance <cloud_instance_name>
+# Usage   : wait_for_instance <cloud_instance_ip>
 # *****************************************************************************
 function check_ssh_server_status() {
-  local INSTANCE_NAME=$1
+  local INSTANCE_IP=$1
   local RESULT=1
   echo "check if ssh server is up and running"
   check_and_start_ssh_agent
@@ -147,7 +143,7 @@ function check_ssh_server_status() {
   for i in `seq 1 60`;
     do
       echo "Trying to ssh to ${DOCK_NAME} Iteration [$i]"
-      ssh -o StrictHostKeyChecking=no -tA -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" ${USER}@${INSTANCE_NAME} "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ls" >> /tmp/build_image.3.log  2>&1 && RESULT=0 && break
+      run_cmd_gci ${INSTANCE_IP} "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ls" "tA" >> /tmp/build_image.3.log  2>&1 && RESULT=0 && break
       sleep 1
     done
   return $RESULT
@@ -157,7 +153,7 @@ function check_ssh_server_status() {
 # Purpose : Run docker container inside given instance
 # *****************************************************************************
 function run_dock_container() {
-  local INSTANCE_NAME=$1
+  local INSTANCE_IP=$1
   local DOCK_NAME=$2
   local DOCK_ID_FILE=$3
   local DOCK_IP_FILE=$4
@@ -175,28 +171,28 @@ function run_dock_container() {
   echo "  sudo rmmod bonding" >> ${local_file}
   echo "fi" >> ${local_file}
   echo "sudo modprobe bonding mode=2" >> ${local_file}
-  scp -o StrictHostKeyChecking=no -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" ${local_file} ${USER}@${INSTANCE_NAME}:${local_file}
+  scp -o StrictHostKeyChecking=no ${local_file} ${USER}@${INSTANCE_IP}:${local_file}
   rm ${local_file}
-  run_cmd_gci ${INSTANCE_NAME} "bash ${local_file}"
-  run_cmd_gci ${INSTANCE_NAME} "DID=\$(sudo docker run  --cap-add=all  --cap-add=SYS_ADMIN \
+  run_cmd_gci ${INSTANCE_IP} "bash ${local_file}"
+  run_cmd_gci ${INSTANCE_IP} "DID=\$(sudo docker run  --cap-add=all  --cap-add=SYS_ADMIN \
     --lxc-conf='lxc.aa_profile=unconfined' --privileged -d ${DOCK_NAME} /home/plumgrid/startup.sh) && \
     echo \$DID > ${DOCK_ID_FILE} && \
     sudo docker inspect --format '{{ .NetworkSettings.IPAddress }}' \$DID > ${DOCK_IP_FILE}"
-  run_cmd_gci ${INSTANCE_NAME} "sudo docker inspect -f '{{.State.Pid}}' \`cat ${DOCK_ID_FILE}\` > ${DOCK_ID_FILE}.pid"
-  run_cmd_gci ${INSTANCE_NAME} "sudo ip link set bond0 netns \`cat ${DOCK_ID_FILE}.pid\`" 
+  run_cmd_gci ${INSTANCE_IP} "sudo docker inspect -f '{{.State.Pid}}' \`cat ${DOCK_ID_FILE}\` > ${DOCK_ID_FILE}.pid"
+  run_cmd_gci ${INSTANCE_IP} "sudo ip link set bond0 netns \`cat ${DOCK_ID_FILE}.pid\`"
 }
 
 # *****************************************************************************
 # Purpose : Check whether docker is running fine.
-# Usage   : verify_docker_running <cloud_instance_name> <docker_name>
+# Usage   : verify_docker_running <cloud_instance_ip> <docker_name>
 # *****************************************************************************
 function verify_docker_running() {
-  local INSTANCE_NAME=$1
+  local INSTANCE_IP=$1
   local DOCKER_NAME=$2
 
   for i in `seq 1 5`; do
     echo "Try$i: Checking whether ${DOCKER_NAME} is running ....?"
-    run_cmd_gci ${INSTANCE_NAME} "sudo docker ps | grep ${DOCK_NAME} &> /dev/null"
+    run_cmd_gci ${INSTANCE_IP} "sudo docker ps | grep ${DOCK_NAME} &> /dev/null"
     if [[ $? == 0 ]]; then
       echo "Docker container is running"
       return 0
@@ -211,22 +207,22 @@ function verify_docker_running() {
 # Purpose : Configure docker according to PG requirements.
 # *****************************************************************************
 function configure_docker() {
-  local INSTANCE_NAME=$1
+  local INSTANCE_IP=$1
 
-  run_cmd_gci ${INSTANCE_NAME} "echo 'DOCKER_OPTS=\"--mtu 1400 --insecure-registry pg-docker-repo:5000\"' | sudo tee /etc/default/docker && sudo service docker restart"
+  run_cmd_gci ${INSTANCE_IP} "echo 'DOCKER_OPTS=\"--mtu 1400 --insecure-registry pg-docker-repo:5000\"' | sudo tee /etc/default/docker && sudo service docker restart"
 }
 
 # *****************************************************************************
 # Purpose : Check whether docker is successfully committed.
-# Usage   : verify_docker_commited <cloud_instance_name> <docker_name>
+# Usage   : verify_docker_commited <cloud_instance_ip> <docker_name>
 # *****************************************************************************
 function verify_docker_commited() {
-  local INSTANCE_NAME=$1
+  local INSTANCE_IP=$1
   local DOCK_NAME=$2
 
   for i in `seq 1 5`; do
     echo "Try$i: Checking whether ${DOCK_NAME} is committed ....?"
-    run_cmd_gci ${INSTANCE_NAME} "sudo docker images | grep ${DOCK_NAME} &> /dev/null"
+    run_cmd_gci ${INSTANCE_IP} "sudo docker images | grep ${DOCK_NAME} &> /dev/null"
     if [[ $? == 0 ]]; then
       echo "Docker container is committed"
       return 0
@@ -238,9 +234,9 @@ function verify_docker_commited() {
 }
 
 function setup_forwarding() {
-  local INSTANCE_NAME=$1
+  local INSTANCE_IP=$1
 
-  run_cmd_gci ${INSTANCE_NAME} "echo 'host *' > ~/.ssh/config; echo '    ForwardAgent yes'>>~/.ssh/config"
+  run_cmd_gci ${INSTANCE_IP} "echo 'host *' > ~/.ssh/config; echo '    ForwardAgent yes'>>~/.ssh/config"
 }
 
 # *****************************************************************************
@@ -251,11 +247,11 @@ function setup_forwarding() {
 # TODO: Not tested much
 # *****************************************************************************
 function add_to_dock_authorized_keys() {
-  local INSTANCE_NAME=$1
+  local INSTANCE_IP=$1
   local KEY_PATH=$2
   local DOCK_ID_FILE=$3
 
-  run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat ${KEY_PATH} >> \
+  run_cmd_gci ${INSTANCE_IP} "sudo su -c \"cat ${KEY_PATH} >> \
     /var/lib/docker/btrfs/subvolumes/\`cat ${DOCK_ID_FILE}\`/home/plumgrid/.ssh/authorized_keys\""
 }
 
@@ -270,6 +266,17 @@ function get_latest_snapshot_id() {
   local ssid="${latest_ss##*-}"
 
   echo $ssid
+}
+# *****************************************************************************
+# Function: get_instance_ip
+# Purpose : Gets the internal IP address of the instance.
+# Usage   : get_instance_ip <instance name>
+# *****************************************************************************
+function get_instance_ip() {
+  local INSTANCE_NAME=$1
+  local internal_ip=$(gcloud compute instances list ${INSTANCE_NAME} --zones=${ZONE} | grep ${INSTANCE_NAME} | cut -d ' ' -f 4)
+
+  echo $internal_ip
 }
 
 # *****************************************************************************
@@ -298,7 +305,7 @@ function modify_git_config() {
 # Usage   : get_latest_logs
 # *****************************************************************************
 function get_latest_logs() {
-  local INSTANCE_NAME=$1
+  local INSTANCE_IP=$1
   local local_file=$(mktemp /tmp/collect_log-XXXXX)
   cat /dev/null > ${local_file}
   echo "#!/bin/bash" >> ${local_file}
@@ -306,12 +313,12 @@ function get_latest_logs() {
   echo "LOG_FNAME=\$(cat /tmp/latest_log_dir |cut -d '/' -f 5)" >> ${local_file}
   echo "tar -zcf /tmp/\${LOG_FNAME}.tar \`cat /tmp/latest_log_dir\`" >> ${local_file}
   echo "echo \${LOG_FNAME} > /tmp/latest_log_filename"  >> ${local_file}
-  upload_to_docker ${INSTANCE_NAME} ${local_file} ${local_file}
+  upload_to_docker ${INSTANCE_IP} ${local_file} ${local_file}
   rm ${local_file}
-  run_cmd_docker ${INSTANCE_NAME} "bash ${local_file}"
-  download_from_docker ${INSTANCE_NAME} /tmp/latest_log_filename /tmp/latest_log_filename
+  run_cmd_docker ${INSTANCE_IP} "bash ${local_file}"
+  download_from_docker ${INSTANCE_IP} /tmp/latest_log_filename /tmp/latest_log_filename
   local log_tar=$(cat /tmp/latest_log_filename)
-  download_from_docker ${INSTANCE_NAME} /tmp/${log_tar}.tar /tmp/${INSTANCE_NAME}-logs.tar
+  download_from_docker ${INSTANCE_IP} /tmp/${log_tar}.tar /tmp/${INSTANCE_NAME}-logs.tar
   echo "Logs have been placed at /tmp/${INSTANCE_NAME}-logs.tar"
 }
 
@@ -320,10 +327,10 @@ function get_latest_logs() {
 # Purpose : Poll the given gcloud command running in the background on the basis
 #           of pid to see if the command is completed. On completion, create an
 #           empty file in /tmp
-# Usage   : run_poll_cmd <cloud_instance_name> <process_to_poll_for> <ssh_flag>
+# Usage   : run_poll_cmd <cloud_instance_ip> <process_to_poll_for> <ssh_flag>
 # ******************************************************************************
 function run_poll_cmd() {
-  local INSTANCE_NAME=$1
+  local INSTANCE_IP=$1
   local process=$2
   local LOG_FILE=$3
   local SSH_FLAGS=${4:-t}
@@ -337,9 +344,9 @@ function run_poll_cmd() {
   echo "while [[ ! -z \`pgrep -f ${process}\` ]]; do sleep 5; done;" >> ${local_file}
   echo "pkill tail" >> ${local_file}
   echo "echo \"$process completely successfully, exiting\"" >> ${local_file}
-  upload_to_docker ${INSTANCE_NAME} ${local_file} ${local_file}
+  upload_to_docker ${INSTANCE_IP} ${local_file} ${local_file}
   rm ${local_file}
-  run_cmd_docker ${INSTANCE_NAME} "bash ${local_file}"
+  run_cmd_docker ${INSTANCE_IP} "bash ${local_file}"
 }
 
 # *****************************************************************************
@@ -473,7 +480,7 @@ function check_build_inputs() {
     fi
   fi
   #Check if branch exists
-  git ls-remote ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/${PROJECT} "${BRANCH}" | grep "${BRANCH}" || RESULT=$?
+  git ls-remote ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/${PROJECT} "${BRANCH}" | grep -q "${BRANCH}" || RESULT=$?
     if [[ $RESULT -ne 0 ]];then
     echo "Branch: $BRANCH does not exist for the project: ${PROJECT}"
     show_build_help
@@ -516,4 +523,42 @@ function record_step() {
   local step=$1
   local step_file=$2
   echo $step > ${step_file}
+}
+
+# ***********************************************************************************
+# Function: upload_to_docker
+# Purpose : Upload a file/folder from your local machine to Docker container
+# Usage   : upload_to_docker <Cloud instance IP where docker container is running>
+#                            <Local file which needs to be uploaded>
+#                            <path to destination directory>
+# Prereq: Your laptop's key must be already in docker container before this operation
+# Test function by giving relative path.
+# ***********************************************************************************
+function upload_to_docker() {
+  local INSTANCE_IP=$1
+  local FILE=$2
+  local DESTINATION=$3
+
+  echo "** $INSTANCE_NAME $FILE $DESTINATION **"
+  local FILE_NAME="${FILE##*/}"
+  scp -o StrictHostKeyChecking=no -r $FILE "${USER}@${INSTANCE_IP}:/tmp/"
+  run_cmd_gci ${INSTANCE_IP} "scp -r -o StrictHostKeyChecking=no /tmp/${FILE_NAME} plumgrid@\`cat local_docker_ip\`:$DESTINATION" "tA"
+}
+
+# *****************************************************************************
+# Function: download_from_docker
+# Purpose : Download a file/folder from docker container to your local machine.
+# Usage   : download_from_docker <Cloud instance IP where docker container is running>
+#                                <Location of file which needs to be downloaded>
+#                                <Local machine's path where you need to download>
+# Prereq: Your laptop's key must be already in docker container before this operation.
+# *****************************************************************************
+function download_from_docker() {
+  local INSTANCE_IP=$1
+  local FILE=$2
+  local DESTINATION=$3
+
+  local FILE_NAME="${FILE##*/}"
+  run_cmd_gci ${INSTANCE_IP} "scp -r -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\`:$FILE /tmp/$FILE_NAME" "tA"
+  scp -o StrictHostKeyChecking=no "${USER}@${INSTANCE_IP}:/tmp/$FILE_NAME" ${DESTINATION}
 }

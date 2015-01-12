@@ -125,10 +125,10 @@ case $1 in
       fi
       ;;
     upload)
-      upload_to_docker ${INSTANCE} ${FILE} ${DEST}
+      upload_to_docker_instance_name ${INSTANCE} ${FILE} ${DEST}
     ;;
     download)
-      download_from_docker ${INSTANCE} ${FILE} ${DEST}
+      download_from_docker_instance_name ${INSTANCE} ${FILE} ${DEST}
     ;;
     *)
         echo "USAGE:"

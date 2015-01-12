@@ -22,12 +22,12 @@ PROJECT=""
 
 declare -A MINOR_STEPS_ST
 declare -A MINOR_STEPS_ED
-BUILD_ENV_USER=${USER}
 MAJOR_STEPS="build"
 MINOR_STEPS_ST[init]=1
 MINOR_STEPS_ST[build]=1
 MINOR_STEPS_ED[init]=1
 MINOR_STEPS_ED[build]=15
+
 
 function usage() {
 cat <<EOF
@@ -78,6 +78,8 @@ for key in ${!branch_to_component[@]}; do
   fi
 done
 step_file=/tmp/${INSTANCE_NAME}-last-successful-step
+#Get the IP address of the instances, needed incase continue is specified.
+INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
 
 function init_id() {
   conf_file="/opt/pg/scripts/aurora.conf"
@@ -100,55 +102,58 @@ function build_image() {
     ;;
 
   2)
+    echo ${USER}:$(cat /home/${USER}/.ssh/id_rsa.pub) > /tmp/keys
+    echo plumgrid:$(echo ${COMMON_KEY}) >> /tmp/keys
     echo "Creating the instance[$INSTANCE_NAME] in the cloud"
     tryexec gcloud -q --verbosity ${VERBOSITY} compute instances create "${INSTANCE_NAME}" \
       --machine-type "$MACHINE_TYPE" --network "$NETWORK" --maintenance-policy \
       "MIGRATE" --scopes "$SCOPES" \
       --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
-      --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip"
+      --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip" \
+      --metadata-from-file sshKeys=/tmp/keys
     record_step $step $step_file
     ;;
 
   3)
-    ssh-keygen -R ${INSTANCE_NAME}
+    INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
     echo "Waiting for the machine to boot up and allow ssh access"
-    wait_for_instance ${INSTANCE_NAME}
+    wait_for_instance ${INSTANCE_IP}
     record_step $step $step_file
     ;;
 
   4)
     echo "setting up forward on ${INSTANCE_NAME} Machine "
-    tryexec run_cmd_gci ${INSTANCE_NAME} "echo 'host *' > ~/.ssh/config; echo '    ForwardAgent yes'>>~/.ssh/config"
+    tryexec run_cmd_gci ${INSTANCE_IP} "echo 'host *' > ~/.ssh/config; echo '    ForwardAgent yes'>>~/.ssh/config"
     record_step $step $step_file
     ;;
 
   5)
     echo "starting the pgdev container"
-    tryexec run_dock_container ${INSTANCE_NAME} ${DOCK_NAME} "./local_docker_id" "./local_docker_ip"
-    tryexec verify_docker_running ${INSTANCE_NAME} ${DOCK_NAME}
+    tryexec run_dock_container ${INSTANCE_IP} ${DOCK_NAME} "./local_docker_id" "./local_docker_ip"
+    tryexec verify_docker_running ${INSTANCE_IP} ${DOCK_NAME}
     record_step $step $step_file
     ;;
 
   6)
     echo "Copy build-instance key to pgdev container"
-    tryexec run_cmd_gci ${INSTANCE_NAME} "echo -e  'y\n'|ssh-keygen -t rsa -N \"\" -f ~/.ssh/id_rsa"
-    tryexec run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat /home/$USER/.ssh/id_rsa.pub >> \
+    tryexec run_cmd_gci ${INSTANCE_IP} "echo -e  'y\n'|ssh-keygen -t rsa -N \"\" -f ~/.ssh/id_rsa"
+    tryexec run_cmd_gci ${INSTANCE_IP} "sudo su -c \"cat /home/${USER}/.ssh/id_rsa.pub >> \
       /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
     record_step $step $step_file
     ;;
 
   7)
     echo "Copy local key to pgdev container"
-    tryexec scp -o StrictHostKeyChecking=no -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" ~/.ssh/id_rsa.pub ${USER}@${INSTANCE_NAME}:./auth-key.pub
-    tryexec run_cmd_gci ${INSTANCE_NAME} "sudo su -c \"cat /home/$USER/auth-key.pub >> \
+    tryexec scp -o StrictHostKeyChecking=no ~/.ssh/id_rsa.pub ${USER}@${INSTANCE_IP}:./auth-key.pub
+    tryexec run_cmd_gci ${INSTANCE_IP} "sudo su -c \"cat /home/${USER}/auth-key.pub >> \
       /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
     record_step $step $step_file
     ;;
 
   8)
-    check_ssh_server_status ${INSTANCE_NAME} || retval=$?
+    check_ssh_server_status ${INSTANCE_IP} || retval=$?
     if [[ $retval == 1 ]]; then
-      run_cmd_gci ${INSTANCE_NAME} "sudo docker ps"
+      run_cmd_gci ${INSTANCE_IP} "sudo docker ps"
       echo "Dokcer stopped.. Please run aurora build with --continue to retry!!"
       record_step 4 $step_file
       exit $retval
@@ -160,20 +165,20 @@ function build_image() {
     # TODO: Use auror_utils copy_to_docker function
     echo "Generate script for syncing the gerrit repo"
     tryexec write_gitsync.sh "${GIT_SYNC_SCRIPT}" "${BRANCH}" "${PROJECT}" "${REFSPEC}"
-    tryexec upload_to_docker ${INSTANCE_NAME} ${GIT_SYNC_SCRIPT} /tmp/
+    tryexec upload_to_docker ${INSTANCE_IP} ${GIT_SYNC_SCRIPT} /tmp/
     record_step $step $step_file
     ;;
 
   10)
     echo "Execute the gitsynch script on docker container"
-    tryexec check_ssh_server_status ${INSTANCE_NAME}
-    tryexec run_cmd_docker_sshforwarding ${INSTANCE_NAME} "bash ${GIT_SYNC_SCRIPT}"
+    tryexec check_ssh_server_status ${INSTANCE_IP}
+    tryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash ${GIT_SYNC_SCRIPT}"
     record_step $step $step_file
     ;;
 
   11)
     echo "Starting build-all.sh for ${APT_COMPONENT}==="
-    tryexec run_cmd_docker_sshforwarding_bg ${INSTANCE_NAME} "/bin/bash /home/plumgrid/run_build_all.sh ${APT_COMPONENT}" "/tmp/build_all.log"
+    tryexec run_cmd_docker_sshforwarding_bg ${INSTANCE_IP} "/bin/bash /home/plumgrid/run_build_all.sh ${APT_COMPONENT}" "/tmp/build_all.log"
     record_step $step $step_file
     ;;
 
@@ -181,29 +186,29 @@ function build_image() {
     # Adding polling as a separate step, so that if the connection broke at the previous step,
     # this step can be run directly to see if the previous command is still running
     echo "Polling for build-all (tailing \"/tmp/build_all.log\" for complete logs)"
-    run_poll_cmd ${INSTANCE_NAME} "run_build_all.sh" "/tmp/build_all.log"
+    run_poll_cmd ${INSTANCE_IP} "run_build_all.sh" "/tmp/build_all.log"
     record_step $step $step_file
     ;;
 
   13)
     echo "Making a snapshot for the container"
-    tryexec run_cmd_gci ${INSTANCE_NAME} "echo \"pg_dev_${INSTANCE_NAME}\" > docker_build_id" "t"
-    tryexec run_cmd_gci ${INSTANCE_NAME} "sudo docker commit \`cat ./local_docker_id\` pg_dev_${INSTANCE_NAME}:latest"
+    tryexec run_cmd_gci ${INSTANCE_IP} "echo \"pg_dev_${INSTANCE_NAME}\" > docker_build_id" "t"
+    tryexec run_cmd_gci ${INSTANCE_IP} "sudo docker commit \`cat ./local_docker_id\` pg_dev_${INSTANCE_NAME}:latest"
     record_step $step $step_file
     ;;
 
   14)
     echo "Making sure docker(pg_dev_${INSTANCE_NAME}:latest) is commited successfully"
-    tryexec verify_docker_commited ${INSTANCE_NAME} "pg_dev_${INSTANCE_NAME}"
+    tryexec verify_docker_commited ${INSTANCE_IP} "pg_dev_${INSTANCE_NAME}"
     record_step $step $step_file
     ;;
 
   15)
     BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${gerritid_lower}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
-    tryexec ssh -o StrictHostKeyChecking=no -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" ${USER}@${INSTANCE_NAME} -t "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
-    tryexec ssh -o StrictHostKeyChecking=no -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" ${USER}@${INSTANCE_NAME} -t "echo ${INSTANCE_NAME}-ssd2 > ~/build_d2_snapshot"
-    tryexec ssh -o StrictHostKeyChecking=no -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" ${USER}@${INSTANCE_NAME} -t "echo ${SN_ID} > ~/primary_snapshot"
+    tryexec run_cmd_gci ${INSTANCE_IP} "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
+    tryexec run_cmd_gci ${INSTANCE_IP} "echo ${INSTANCE_NAME}-ssd2 > ~/build_d2_snapshot"
+    tryexec run_cmd_gci ${INSTANCE_IP} "echo ${SN_ID} > ~/primary_snapshot"
     create_snapshot ${INSTANCE_NAME}-d1 ${INSTANCE_NAME}-ssd1
     create_snapshot ${INSTANCE_NAME}-d2 ${INSTANCE_NAME}-ssd2
     echo " BUILD-ID = ${BUILD_ID} "

@@ -9,41 +9,35 @@ if [ -z ${gerritid+x} ]; then
 fi
 
 # ***********************************************************************************
-# Function: upload_to_docker
-# Purpose : Upload a file/folder from your local machine to Docker container
-# Usage   : upload_to_docker <Cloud instance name where docker container is running>
+# Function: upload_to_docker_instance_name
+# Purpose : wrapper for upload_to_docker to translate instance name to instance IP
+# Usage   : upload_to_docker_instance_name <Cloud instance name where docker container is running>
 #                            <Local file which needs to be uploaded>
-#                            <>
+#                            <path to destination directory>
 # Prereq: Your laptop's key must be already in docker container before this operation
-# Test function by giving relative path.
 # ***********************************************************************************
-function upload_to_docker() {
-  local INSTANCE_NAME=$1
+function upload_to_docker_instance_name() {
+  local INSTANCE_NAME="${gerritid_lower}-$1"
   local FILE=$2
   local DESTINATION=$3
-
-  echo "** $INSTANCE_NAME $FILE $DESTINATION **"
-  FILE_NAME="${FILE##*/}"
-  scp -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" -r -o StrictHostKeyChecking=no $FILE "${USER}@${INSTANCE_NAME}:/tmp/"
-  ssh -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" -tA -o ServerAliveInterval=5 ${USER}@${INSTANCE_NAME} "scp -r -o StrictHostKeyChecking=no /tmp/${FILE_NAME} plumgrid@\`cat local_docker_ip\`:$DESTINATION"
+  local INSTANCE_IP=$(get_instance_ip $INSTANCE_NAME)
+  upload_to_docker "$INSTANCE_IP" "$FILE" "$DESTINATION"
 }
 
-# *****************************************************************************
-# Function: download_from_docker
-# Purpose : Download a file/folder from docker container to your local machine.
-# Usage   : download_from_docker <Cloud instance where docker container is running>
-#                                <Location of file which needs to be downloaded>
-#                                <Local machine's path where you need to download>
-# Prereq: Your laptop's key must be already in docker container before this operation.
-# *****************************************************************************
-function download_from_docker() {
-  INSTANCE_NAME=$1
-  FILE=$2
-  DESTINATION=$3
-
-  FILE_NAME="${FILE##*/}"
-  ssh  -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" -tA -o ServerAliveInterval=5 ${USER}@${INSTANCE_NAME} "scp -r -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\`:$FILE /tmp/$FILE_NAME"
-  scp -r -o "ProxyCommand ssh $COMM_IP nc ${INSTANCE_NAME} 22" -o StrictHostKeyChecking=no "${USER}@${INSTANCE_NAME}:/tmp/$FILE_NAME" ${DESTINATION}
+# ***********************************************************************************
+# Function: download_from_docker_instance_name
+# Purpose : wrapper for download_from_docker to translate instance name to instance IP
+# Usage   : download_from_instance_name <Cloud instance name where docker container is running>
+#                            <Location of file which needs to be downloaded>
+#                            <Local machine's path where you need to download>
+# Prereq: Your laptop's key must be already in docker container before this operation
+# ***********************************************************************************
+function download_from_docker_instance_name() {
+  local INSTANCE_NAME="${gerritid_lower}-$1"
+  local FILE=$2
+  local DESTINATION=$3
+  local INSTANCE_IP=$(get_instance_ip $INSTANCE_NAME)
+  download_from_docker "$INSTANCE_IP" "$FILE" "$DESTINATION"
 }
 
 # *****************************************************************************
@@ -194,12 +188,13 @@ function delete_snapshots() {
 function login_instance() {
   local INSTANCE_NAME="${gerritid_lower}-$1"
   gcloud compute instances list ${INSTANCE_NAME} | grep "${INSTANCE_NAME}" || RESULT=$? &> /dev/null
+  local INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
   if [[ $RESULT -ne 0 ]];then
     echo "INSTANCE ${INSTANCE_NAME} does not exist"
     show_login_help
     exit 1
   fi
-  run_cmd_docker_sshforwarding ${INSTANCE_NAME} "/bin/bash"
+  run_cmd_docker_sshforwarding ${INSTANCE_IP} "/bin/bash"
 }
 
 function run_aurora_build() {
