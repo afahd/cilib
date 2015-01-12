@@ -140,6 +140,14 @@ function run_test() {
     echo "sed -i '/restart_lxc lvm/a tryexec lxc-attach -n lvm -- /bin/bash -c \"echo 'NOZEROCONF=true' >> /etc/sysconfig/network\"' /opt/pg/systest/lxc/automaton/automaton-helpers.sh" >> ${local_file} 
     echo "rm -f /opt/pg/var/www/temp" >> ${local_file}
     echo "ln -s  /opt/pg/web/temp /opt/pg/var/www/" >> ${local_file}
+    if [[ $SKIP_AUTOMATON_INIT == 1 ]]; then
+      echo "sudo cp /etc/hosts /tmp" >> ${local_file}
+      echo "sudo umount /etc/hosts" >> ${local_file}
+      echo "sudo mv /tmp/hosts /etc/hosts" >> ${local_file}
+      echo "sudo cp /etc/resolv.conf /tmp" >> ${local_file}
+      echo "sudo umount /etc/resolv.conf" >> ${local_file}
+      echo "sudo mv /tmp/resolv.conf /etc/resolv.conf" >> ${local_file}
+    fi
     tryexec upload_to_docker ${INSTANCE_NAME}  ${local_file} ${local_file}
     rm ${local_file}
     tryexec run_cmd_docker ${INSTANCE_NAME} "/bin/bash ${local_file}"
