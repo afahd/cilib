@@ -77,19 +77,23 @@ case $1 in
       init_id
       ;;
     ls)
-      if [[ $2 != "" ]] ; then 
+      if [[ $2 != "" ]] ; then
         show_ls_help
       elif [[ $ENTITY == "instances" || $ENTITY == "" ]] ; then
         list_instances
       elif [[ $ENTITY == "snapshots" ]] ; then
         list_snapshots
+      elif [[ $ENTITY == "run_ids" ]] ; then
+        list_runids
+      elif [[ $ENTITY == "build_ids" ]] ; then
+        list_buildids
       else
         #echo "ERROR: invalid entity: It can be either 'instances' or 'snapshots'"
         show_ls_help
       fi
       ;;
     delete)
-      if [[ $2 != "" || ${REGEX} == "" ]] ; then 
+      if [[ $2 != "" || ${REGEX} == "" ]] ; then
         show_delete_help
       elif [[ $ENTITY == "instances"  || $ENTITY == "" ]] ; then
         delete_instances ${REGEX} ${4}

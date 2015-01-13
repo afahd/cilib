@@ -73,7 +73,11 @@ function show_ls_help() {
    cat << HELP
 ls
   List all currently active cloud instances or snapshots
-  -e, --entity        Value can be either "instances" or "snapshots"
+  -e, --entity        Value can be:
+                      instances: Lists all the instances running.
+                      snapshots: Lists all the snapshots.
+                      build_ids: Lists the build-ids and their corresponding RefSpec.
+                      run_ids:   Lists the run instances and the corresponding build-ids.
 
 HELP
 }
