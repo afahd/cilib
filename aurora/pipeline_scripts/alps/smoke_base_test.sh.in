@@ -4,8 +4,8 @@
 # these are designed to work with aurora  
 
 CTEST_ST=1
-CTEST_ED=70
-itr=1
+CTEST_ED=25
+itr=2
 CTEST_OPT=' '
 TESTID="ctest-$CTEST_ST-$CTEST_ED"
 export EXPORT_FAILURES_DIR="/opt/pg/log/$TESTID"
@@ -17,23 +17,25 @@ mkdir -p "$EXPORT_FAILURES_DIR_TMP"
 cd ~/work/alps/build
 rm -rf logs
 mkdir logs
-#export BUILD_GUI=1
-#export EXCLUDE_UI_NON_PITA=1
+export BUILD_GUI=1
+export EXCLUDE_UI_NON_PITA=1
 export EXCLUDE_UNSTABLE=1
-export EXCLUDE_NON_NIGHTLY=1
 cmake ..
-
+echo 1 | sudo tee /proc/sys/net/ipv6/conf/all/disable_ipv6
+if [[ "x$CTEST_ED" == "x" ]] ; then   
+ CTEST_ED=`ctest -N | grep "Test " | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
+fi 
 # use a common, but hopefully unique prefix for the log destination
 formatted_date=$(date '+%Y%m%d-%H%M%S')
 for run in $(seq 1 $itr); do
   echo  "Running iteration number: ${run}"
   # need to recreate the directory every time, because we move it away at the end of the loop
   for testno in $(seq $CTEST_ST $CTEST_ED); do
-    test_name=$(ctest -N   | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
+    test_name=$(ctest -N  -L ^type:local$ | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
     echo "Running $test_name"
     rm -rf /opt/pg/log/*
     touch /opt/pg/log/${test_name}
-    ctest --output-on-failure  -R "^${test_name}$" >& "logs/ctestout_iter${run}_${test_name}.log"
+    ctest --output-on-failure  -L ^type:local$ -R "^${test_name}$" >& "logs/ctestout_iter${run}_${test_name}.log"
     result="$?"
     if [[ "x$result" != "x0" ]] ; then 
       echo "                 FAILED"

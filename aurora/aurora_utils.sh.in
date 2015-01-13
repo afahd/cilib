@@ -242,13 +242,23 @@ function run_aurora_build() {
   print_time_taken $start_time $end_time "aurora build"
 }
 
+# *****************************************************************************
+# Function: run_aurora_run
+# Purpose : Starting an instance to run test script.
+# Usage   : run_aurora_run <build-id> <test-script>
+#           <flag to keep instance running> <Flag to skip automaton-init step>
+#           <Log directory path> <continue an already proceeding run>
+#           <RUNID which you want to continue>
+# *****************************************************************************
 function run_aurora_run() {
   local USER_BUILD_ID=$1
   local TEST_SCRIPT=$2
   local KEEP_RUNNING=$3
   local SKIP_AUTOMATON_INIT=$4
-  local CONTINUE=$5
-  local RUNID=$6
+  local log_dir=$5
+  local CONTINUE=$6
+  local RUNID=$7
+
   local START_STEP=1
   local END_STEP=14
   local UUID=`uuidgen`
@@ -259,6 +269,10 @@ function run_aurora_run() {
   local step_rec_file=$WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
 
   #keep_running equalling 1 means -k was specified, end step should be 1 less.
+  # TODO: Need to replace following code. Everytime, some new step gets added
+  # or deleted, following value will need modification. High probability of miss.
+  # We can define build and run steps in conf file and should start using those
+  # values everywhere.
   if [[ $KEEP_RUNNING == "1" ]]; then
       END_STEP=13
   fi
@@ -285,7 +299,7 @@ function run_aurora_run() {
   fi
   #Calulate total run time
   local start_time=$(date +%s)
-  aurora_run.sh -Q run -R ${START_STEP} -E ${END_STEP} -B ${BUILD_ID} -T ${TEST_SCRIPT} -U ${SUUID} -I ${INSTANCE_NAME} --skip-automaton-init ${SKIP_AUTOMATON_INIT}
+  aurora_run.sh -Q run -R ${START_STEP} -E ${END_STEP} -B ${BUILD_ID} -T ${TEST_SCRIPT} -U ${SUUID} -I ${INSTANCE_NAME} --skip-automaton-init ${SKIP_AUTOMATON_INIT} -o ${log_dir}
   local end_time=$(date +%s)
   print_time_taken $start_time $end_time "aurora run"
 }

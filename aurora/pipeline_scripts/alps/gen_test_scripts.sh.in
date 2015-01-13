@@ -1,0 +1,107 @@
+#!/bin/bash
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/alps:$PATH
+source pl_help.sh
+source pl_settings.conf
+
+# Run this script in the directory where you have expanded all the results
+# from aurora run's
+# this script when run like "analyze_results.sh build" will create a new database
+# then it can be run to create tests splits "analyze_results.sh 10" will generate the test splits for
+# running in 10 VM's and display on the screen
+# then it can be run to create tests splits "analyze_results.sh 10 run_tests.sh" will gerates the scripts
+# run_tests.sh-1..10 with the splits to run the tests in 10 vm's
+
+# read the options
+TEMP=`getopt -o b:i:f:t:n:b:d:I:D:h --long base_script:,test_iterations:,first_test:,step_size:,num_instances:,base_script_dir:,dest_script_dir:,initial_run:,db:,\help -n 'gen_test_script.sh' -- "$@"`
+eval set -- "$TEMP"
+
+# extract options and their arguments into variables.
+while true ; do
+  case "$1" in
+    -b|--base_script)
+      BASE_SCRIPT=$2 ; shift 2 ;;
+    -i|--test_iterations)
+      TEST_ITERATIONS=$2 ; shift 2 ;;
+    -f|--first_test)
+      FIRST_TEST=$2 ; shift 2 ;;
+    -t|--step_size)
+      STEP_SIZE=$2 ; shift 2 ;;
+    -n|--num_instances)
+      NUM_INSTANCES=$2 ; shift 2 ;;
+    -r|--base_script_dir)
+      BASE_SCRIPT_DIR=$2 ; shift 2;;
+    -d|--dest_script_dir)
+      DEST_SCRIPT_DIR=$2 ; shift 2 ;;
+    -I|--initial_run)
+      INITIAL_RUN=$2 ; shift 2 ;;
+    -D|--db)
+      DB=$2 ; shift 2 ;;
+    -h|--help)
+      show_gen_test_scripts_help
+      exit 0 ;;
+    --) shift ; break ;;
+    *) exit 1 ;;
+  esac
+done
+
+echo "**** BASE_SCRIPT_DIR=$BASE_SCRIPT_DIR **** "
+
+if [[ ${INITIAL_RUN} == "true" ]] ; then
+  echo "Copying ${BASE_SCRIPT_DIR}/$BASE_SCRIPT  with the following parameters"
+  echo "    TEST_ITERATIONS               : $TEST_ITERATIONS"
+  echo "    Start [STEP_SIZE * NUM_INSTANCES] : ${FIRST_TEST} [ ${STEP_SIZE} * ${NUM_INSTANCES}]"
+  for stp in `seq 1 $NUM_INSTANCES`; do
+    let start_test=FIRST_TEST+stp*STEP_SIZE-STEP_SIZE
+    let end_test=FIRST_TEST+stp*STEP_SIZE-1
+    echo "Step = $stp Test = ${start_test} - ${end_test}"
+    cp ${BASE_SCRIPT_DIR}/$BASE_SCRIPT ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$stp
+    sed -i 's/CTEST_ST=[0-9]*/CTEST_ST='${start_test}'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$stp
+    sed -i 's/CTEST_ED=[0-9]*/CTEST_ED='${end_test}'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$stp
+    sed -i 's/itr=[0-9]*/itr='${TEST_ITERATIONS}'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$stp
+  done
+else
+    let SPLIT=${NUM_INSTANCES}
+    ScriptName=${BASE_SCRIPT}
+    TEST_ITERATIONS=1
+    TotalTestRuntime=$(sqlite3 $DB "select sum(RunTime) from tests;")
+    MaxTestID=$(sqlite3 $DB "select max(id) from tests;")
+    TestCount=$(sqlite3 $DB "select count(id) from tests;")
+    sqlite3 $DB "select id from tests order by id;" > /tmp/test_ids
+    echo "No of Tests : $TestCount"
+    echo "Last Test ID: $MaxTestID"
+    echo "TotalRunTime: $TotalTestRuntime"
+
+    ITime=${TotalTestRuntime%.*}
+    AVGTime=$(expr $ITime / $SPLIT)
+    echo $AVGTime
+
+    CURTIME="0"
+    CurrentTest=1
+    CurrentTime=0
+    for ITR in `seq 1 $SPLIT` ; do
+      let CURTIME=CURTIME+AVGTime
+      TestInfo=$(sqlite3 $DB "select ID, (select sum(RunTime) from tests t2 where t2.id <= t1.id) as accumulated from tests t1 where accumulated < $CURTIME order by ID;" | tail -1)
+      TestID=$(echo $TestInfo | cut -d "|" -f 1)
+      TestTime=$(echo $TestInfo | cut -d "|" -f 2)
+      TestTime=${TestTime%.*}
+      let RunTime=TestTime-CurrentTime
+      let NoTest=TestID-CurrentTest
+      if [[ ! -z ${BASE_SCRIPT_DIR}/$ScriptName ]] ; then
+        DScript="${ScriptName}-$ITR"
+        echo "[$DScript]"$'\t'":: Test[$NoTest] "$'\t'" $CurrentTest - $TestID "$'\t'", RunTime : $RunTime"
+        #echo "cp $ScriptName ${DEST_SCRIPT_DIR}/$DScript"
+        cp ${BASE_SCRIPT_DIR}/$ScriptName ${DEST_SCRIPT_DIR}/$DScript
+        sed -i 's/CTEST_ST=[0-9]*/CTEST_ST='${CurrentTest}'/' ${DEST_SCRIPT_DIR}/$DScript
+        if [[ $ITR == $SPLIT ]] ; then
+          sed -i 's/CTEST_ED=[0-9]*/CTEST_ED=/' ${DEST_SCRIPT_DIR}/${DScript}
+        else
+          sed -i 's/CTEST_ED=[0-9]*/CTEST_ED='${TestID}'/' ${DEST_SCRIPT_DIR}/${DScript}
+        fi
+        sed -i 's/itr=[0-9]*/itr='${TEST_ITERATIONS}'/' ${DEST_SCRIPT_DIR}/$DScript
+      else
+        echo "Split [$ITR] :: Test[$NoTest] "$'\t'" $CurrentTest - $TestID "$'\t'", RunTime : $RunTime"
+      fi
+      let CurrentTest=TestID+1
+      CurrentTime=$TestTime
+    done
+fi

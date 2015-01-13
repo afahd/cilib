@@ -1,0 +1,178 @@
+#!/bin/bash -e
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/alps:$PATH
+
+source /home/$USER/.aurora.conf
+source pl_utils.sh
+source pl_help.sh
+source pl_settings.conf
+source gc_helpers.sh
+
+declare -A MINOR_STEPS_ST
+declare -A MINOR_STEPS_ED
+BUILD_ENV_USER=${USER}
+MAJOR_STEPS="run"
+MINOR_STEPS_ST[run]=1
+MINOR_STEPS_ED[run]=6
+DEST_SCRIPT_DIR=0
+
+echo " ***** WORKSPACE=${WORKSPACE} ***** "
+# read the options
+TEMP=`getopt -o Q:R:E:l:p:i:f:t:n:\r:d:IFh --long major:,minor_start:,minor_end:,buildid:,pipeline:,test_iterations:,first_test:,step_size:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update\help -n 'run_all_test.sh' -- "$@"`
+eval set -- "$TEMP"
+
+# extract options and their arguments into variables.
+while true ; do
+  case "$1" in
+    -Q|--major)
+      MAJOR_STEPS="$2"; shift 2 ;;
+    -R|--minor_start )
+      MINOR_STEPS_ST[$MAJOR_STEPS]="$2"; shift 2 ;;
+    -E|--minor_end )
+      MINOR_STEPS_ED[$MAJOR_STEPS]="$2"; shift 2 ;;
+    -l|--buildid)
+      echo "-l = $2"
+      USER_BUILD_ID=$2 ; shift 2 ;;
+    -p|--pipeline)
+      PIPELINE=$2 ; shift 2 ;;
+    -i|--test_iteratons)
+      TEST_ITERATIONS=$2 ; shift 2 ;;
+    -f|--first_test)
+      FIRST_TEST=$2 ; shift 2 ;;
+    -t|--step_size)
+      STEP_SIZE=$2 ; shift 2 ;;
+    -n|--num_instances)
+      NUM_INSTANCES=$2 ; shift 2 ;;
+    -r|--base_script_dir)
+        BASE_SCRIPT_DIR=$2 ; shift 2;;
+    -d|--dest_script_dir)
+        DEST_SCRIPT_DIR=$2 ; shift 2;;
+    -I|--initial_run)
+        INITIAL_RUN="true" ; shift ;;
+    -F|--db_update)
+        DB_UPDATE="true" ; shift ;;
+    -h|--help)
+      show_run_tests_help
+      exit 0
+      shift ;;
+    --) shift ; break ;;
+    *) exit 1 ;;
+  esac
+done
+
+echo "**** BASE_SCRIPT_DIR=$BASE_SCRIPT_DIR **** "
+
+if [[ -z "$USER_BUILD_ID" ]]; then
+  echo "Please supply required "--buildid" argument"
+  show_run_tests_help
+  exit 1
+fi
+
+BUILD_ID=${gerritid_lower}-${USER_BUILD_ID}
+MOD_BUILD_ID=`echo ${BUILD_ID} | sed 's/bld/run/'`
+
+# TODO: log/untar_log directory is defined in two locations.
+script_dir=$(get_script_dir $WORKSPACE $DEST_SCRIPT_DIR $PIPELINE $MOD_BUILD_ID)
+base_script=$(get_base_script $PIPELINE)
+log_dir=${script_dir}/logs
+untar_log_dir=${script_dir}/untar_logs
+db=$(get_db $PIPELINE)
+
+echo "./run_pipelines.sh -l $USER_BUILD_ID -p $PIPELINE -i $TEST_ITERATIONS -f $FIRST_TEST -t $STEP_SIZE -n $NUM_INSTANCES -r $BASE_SCRIPT_DIR= -d $DEST_SCRIPT_DIR -I $INITIAL_RUN -F $FORCE_DB_UPDATE"
+
+function run_test() {
+  local step=$1
+
+  case "$step" in
+  1)
+    # Generate scripts to be used by "aurora run"
+    echo "Going to generate test scripts"
+    echo "gen_test_scripts.sh -b ${base_script} -i ${TEST_ITERATIONS} -f ${FIRST_TEST} -t ${STEP_SIZE} -n ${NUM_INSTANCES} -d ${script_dir} -I ${INITIAL_RUN} -D ${db} -r ${BASE_SCRIPT_DIR}"
+    gen_test_scripts.sh -b ${base_script} -i ${TEST_ITERATIONS} -f ${FIRST_TEST} -t ${STEP_SIZE} -n ${NUM_INSTANCES} -d ${script_dir} -I ${INITIAL_RUN} -D ${db} --base_script_dir $BASE_SCRIPT_DIR
+    ;;
+
+  2)
+    echo "log_dir=$log_dir script_dir=$script_dir"
+    while read -r -d $'\0'; do
+      #echo "aurora run -l ${USER_BUILD_ID} -s $REPLY -o ${log_dir} -S"
+      aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -S > $REPLY.txt 2>&1 &
+    done < <(find ${script_dir} -name "*.sh-*" -print0)
+    sleep 30
+    ;;
+
+  3)
+    echo "Waiting for command to finish ..."
+    # TODO: replace following hard code value.
+    while [[ ! -z `pgrep -f "run -l ${USER_BUILD_ID} -o ${log_dir}"` ]]; do
+      echo -n ".. .. "; # Replace with some usable thing
+      sleep 60;
+    done;
+    echo "Run completed successfully"
+    ;;
+
+  4)
+    # Start collecting logs
+    echo "Copying all logs to ${untar_log_dir} directory"
+    find ${log_dir} -name "*${MOD_BUILD_ID}*.tar" -type f -exec tar xf {} -C ${untar_log_dir} \;
+    ;;
+
+ 5)
+    # Generate failed test case report.
+    echo "Following test cases have been failed"
+    find ${untar_log_dir} -name "*FAIL*" > ${untar_log_dir}/failed_tests_report.txt
+    cat ${untar_log_dir}/failed_tests_report.txt
+    printf "\n\n ******* You can see failed tests later from ${untar_log_dir}/FAILED_TESTS_REPORT.txt ******* \n\n"
+    ;;
+
+  6)
+    num_failures=$(find ${untar_log_dir} -name "*FAIL*" | wc -l)
+    echo "num_failures=$num_failures"
+    # find all the failed files and copy them to the WORKSPACE
+    for file in `find ${untar_log_dir} -name "*FAIL*"`; do 
+        base_file=`basename $file`
+        base_dir=`dirname $file`
+        test_name=${base_file#ctestout_iter1_}
+        cp $file $WORKSPACE/$test_name
+        log_dir=${file%.FAILED.log}
+        tar cfz "${WORKSPACE}/${test_name}.tar.gz" -C / ${log_dir#/} 
+    done 
+    tar czf $script_dir.tar.gz -C / ${script_dir#/}
+  
+    if [[ num_failures -eq 0 && DB_UPDATE == "true" ]];then
+      # Update database
+      echo "Update database ${db} from ${untar_log_dir}"
+      ./build_db.sh -D ${db} -d ${untar_log_dir} > ${untar_log_dir}/DB_REPORT.txt
+      cat ${untar_log_dir}/DB_REPORT.txt
+      printf "\n\n******* Updation of database has been completed. Please see ${untar_log_dir}/DB_REPORT.txt ******\n\n"
+    else
+      echo "There are failures, Not going to update the Database"
+    fi
+    rm -rf $script_dir
+    ;;
+
+  *)
+    echo "NOP - $step"
+  ;;
+  esac
+}
+
+for MAJOR_STEP in $MAJOR_STEPS; do
+  echo " ====== Starting STEP [$MAJOR_STEP] Number of Steps ::${MINOR_STEPS_ST[$MAJOR_STEP]} -> ${MINOR_STEPS_ED[$MAJOR_STEP]}  ======"
+  for MINOR_STEP in `seq ${MINOR_STEPS_ST[$MAJOR_STEP]} ${MINOR_STEPS_ED[$MAJOR_STEP]}`; do
+    echo "    === Starting STEP [$MAJOR_STEP][$MINOR_STEP] ==="
+    case "$MAJOR_STEP" in
+      # init)
+      # build_image $MINOR_STEP
+      # ;;
+      run)
+        run_test $MINOR_STEP
+      ;;
+      *)
+        echo "UNKNOWN STEP $MAJOR_STEP.$MINOR_STEP"
+      ;;
+    esac
+    if [ -n "$STOP" ] ; then
+      exit
+    fi
+  done
+done
+

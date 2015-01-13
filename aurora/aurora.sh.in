@@ -1,6 +1,6 @@
 #!/bin/bash -e
 set -e
-export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/alps:$PATH
 . gc_helpers.sh
 source help.sh
 if [ $1 != "init" ]; then
@@ -26,13 +26,21 @@ function check_parameters() {
 }
 
 # read the options
-TEMP=`getopt -o r:p:b:l:s:cn:i:f:d:e:x:hk --long refspec:,proj:,branch:,buildid:,script:,\continue,runid:,instance:,file:,dest:,entity:,regex:,help,keep-running,skip-automaton-init -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o r:p:b:l:s:n:i:f:d:e:x:o:KCSh --long refspec:,proj:,branch:,buildid:,script:,runid:,instance:,file:,dest:,entity:,regex:,log_dir:,keep-running,\continue,skip-automaton,\help -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 
+# Default values
+# KEEP_RUNNING: Instance should be deleted immediately after build/run.
+# Automaton will be run.
+# Build will be created on master.
+# Logs will be downloaded to /tmp directry by default.
 CONTINUE=""
 KEEP_RUNNING=0
-SKIP_AUTOMATON_INIT=0
+SKIP_AUTOMATON=0
 REFSPEC="none"
+PIPELINE="smoke"
+LOG_DIR="${WORKSPACE}/logs/"
+
 # extract options and their arguments into variables.
 while true ; do
   case "$1" in
@@ -46,8 +54,6 @@ while true ; do
       BUILDID=$2 ; shift 2 ;;
     -s|--script)
       SCRIPT=$2 ; shift 2 ;;
-    -c|--continue)
-      CONTINUE="--continue" ; shift 1 ;;
     -n|--runid)
       RUNID=$2 ; shift 2 ;;
     -i|--instance)
@@ -60,14 +66,20 @@ while true ; do
       ENTITY=$2 ; shift 2 ;;
     -x|--regex)
       REGEX=$2 ; shift 2 ;;
+    -o|--log_dir)
+      LOG_DIR=$2 ; shift 2 ;;
+    --pipeline)
+      PIPELINE=$2 ; shift 2 ;;
+    -K|--keep-running)
+      KEEP_RUNNING=1 ; shift ;;
+    -C|--continue)
+      CONTINUE="--continue" ; shift 1 ;;
+    -S|--skip-automaton)
+      SKIP_AUTOMATON=1 ; shift ;;
     -h|--help)
       show_help
       exit 0
       shift ;;
-    -k|--keep-running)
-      KEEP_RUNNING=1 ; shift ;;
-    --skip-automaton-init)
-      SKIP_AUTOMATON_INIT=1 ; shift ;;
     --) shift ; break ;;
     *) exit 1 ;;
   esac
@@ -95,16 +107,15 @@ case $1 in
         show_ls_help
       fi
       ;;
-    delete)
+    rm)
       if [[ $2 != "" || ${REGEX} == "" ]] ; then
-        show_delete_help
+        show_rm_help
       elif [[ $ENTITY == "instances"  || $ENTITY == "" ]] ; then
         delete_instances ${REGEX} ${4}
       elif [[ $ENTITY == "snapshots" ]] ; then
         delete_snapshots ${REGEX} ${4}
       else
         show_delete_help
-        #echo "ERROR: invalid second argument $2: It can be either 'instances' or 'snapshots'"
       fi
       ;;
     login)
@@ -124,7 +135,15 @@ case $1 in
       if [[ $2 == "help" ]] ; then
         show_run_help
       else
-        run_aurora_run $BUILDID $SCRIPT $KEEP_RUNNING $SKIP_AUTOMATON_INIT $CONTINUE $RUNID
+        echo "run_aurora_run $BUILDID $SCRIPT $KEEP_RUNNING $SKIP_AUTOMATON ${LOG_DIR} $CONTINUE $RUNID "
+        run_aurora_run $BUILDID $SCRIPT $KEEP_RUNNING $SKIP_AUTOMATON ${LOG_DIR} $CONTINUE $RUNID
+      fi
+      ;;
+    pipeline)
+      if [[ $2 == "help" || $BUILDID == "" ]] ; then
+        show_pl_help
+      else
+        run_pipelines.sh -l $BUILDID -p $PIPELINE --base_script_dir "/opt/pg/scripts/gcloud/aurora/pipeline_scripts/alps/"
       fi
       ;;
     upload)

@@ -1,0 +1,13 @@
+DB="/opt/pg/scripts/gcloud/aurora/pipeline_scripts/alps/dbs/alps.smoke.db"
+SMOKE_DB="/opt/pg/scripts/gcloud/aurora/pipeline_scripts/alps/dbs/alps.smoke.db"
+NIGHTLY_DB="/opt/pg/script/gcloud/aurora/pipeline_scripts/alps/dbs/alps.nightly.db"
+SMOKE_BASE_SCRIPT="smoke_base_test.sh"
+NIGHTLY_BASE_SCRIPT="nightly_base_test.sh"
+INITIAL_RUN="false"
+FORCE_DB_UPDATE="false"
+PIPELINE="smoke"
+TEST_ITERATIONS=1
+FIRST_TEST=1
+STEP_SIZE=50
+NUM_INSTANCES="10"
+

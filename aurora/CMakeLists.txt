@@ -6,3 +6,14 @@ configure_file(aurora_utils.sh.in "${CMAKE_CURRENT_BINARY_DIR}/aurora_utils.sh" 
 configure_file(write_gitsync.sh.in "${CMAKE_CURRENT_BINARY_DIR}/write_gitsync.sh" @ONLY)
 configure_file(gc_helpers.sh.in "${CMAKE_CURRENT_BINARY_DIR}/gc_helpers.sh" @ONLY)
 configure_file(help.sh.in "${CMAKE_CURRENT_BINARY_DIR}/help.sh" @ONLY)
+
+install_programs (/ FILES ${CMAKE_CURRENT_BINARY_DIR}/aurora)
+install_programs (/ FILES ${CMAKE_CURRENT_BINARY_DIR}/aurora_build.sh)
+install_programs (/ FILES ${CMAKE_CURRENT_BINARY_DIR}/aurora_run.sh)
+install_programs (/ FILES ${CMAKE_CURRENT_BINARY_DIR}/gc_helpers.sh)
+install_programs (/ FILES ${CMAKE_CURRENT_BINARY_DIR}/aurora_utils.sh)
+install_programs (/ FILES ${CMAKE_CURRENT_BINARY_DIR}/write_gitsync.sh)
+install_programs (/ FILES ${CMAKE_CURRENT_BINARY_DIR}/help.sh)
+install_programs (/ FILES ${CMAKE_CURRENT_BINARY_DIR}/aurora_infra_settings.conf)
+
+add_subdirectory(pipeline_scripts)

@@ -24,6 +24,8 @@ usage: $0
 -E | --minor_end : Stop at this step when in debug
 -B | --build_id: Mention the build-id on which you want to test
 -T | --test: Test script to run.
+-o | --log_dir: Directory where you want to download the logs of this run.
+                Please provide absolute path.
 -U | --test_uuid: Test unique id to use.
 -O | --stop : DONT Continue beyond the specifict step to end of the installation
 -h | --help : help
@@ -41,6 +43,7 @@ while [[ $# -gt 0 ]]; do
     -B| --build_id ) BUILD_ID=$2; shift ;;
     -T| --test_script ) TEST_SCRIPT=$2; shift ;;
     -I| --instance_name ) INSTANCE_NAME=$2; shift ;;
+    -o| --log_dir) LOG_DIR=$2; shift ;;
     -U| --test_uuid ) SUUID=$2; shift ;;
     -O| --stop ) STOP=1; ;;
     -h| --help ) usage; ;;
@@ -187,7 +190,8 @@ function run_test() {
     ;;
 
   13)
-    tryexec get_latest_logs ${INSTANCE_IP}
+    echo "Downloading logs in ${LOG_DIR} directory"
+    tryexec get_latest_logs ${INSTANCE_IP} ${INSTANCE_NAME} ${LOG_DIR}
     record_step $step $step_file
     ;;
 
@@ -195,6 +199,7 @@ function run_test() {
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec gcloud compute instances delete ${INSTANCE_NAME} --delete-disks all  -q
     rm $step_file
+    printf "\n\n********* Run has been completed successfully. Please see all logs in ${LOG_DIR} direcotry *********\n\n"
     ;;
 
   *)

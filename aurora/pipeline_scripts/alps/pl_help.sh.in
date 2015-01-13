@@ -1,0 +1,52 @@
+#!/bin/bash
+
+function show_run_tests_help() {
+    cat << HELP
+build
+  Run all test cases
+  -l, --buildid             Build-ID against which you want to run test cases
+  -Q, --major               [OPTIONAL] Jump to specific major step in the install process
+  -R, --minor_st            [OPTIONAL] Jump to specific minor step in the install process
+  -E, --minor_end           [OPTIONAL] Stop at this step when in debug
+  -p, --pipeline            [OPTIONAL] The pipeline which you want to run.
+                            Possible values are "smoke", "nightly".
+                            Default is 'smoke'.
+  -i, --test_iterations     [OPTIONAL] Number of iterations, script needs to run
+                            Default is '1'.
+  -f, --first_test          [OPTIONAL} Starting ctest number
+                            Default is to start from '1'.
+  -t, --step_size           [OPTIONAL] Number of tests to run as part of one script.
+                            Default is '50'.
+  -n, --num_instances       [OPTIONAL} Number of cloud instances among which you want to distribute these tests
+                            Default is '10'.
+  -d, --script_dir          [OPTIONAL} Directory where you want to generate your scripts
+                            Default is /tmp/<gerrit-id>-run-<modified_refspec><timestamp>
+                            /tmp/trauf-run-81-11281-1-2015_01_17_14:34:59
+  -I, --initial_run         [OPTIONAL} Set it, if you are running it first time.
+HELP
+}
+
+function show_gen_test_scripts_help() {
+    cat << HELP
+build
+  Run all test cases
+  -b, --base_script         Script which you want to use as a base.
+  -i, --test_iterations     [OPTIONAL] Number of iterations, script needs to run
+                            Default is '1'.
+  -f, --first_test          [OPTIONAL} Starting ctest number
+                            Default is to start from '1'.
+  -n, --num_instances       [OPTIONAL} Number of cloud instances among which you want to distribute these tests
+                            Default is '10'.
+  -t, --step_size           [OPTIONAL] Number of tests to run as part of one script.
+                            Default is '50'.
+  -d, --script_dir          [OPTIONAL} Directory where you want to generate your scripts
+                            Default is /tmp/<gerrit-id>-run-<modified_refspec><timestamp>
+                            /tmp/trauf-run-81-11281-1-2015_01_17_14:34:59
+  -I, --initial_run         [OPTIONAL} Set it, if you are running it first time.
+HELP
+}
+
+function show_pl_help() {
+  show_run_tests_help
+  show_gen_test_scripts_help
+}

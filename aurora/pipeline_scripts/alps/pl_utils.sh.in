@@ -1,0 +1,49 @@
+#!/bin/bash -e
+source pl_settings.conf
+
+function get_base_script() {
+  local pipeline=$1
+  local base_script=""
+
+  if [[ $pipeline == "smoke" ]]; then
+    base_script=${SMOKE_BASE_SCRIPT}
+  elif [[ $pipeline == "nightly" ]]; then
+    base_script=${NIGHTLY_BASE_SCRIPT}
+  else
+    echo "Unknown Pipeline"
+    return 1
+  fi
+  echo "${base_script}"
+}
+
+function get_db() {
+  local pipeline=$1
+  local db=""
+
+  if [[ $pipeline == "smoke" ]]; then
+    db=${SMOKE_DB}
+  elif [[ $pipeline == "nightly" ]]; then
+    db=${NIGHTLY_DB}
+  else
+    echo "Unknown Pipeline"
+    return 1
+  fi
+  echo ${db}
+}
+
+function get_script_dir() {
+  local workspace=$1
+  local script_dir=$2
+  local pipeline=$3
+  local mod_build_id=$4
+  local timestamp=$(date +%Y_%m_%d_%H_%M_%S)
+
+  if [[ ${script_dir} == "0" ]]; then
+    script_dir="$workspace/${pipeline}-${mod_build_id}-$timestamp"
+    mkdir -p $script_dir/logs
+    mkdir -p $script_dir/untar_logs
+  else
+    script_dir=$script_dir
+  fi
+  echo $script_dir
+}
