@@ -76,8 +76,7 @@ for p in ${PROJECT_LIST[@]}; do
 done
 
 echo "cd /home/plumgrid/work/pkg/scripts" >> $git_script
-echo "sed -i \"/export APT_REPO_HOST/ c\export APT_REPO_HOST=127.0.0.1" >> $git_script
-echo "export APT_COMPONENT=${APT_COMPONENT}\" build-all.sh" >> $git_script
+echo "sed -i \"/export APT_REPO_HOST/ c\export APT_REPO_HOST=127.0.0.1 && export APT_COMPONENT=${APT_COMPONENT}\" build-all.sh" >> $git_script
 
 if [[ "$refspec" != "none" ]]; then
   ## Checkout the request commit in the request project

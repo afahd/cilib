@@ -334,7 +334,7 @@ function run_poll_cmd() {
   echo "tail -f $LOG_FILE &" >> ${local_file}
   echo "while [[ ! -z \`pgrep -f ${process}\` ]]; do sleep 5; done;" >> ${local_file}
   echo "pkill tail" >> ${local_file}
-  echo "echo \"$process completely successfully, exiting\"" >> ${local_file}f
+  echo "echo \"$process completely successfully, exiting\"" >> ${local_file}
   upload_to_docker ${INSTANCE_NAME} ${local_file} ${local_file}
   rm ${local_file}
   run_cmd_docker ${INSTANCE_NAME} "bash ${local_file}"
