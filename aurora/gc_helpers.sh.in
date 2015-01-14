@@ -32,6 +32,24 @@ function run_cmd_gci() {
 }
 
 # *****************************************************************************
+# Function: check_and_start_ssh_agent
+# Purpose : check if ssh agent is running, if not start it and add keys to it
+# Usage   : check_and_start_ssh_agent
+# *****************************************************************************
+function check_and_start_ssh_agent() {
+  PFOUND="0"
+  AGENT_PID=$(pgrep ssh-agent) && PFOUND="1"
+  if [[ -z "$SSH_AUTH_SOCK" ]] ; then
+     PFOUND="0"
+  fi
+  if [[ "$PFOUND" == "0" ]] ; then
+    echo "running ssh-add"
+    eval `ssh-agent -s`
+    ssh-add
+  fi
+}
+
+# *****************************************************************************
 # Function: run_cmd_gci_sshforwarding
 # Purpose : Run command on Google Cloud instance with ssh forwarding.
 # Usage   : run_cmd_gci <cloud_instance_name>
@@ -39,13 +57,7 @@ function run_cmd_gci() {
 function run_cmd_gci_sshforwarding() {
   local INSTANCE_NAME=$1
   local CMD=$2
-
-  if [ -z "$SSH_AUTH_SOCK" ] ; then
-    echo "running ssh-add"
-    eval `ssh-agent -s`
-    ssh-add
-  fi
-
+  check_and_start_ssh_agent
   run_cmd_gci ${INSTANCE_NAME} "${CMD}" tA
 }
 
@@ -121,7 +133,6 @@ function wait_for_instance() {
     done
   return $RESULT
 }
-
 # *****************************************************************************
 # Purpose : Check whether ssh server is up and running.
 # Usage   : wait_for_instance <cloud_instance_name>
@@ -130,11 +141,7 @@ function check_ssh_server_status() {
   local INSTANCE_NAME=$1
   local RESULT=1
   echo "check if ssh server is up and running"
-  if [ -z "$SSH_AUTH_SOCK" ] ; then
-    echo "running ssh-add"
-    eval `ssh-agent -s`
-    ssh-add
-  fi
+  check_and_start_ssh_agent
 
   for i in `seq 1 60`;
     do
