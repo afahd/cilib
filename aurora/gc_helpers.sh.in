@@ -164,6 +164,7 @@ function run_dock_container() {
   local local_file=$(mktemp /tmp/fix_docker_startup-XXXXX)
   cat /dev/null > ${local_file}
   echo "#!/bin/bash" >> ${local_file}
+  echo "sudo ifconfig eth0 mtu 1400" >> ${local_file}
   echo "sudo docker inspect --format '{{json .Id}}' ${DOCK_NAME} | tr -d '\\\"' > /tmp/docker_image_id_t" >> ${local_file}
   echo 'sudo sed -i "s/sudo rsyslogd$/sudo rsyslogd\&/" /var/lib/docker/btrfs/subvolumes/`cat /tmp/docker_image_id_t`/home/plumgrid/startup.sh' >> ${local_file}
   echo 'sudo sed -i "s/\/usr\/sbin\/sshd -D$/while :; do \/usr\/sbin\/sshd -D;sleep 1; done/" /var/lib/docker/btrfs/subvolumes/`cat /tmp/docker_image_id_t`/home/plumgrid/startup.sh' >> ${local_file}
