@@ -225,6 +225,8 @@ function run_aurora_build() {
     # Get the last successfull step from /tmp/${INSTANCE_NAME}-last-successful-step
     LAST_SUCCESSFULL_STEP=( $(<${step_rec_file}) )
     START_STEP=$((LAST_SUCCESSFULL_STEP+1))
+  else
+    check_instance_limit
   fi
 
   #Calulate total build time
@@ -276,6 +278,8 @@ function run_aurora_run() {
     local step_rec_file=/tmp/${INSTANCE_NAME}-last-successful-step
     LAST_SUCCESSFULL_STEP=( $(<${step_rec_file}) )
     START_STEP=$((LAST_SUCCESSFULL_STEP+1))
+  else
+    check_instance_limit
   fi
   #Calulate total run time
   local start_time=$(date +%s)

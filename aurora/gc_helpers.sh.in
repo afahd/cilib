@@ -581,3 +581,21 @@ function download_from_docker() {
   run_cmd_gci ${INSTANCE_IP} "scp -r -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\`:$FILE /tmp/$FILE_NAME" "tA"
   scp -o StrictHostKeyChecking=no "${USER}@${INSTANCE_IP}:/tmp/$FILE_NAME" ${DESTINATION}
 }
+# *****************************************************************************
+# Function: check_instance_limit
+# Purpose : Checks if the number of currently running is less than the MAX number of
+#           instances allowed.
+# Usage   : check_instance_limit
+# Prereq  : aurora init has been called
+# *****************************************************************************
+ function check_instance_limit() {
+  local CURRENT_INSTANCES=$(gcloud compute instances list --regexp "${gerritid_lower}-.*" --zones $ZONE | grep "${gerritid_lower}-" | wc -l)
+  #Check against max instances allowed.
+  if [[ $CURRENT_INSTANCES < $MAX_USER_INSTANCES ]]; then
+    return 0
+  else
+    echo "Currently running instances (${CURRENT_INSTANCES}) for user:${gerritid} exceeds maximum allowed (${MAX_USER_INSTANCES})"
+    echo "Please delete existing instances to continue."
+    exit 1
+  fi
+ }
