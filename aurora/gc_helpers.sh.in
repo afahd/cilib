@@ -45,8 +45,9 @@ function check_and_start_ssh_agent() {
   if [[ "$PFOUND" == "0" ]] ; then
     echo "running ssh-add"
     eval `ssh-agent -s`
-    ssh-add
   fi
+  # always refresh the keys in case they where timedout
+  ssh-add
 }
 
 # *****************************************************************************
