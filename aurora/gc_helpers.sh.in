@@ -173,12 +173,26 @@ function run_dock_container() {
   echo "sudo docker inspect --format '{{json .Id}}' ${DOCK_NAME} | tr -d '\\\"' > /tmp/docker_image_id_t" >> ${local_file}
   echo 'sudo sed -i "s/sudo rsyslogd$/sudo rsyslogd\&/" /var/lib/docker/btrfs/subvolumes/`cat /tmp/docker_image_id_t`/home/plumgrid/startup.sh' >> ${local_file}
   echo 'sudo sed -i "s/\/usr\/sbin\/sshd -D$/while :; do \/usr\/sbin\/sshd -D;sleep 1; done/" /var/lib/docker/btrfs/subvolumes/`cat /tmp/docker_image_id_t`/home/plumgrid/startup.sh' >> ${local_file}
-  echo 'sudo sed -i "s/sudo \/etc\/init.d\/apache2 start/while :; do \n \
+
+  #retval=0
+  #while :; do
+  #  /usr/bin/pgrep apache2 > /dev/null || retval=$?
+  #  if [[ $retval -ne 0 ]]
+  #  then
+  #    echo "Going to restart apache"
+  #    sudo /etc/init.d/apache2 restart > /dev/null
+  #    retval=0
+  #  fi
+  #  sleep 5;
+  #done &
+  echo 'sudo sed -i "s/sudo \/etc\/init.d\/apache2 start/retval=0 \n \
+    while :; do \n \
     \/usr\/bin\/pgrep apache2 \> \/dev\/null \|\| retval=\$? \n \
     if [[ \$retval -ne 0 ]] \n \
     then \n \
       echo \"Going to restart apache\" \n \
       sudo \/etc\/init.d\/apache2 restart \> \/dev\/null \n \
+      retval=0 \n \
     fi \n \
     sleep 5; \n \
   done \&/" /var/lib/docker/btrfs/subvolumes/`cat /tmp/docker_image_id_t`/home/plumgrid/startup.sh' >> ${local_file}
