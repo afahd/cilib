@@ -171,6 +171,7 @@ function build_image() {
 
   10)
     echo "Execute the gitsynch script on docker container"
+    pkill "ssh-agent" || true 
     tryexec check_ssh_server_status ${INSTANCE_IP}
     tryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash ${GIT_SYNC_SCRIPT}"
     record_step $step $step_file

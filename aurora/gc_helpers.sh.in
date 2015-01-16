@@ -43,7 +43,15 @@ function check_and_start_ssh_agent() {
     eval `ssh-agent -s`
   fi
   # always refresh the keys in case they where timedout
-  ssh-add
+  PFOUND="0"
+  ssh-add && PFOUND="1"
+  if [[ "$PFOUND" == "0" ]] ; then
+      # if ssh add failed
+      # Re star the ssh agent and re-add the keys
+      pkill ssh-agent
+      eval `ssh-agent -s`
+      ssh-add
+  fi 
 }
 
 # *****************************************************************************
@@ -138,7 +146,7 @@ function check_ssh_server_status() {
   local INSTANCE_IP=$1
   local RESULT=1
   echo "check if ssh server is up and running"
-  check_and_start_ssh_agent
+  #check_and_start_ssh_agent
 
   for i in `seq 1 60`;
     do
