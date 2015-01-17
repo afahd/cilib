@@ -108,6 +108,9 @@ case $1 in
       fi
       ;;
     login)
+      if [[ $2 != "" && $2 != "help" && $INSTANCE == "" ]] ; then
+       INSTANCE="$2"
+      fi
       login_instance ${INSTANCE}
       ;;
     build)
