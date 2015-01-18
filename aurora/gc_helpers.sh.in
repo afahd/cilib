@@ -3,6 +3,13 @@ export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
 source aurora_infra_settings.conf
 source help.sh
 
+if [[ -z "${WORKSPACE}" ]]; then
+  if [[ ! -f /tmp/logs ]]; then
+    mkdir /tmp/logs
+  fi
+  WORKSPACE=/tmp/
+fi
+
 function init_id() {
   conf_file="/home/$USER/.aurora.conf"
   echo "Please enter your gerrit id: "
@@ -44,13 +51,21 @@ function check_and_start_ssh_agent() {
   fi
   # always refresh the keys in case they where timedout
   PFOUND="0"
-  ssh-add && PFOUND="1"
+  if [[ -f ${HOME}/.ssh/jenkins-slave-gerrit ]]; then
+    ssh-add ${HOME}/.ssh/jenkins-slave-gerrit && PFOUND="1"
+  else
+    ssh-add && PFOUND="1"
+  fi
   if [[ "$PFOUND" == "0" ]] ; then
       # if ssh add failed
       # Re star the ssh agent and re-add the keys
       pkill ssh-agent
       eval `ssh-agent -s`
-      ssh-add
+      if [[ -f ${HOME}/.ssh/jenkins-slave-gerrit ]]; then
+        ssh-add ${HOME}/.ssh/jenkins-slave-gerrit
+      else
+        ssh-add
+      fi
   fi
 }
 
@@ -133,7 +148,7 @@ function wait_for_instance() {
   for i in `seq 1 60`;
     do
       echo "Trying to ssh to ${INSTANCE_NAME} Iteration [$i]"
-      run_cmd_gci ${INSTANCE_IP} "ls" >> /tmp/build_image.2.log 2>&1  && RESULT=0 && break
+      run_cmd_gci ${INSTANCE_IP} "ls" >> ${WORKSPACE}/logs/build_image.2.log 2>&1  && RESULT=0 && break
       sleep 1
     done
   return $RESULT
@@ -151,7 +166,7 @@ function check_ssh_server_status() {
   for i in `seq 1 60`;
     do
       echo "Trying to ssh to ${DOCK_NAME} Iteration [$i]"
-      run_cmd_gci ${INSTANCE_IP} "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ls" "tA" >> /tmp/build_image.3.log  2>&1 && RESULT=0 && break
+      run_cmd_gci ${INSTANCE_IP} "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ls" "tA" >> ${WORKSPACE}/logs/build_image.3.log  2>&1 && RESULT=0 && break
       sleep 1
     done
   return $RESULT
@@ -352,8 +367,8 @@ function get_latest_logs() {
   run_cmd_docker ${INSTANCE_IP} "bash ${local_file}"
   download_from_docker ${INSTANCE_IP} /tmp/latest_log_filename /tmp/latest_log_filename
   local log_tar=$(cat /tmp/latest_log_filename)
-  download_from_docker ${INSTANCE_IP} /tmp/${log_tar}.tar /tmp/${INSTANCE_NAME}-logs.tar
-  echo "Logs have been placed at /tmp/${INSTANCE_NAME}-logs.tar"
+  download_from_docker ${INSTANCE_IP} /tmp/${log_tar}.tar ${WORKSPACE}/logs/${INSTANCE_NAME}-logs.tar
+  echo "Logs have been placed at ${WORKSPACE}/logs/${INSTANCE_NAME}-logs.tar"
 }
 
 # ******************************************************************************

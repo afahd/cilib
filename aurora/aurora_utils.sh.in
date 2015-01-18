@@ -232,9 +232,6 @@ function run_aurora_build() {
   aurora_build.sh -Q build -R ${START_STEP} -E ${END_STEP} -G ${REFSPEC} -P ${PROJ} -B ${BRANCH} -I ${INSTANCE_NAME}
   local end_time=$(date +%s)
   print_time_taken $start_time $end_time "aurora build"
-
-  # Build process has been completed. Delete the file which was used to record the steps.
-  rm -r ${step_rec_file}
 }
 
 function run_aurora_run() {
