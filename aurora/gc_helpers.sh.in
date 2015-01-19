@@ -4,7 +4,7 @@ source aurora_infra_settings.conf
 source help.sh
 
 if [[ -z "${WORKSPACE}" ]]; then
-  if [[ ! -f /tmp/logs ]]; then
+  if [[ ! -d /tmp/logs ]]; then
     mkdir /tmp/logs
   fi
   WORKSPACE=/tmp/
