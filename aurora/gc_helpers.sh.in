@@ -382,13 +382,13 @@ function get_latest_logs() {
 # Purpose : Poll the given gcloud command running in the background on the basis
 #           of pid to see if the command is completed. On completion, create an
 #           empty file in /tmp
-# Usage   : run_poll_cmd <cloud_instance_ip> <process_to_poll_for> <ssh_flag>
+# Usage   : run_poll_cmd <cloud_instance_ip> <process_to_poll_for> <check for failure>
 # ******************************************************************************
 function run_poll_cmd() {
   local INSTANCE_IP=$1
   local process=$2
   local LOG_FILE=$3
-  local SSH_FLAGS=${4:-t}
+  local ERROR_CHECK=$4
   local local_file=$(mktemp /tmp/poll_gcloud_cmd-XXXXX)
 
   # Create a script that will constantly poll for the running process and exit only when it has ended
@@ -398,11 +398,102 @@ function run_poll_cmd() {
   echo "tail -f $LOG_FILE &" >> ${local_file}
   echo "while [[ ! -z \`pgrep -f ${process}\` ]]; do sleep 5; done;" >> ${local_file}
   echo "pkill tail" >> ${local_file}
-  echo "echo \"$process completely successfully, exiting\"" >> ${local_file}
-  upload_to_docker ${INSTANCE_IP} ${local_file} ${local_file}
+
+  # If error checking is enabled checking for the return value of the script.
+  if [ $ERROR_CHECK -eq 1 ]; then
+    echo "return_value=\$(tail -1 $LOG_FILE)" >> ${local_file}
+    #The last line contains the return value of the script.
+    echo "if [[ \$return_value == \"Return Value=0\" ]]; then" >> ${local_file}
+    echo "echo \"$process completely successfully, exiting\"" >> ${local_file}
+    #Any value other than zero means either the script did not complete or encountered an error
+    echo "else echo \"$process did not complete successfully, exiting\"" >> ${local_file}
+    echo "exit 1" >> ${local_file}
+    echo "fi" >> ${local_file}
+  else
+    #Exit true if no error checking is enabled
+    echo "echo \"$process completely successfully, exiting\"" >> ${local_file}
+  fi
+
+  tryexec upload_to_docker ${INSTANCE_IP} ${local_file} ${local_file}
   rm ${local_file}
-  run_cmd_docker ${INSTANCE_IP} "bash ${local_file}"
+  tryexec run_cmd_docker ${INSTANCE_IP} "bash ${local_file}"
 }
+# ******************************************************************************
+# Function: run_bg_cmd
+# Purpose : Takes a script located on the docker and appends the return value checking
+#           to the script. The script is then run in the background
+# Usage   : run_bg_cmd <cloud_instance_ip> <path to docker file> <command to run> <log file>
+# ******************************************************************************
+function run_bg_cmd() {
+  local INSTANCE_IP=$1
+  local docker_file=$2
+  local CMD=$3
+  local LOG_FILE=$4
+  #Append error checking to the file.
+  tryexec run_cmd_docker ${INSTANCE_IP} "\"sed -i '$ a\retval=\\\$?' ${docker_file}\""
+  tryexec run_cmd_docker ${INSTANCE_IP} "\"sed -i '$ a\echo \\\"Return Value=\\\$retval\\\"\' ${docker_file}\""
+  #Run the command in the background
+  tryexec run_cmd_docker_sshforwarding_bg ${INSTANCE_IP} "$CMD" "$LOG_FILE"
+
+}
+# ******************************************************************************
+# Function: run_build_all
+# Purpose : Creates a script for running build-all, uploads and runs the script
+#           on the docker container. The return value for build-all is echoed to
+#            check for failure.
+# Usage   : run_build_all <cloud_instance_ip> <APT_COMPONENT> <log file>
+# ******************************************************************************
+function run_build_all() {
+  local INSTANCE_IP=$1
+  local APT_COMPONENT=$2
+  local LOG_FILE=$3
+  local local_file=$(mktemp /tmp/run_build_all-XXXXX)
+  cat /dev/null > ${local_file}
+  echo "apt_component=$1" >> ${local_file}
+  echo "export APT_COMPONENT=${apt_component}" >> ${local_file}
+  echo "source /opt/pg/env/alps.bashrc" >> ${local_file}
+  echo "cd /home/plumgrid/work/pkg/build" >> ${local_file}
+  echo "../scripts/build-all.sh --useallcpus" >> ${local_file}
+
+  tryexec upload_to_docker ${INSTANCE_IP}  ${local_file} ${local_file}
+  #File name needs to be constant for continue functionality, thus renaming.
+  local docker_file=$(dirname $local_file)
+  docker_file="${docker_file}/run_build_all.sh"
+  tryexec run_cmd_docker ${INSTANCE_IP} "mv ${local_file} ${docker_file}"
+  rm ${local_file}
+  tryexec run_bg_cmd ${INSTANCE_IP} ${docker_file} "/bin/bash ${docker_file} ${APT_COMPONENT}" "$LOG_FILE"
+
+}
+# ******************************************************************************
+# Function: run_automaton_init
+# Purpose : Creates a script for running automaton-init, uploads and runs the script
+#           on the docker container. The return value for automaton-init is echoed to
+#           check for failure.
+# Usage   : run_automaton_init <cloud_instance_ip> <log file>
+# ******************************************************************************
+function run_automaton_init() {
+  local INSTANCE_IP=$1
+  local LOG_FILE=$2
+  local local_file=$(mktemp /tmp/run_automaton_init-XXXXX)
+  cat /dev/null > ${local_file}
+  echo "sudo cp /etc/hosts /tmp;" >> ${local_file}
+  echo "sudo umount /etc/hosts;" >> ${local_file}
+  echo "sudo mv /tmp/hosts /etc/hosts;" >> ${local_file}
+  echo "sudo cp /etc/resolv.conf /tmp;" >> ${local_file}
+  echo "sudo umount /etc/resolv.conf;" >> ${local_file}
+  echo "sudo mv /tmp/resolv.conf /etc/resolv.conf;" >> ${local_file}
+  echo "cd /opt/pg/systest/lxc/automaton;" >> ${local_file}
+  echo "sudo ./automaton-init.sh" >> ${local_file}
+
+  tryexec upload_to_docker ${INSTANCE_IP}  ${local_file} ${local_file}
+  #File name needs to be constant for continue functionality, thus renaming.
+  local docker_file=$(dirname $local_file)
+  docker_file="${docker_file}/run_automaton_init.sh"
+  tryexec run_cmd_docker ${INSTANCE_IP} "mv ${local_file} ${docker_file}"
+  rm ${local_file}
+  tryexec run_bg_cmd ${INSTANCE_IP} ${docker_file} "/bin/bash ${docker_file}" "$LOG_FILE"
+}
+
 
 # *****************************************************************************
 # Function: create_snapshot
