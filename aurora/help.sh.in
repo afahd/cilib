@@ -15,6 +15,7 @@ build
                       It is also useful in case script hits some failures. Rather than running
                       whole script from scratch, --continue switch will make sure to run only those
                       steps which had hit failures or had not been run at all.
+  -k, --keep-running  [optional] Instance will be left running after aurora run ends.
 
 BUILDHELP
 }

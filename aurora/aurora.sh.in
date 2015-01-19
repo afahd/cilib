@@ -117,7 +117,7 @@ case $1 in
       if [[ $2 == "help" ]] ; then
         show_build_help
       else
-        run_aurora_build $REFSPEC $PROJ $BRANCH $CONTINUE
+        run_aurora_build $REFSPEC $PROJ $BRANCH $KEEP_RUNNING $CONTINUE
       fi
       ;;
     run)

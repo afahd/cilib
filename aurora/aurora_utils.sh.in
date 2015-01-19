@@ -201,13 +201,21 @@ function run_aurora_build() {
   local REFSPEC=$1
   local PROJ=$2
   local BRANCH=$3
-  local CONTINUE=$4
+  local KEEP_RUNNING=$4
+  local CONTINUE=$5
   local START_STEP=1
   local END_STEP=16
+
+  #keep_running equalling 1 means -k was specified, end step should be 1 less.
+  if [[ $KEEP_RUNNING == "1" ]]; then
+      END_STEP=15
+  fi
+
   local MOD_REFSPEC=$(echo "$REFSPEC" | tr / -)
   local MOD_BRANCH=$(echo "$BRANCH" | tr _ -)
   MOD_REFSPEC=${MOD_REFSPEC:13}
-  #Append UUID instead of refspec if building without changes.
+
+  #Append branch name if building without changes.
   if [[ $REFSPEC == "none" ]]; then
     local INSTANCE_NAME=${gerritid_lower}-bld-${MOD_BRANCH}
   else
@@ -250,7 +258,7 @@ function run_aurora_run() {
   local INSTANCE_NAME=`echo ${BUILD_ID}-${SUUID} | sed 's/bld/run/'`
   local step_rec_file=/tmp/${INSTANCE_NAME}-last-successful-step
 
-  #3rd argument equalling 1 means -k was specified, run aurora 1 step less.
+  #keep_running equalling 1 means -k was specified, end step should be 1 less.
   if [[ $KEEP_RUNNING == "1" ]]; then
       END_STEP=13
   fi
