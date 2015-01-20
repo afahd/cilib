@@ -19,6 +19,9 @@ function init_id() {
   read gerritid
   echo "gerritid=${gerritid}" > ${conf_file}
   echo "gerritid_lower=${gerritid,,}" >> ${conf_file}
+  echo "Please enter your plumgrid email: "
+  read emailid
+  echo "emailid=${emailid }" >> ${conf_file}
   gcloud config set project $GCLOUD_PROJECT
   gcloud config set compute/zone $ZONE
   gcloud config set compute/region $REGION

@@ -109,7 +109,7 @@ function build_image() {
       "MIGRATE" --scopes "$SCOPES" \
       --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
       --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip" \
-      --metadata-from-file sshKeys=/tmp/keys
+      --metadata-from-file sshKeys=/tmp/keys --metadata email="$emailid"
     record_step $step $step_file
     ;;
 
