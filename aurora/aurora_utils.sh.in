@@ -221,7 +221,7 @@ function run_aurora_build() {
   else
     local INSTANCE_NAME=${gerritid_lower}-bld-${MOD_REFSPEC}
   fi
-  local step_rec_file=/tmp/${INSTANCE_NAME}-last-successful-step
+  local step_rec_file=$WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
   #Validate Inputs
   check_build_inputs $PROJ $REFSPEC $BRANCH
   # If "continue" switch has been given then do following steps
@@ -256,7 +256,7 @@ function run_aurora_run() {
   SUUID="${SUUID_,,}"
   BUILD_ID=${gerritid_lower}-${USER_BUILD_ID}
   local INSTANCE_NAME=`echo ${BUILD_ID}-${SUUID} | sed 's/bld/run/'`
-  local step_rec_file=/tmp/${INSTANCE_NAME}-last-successful-step
+  local step_rec_file=$WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
 
   #keep_running equalling 1 means -k was specified, end step should be 1 less.
   if [[ $KEEP_RUNNING == "1" ]]; then
