@@ -16,6 +16,7 @@ MINOR_STEPS_ED[run]=6
 DEST_SCRIPT_DIR=0
 
 echo " ***** WORKSPACE=${WORKSPACE} ***** "
+echo "/opt/pg/scripts/gcloud/aurora/pipeline_scripts/alps/run_pipelines.sh $@"
 # read the options
 TEMP=`getopt -o Q:R:E:l:p:i:f:t:n:\r:d:IFh --long major:,minor_start:,minor_end:,buildid:,pipeline:,test_iterations:,first_test:,step_size:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update\help -n 'run_all_test.sh' -- "$@"`
 eval set -- "$TEMP"
@@ -77,7 +78,7 @@ log_dir=${script_dir}/logs
 untar_log_dir=${script_dir}/untar_logs
 db=$(get_db $PIPELINE)
 
-echo "./run_pipelines.sh -l $USER_BUILD_ID -p $PIPELINE -i $TEST_ITERATIONS -f $FIRST_TEST -t $STEP_SIZE -n $NUM_INSTANCES -r $BASE_SCRIPT_DIR= -d $DEST_SCRIPT_DIR -I $INITIAL_RUN -F $FORCE_DB_UPDATE"
+#echo "./run_pipelines.sh -l $USER_BUILD_ID -p $PIPELINE -i $TEST_ITERATIONS -f $FIRST_TEST -t $STEP_SIZE -n $NUM_INSTANCES -r $BASE_SCRIPT_DIR= -d $DEST_SCRIPT_DIR -I $INITIAL_RUN -F $FORCE_DB_UPDATE"
 
 function run_test() {
   local step=$1
@@ -127,19 +128,28 @@ function run_test() {
   6)
     num_failures=$(find ${untar_log_dir} -name "*FAIL*" | wc -l)
     echo "num_failures=$num_failures"
+    mkdir -p ${WORKSPACE}/test_logs
     # find all the failed files and copy them to the WORKSPACE
     for file in `find ${untar_log_dir} -name "*FAIL*"`; do 
         base_file=`basename $file`
         base_dir=`dirname $file`
         test_name=${base_file#ctestout_iter1_}
-        cp $file $WORKSPACE/$test_name
+        cp $file $WORKSPACE/test_logs/$test_name
         log_dir=${file%.FAILED.log}
-        tar cfz "${WORKSPACE}/${test_name}.tar.gz" -C / ${log_dir#/} 
+        tar cfz "${WORKSPACE}/test_logs/${test_name}.tar.gz" -C $WORKSPACE/ ${log_dir#$WORKSPACE/} 
     done 
-    mv ${WORKSPACE}/logs/* ${script_dir}/logs
+    for file in `ls ${script_dir}/*.txt` ; do 
+        grep "Run has been completed successfully" $file > /dev/null || cp $file "$WORKSPACE/test_logs/AURORA.RUN.FAILED.`basename ${file}`"
+    done
+
+
+    mv ${WORKSPACE}/logs/* ${script_dir}/logs || true
     rm -rf ${WORKSPACE}/logs
-    tar czf $script_dir.tar.gz -C / ${script_dir#/}
-  
+    mv ${WORKSPACE}/test_logs  ${WORKSPACE}/logs
+    
+    tar czf $script_dir.tar.gz -C $WORKSPACE/ ${script_dir#$WORKSPACE/}
+    mv $script_dir.tar.gz ${WORKSPACE}/logs
+
     if [[ num_failures -eq 0 && DB_UPDATE == "true" ]];then
       # Update database
       echo "Update database ${db} from ${untar_log_dir}"

@@ -26,7 +26,7 @@ function check_parameters() {
 }
 
 # read the options
-TEMP=`getopt -o r:p:b:l:s:n:i:f:d:e:x:t:o:KCSh --long refspec:,proj:,branch:,buildid:,script:,runid:,instance:,file:,dest:,entity:,regex:,tag:,log_dir:,keep-running,\continue,skip-automaton,\help -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o r:p:b:l:s:n:i:f:d:e:x:t:o:W:KCSh --long refspec:,proj:,branch:,buildid:,script:,runid:,instance:,file:,dest:,entity:,regex:,tag:,WORKSPACE:,log_dir:,keep-running,\continue,skip-automaton,\help -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # Default values
@@ -79,6 +79,8 @@ while true ; do
       CONTINUE="--continue" ; shift 1 ;;
     -S|--skip-automaton)
       SKIP_AUTOMATON=1 ; shift ;;
+    -W|--WORKSPACE)
+      WORKSPACE=$2 ; shift 2 ;;
     -h|--help)
       show_help
       exit 0

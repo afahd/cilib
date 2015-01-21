@@ -1,5 +1,14 @@
 #!/bin/bash
 
+function show_common_help() {
+    cat << COMMONHELP
+common flags that affect all aurora commands
+-W, --WORKSPACE     Set the workspace where all the logs will be stored. 
+                    And Env variable can also be set using "export WORKSPACE=..." 
+                    to set the log directories. 
+
+COMMONHELP
+}
 function show_build_help() {
     cat << BUILDHELP
 build
@@ -48,7 +57,7 @@ RUNHELP
 
 function show_init_help() {
    cat << INITHELP
-  init                Setup aurora environment
+init                Setup aurora environment
 
 INITHELP
 }
@@ -119,13 +128,14 @@ HELP
 }
 
 function show_help() {
+  show_common_help
   show_init_help
   show_build_help
   show_run_help
   show_download_help
   show_upload_help
   show_ls_help
-  show_delete_help
+  show_rm_help
   show_ls_help
   show_login_help
   show_pl_help
