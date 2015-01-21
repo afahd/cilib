@@ -25,7 +25,7 @@ MAJOR_STEPS="build"
 MINOR_STEPS_ST[init]=1
 MINOR_STEPS_ST[build]=1
 MINOR_STEPS_ED[init]=1
-MINOR_STEPS_ED[build]=15
+MINOR_STEPS_ED[build]=17
 
 
 function usage() {
@@ -225,8 +225,18 @@ function build_image() {
     tryexec run_cmd_gci ${INSTANCE_IP} "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
     tryexec run_cmd_gci ${INSTANCE_IP} "echo ${INSTANCE_NAME}-ssd2 > ~/build_d2_snapshot"
     tryexec run_cmd_gci ${INSTANCE_IP} "echo ${SN_ID} > ~/primary_snapshot"
-    create_snapshot ${INSTANCE_NAME}-d1 ${INSTANCE_NAME}-ssd1
+
+    #SSD-2 needs to be created 1st because using fsfreeze on / causes ssh timeout
+    #Flushing the disk buffers
+    run_cmd_gci ${INSTANCE_IP} "sudo sync"
+    run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f /opt"
     create_snapshot ${INSTANCE_NAME}-d2 ${INSTANCE_NAME}-ssd2
+
+    #Flushing the disk buffers
+    run_cmd_gci ${INSTANCE_IP} "sudo sync"
+    run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f /"
+    create_snapshot ${INSTANCE_NAME}-d1 ${INSTANCE_NAME}-ssd1
+
     echo "BUILD-ID=${BUILD_ID}" | tee $WORKSPACE/logs/build_id
     record_step $step $step_file
     ;;
