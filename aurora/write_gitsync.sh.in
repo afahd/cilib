@@ -72,6 +72,7 @@ for p in ${PROJECT_LIST[@]}; do
   echo "echo \"Extracting and rebuilding $p for branch ${branch}\""
   echo "cd /home/plumgrid/work/${p}" >> ${git_script}
   echo "git fetch" >> ${git_script}
+  echo "git reset --hard origin/${branch}" >> ${git_script}
   echo "git checkout ${branch}" >> ${git_script}
   echo "git reset --hard origin/${branch}" >> ${git_script}
 done

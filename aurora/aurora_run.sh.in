@@ -61,7 +61,7 @@ if [ -z ${SUUID+x} ]; then
   echo "Input parameter -U is required"
   exit 1
 fi
-step_file=/tmp/${INSTANCE_NAME}-last-successful-step
+step_file=$WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
 
 # TODO: Get the latest snapshot id and use that in below variables
 DOCK_NAME="pg_dev_${BUILD_ID}:latest"
