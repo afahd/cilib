@@ -16,6 +16,8 @@ build
                       whole script from scratch, --continue switch will make sure to run only those
                       steps which had hit failures or had not been run at all.
   -k, --keep-running  [optional] Instance will be left running after aurora run ends.
+  -t, --tag           [optional] Add a tag to the instance name. Useful if multiple build instances for the
+                      same refspec are required.
 
 BUILDHELP
 }

@@ -9,9 +9,9 @@ if [[ -z "${WORKSPACE}" ]]; then
   fi
   WORKSPACE=/tmp
 fi
-if [[ ! -d "${WORKSPACE}/logs" ]] ; then 
+if [[ ! -d "${WORKSPACE}/logs" ]] ; then
   mkdir -p ${WORKSPACE}/logs
-fi 
+fi
 
 function init_id() {
   conf_file="/home/$USER/.aurora.conf"
@@ -595,10 +595,21 @@ function tryexec() {
 # Prereq  :
 # *****************************************************************************
 function check_build_inputs() {
-  local PROJECT=$1
-  local REFSPEC=$2
-  local BRANCH=$3
+  local INSTANCE_NAME=$1
+  local PROJECT=$2
+  local REFSPEC=$3
+  local BRANCH=$4
   local RESULT=1
+
+  #Check instance name length
+  #GCE allows a maximum of 62 characters for disks and instances.
+  #13 characters are appended when the instance a run instance is created.
+  #Leaving a room for 20 characters for run in case it  is changed later.
+  if [ ${#INSTANCE_NAME} -gt "42" ]; then
+    echo "Instace name is too long, exiting."
+    exit 1
+  fi
+
   #Check project name
   local project_list=$(ssh -p ${GERRIT_PORT} ${gerritid}@${GERRIT_IP} gerrit ls-projects)
   for project_name in ${project_list}; do

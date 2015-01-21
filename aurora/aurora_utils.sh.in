@@ -201,8 +201,9 @@ function run_aurora_build() {
   local REFSPEC=$1
   local PROJ=$2
   local BRANCH=$3
-  local KEEP_RUNNING=$4
-  local CONTINUE=$5
+  local TAG=$4
+  local KEEP_RUNNING=$5
+  local CONTINUE=$6
   local START_STEP=1
   local END_STEP=17
 
@@ -221,9 +222,18 @@ function run_aurora_build() {
   else
     local INSTANCE_NAME=${gerritid_lower}-bld-${MOD_REFSPEC}
   fi
+  #Append tag if provided
+  if [[ $TAG != "none" ]]; then
+    #Only keeping alphanumeric characters
+    TAG=${TAG//[^[:alnum:]]/}
+    #Converting to lowercase since instance name cannot contain uppercase characters
+    TAG=${TAG,,}
+    INSTANCE_NAME=${INSTANCE_NAME}-${TAG}
+  fi
+
   local step_rec_file=$WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
   #Validate Inputs
-  check_build_inputs $PROJ $REFSPEC $BRANCH
+  check_build_inputs $INSTANCE_NAME $PROJ $REFSPEC $BRANCH
   # If "continue" switch has been given then do following steps
   #   a. Get the last successfully completed step.
   #   b. Start the build process from step next to last completed step.
