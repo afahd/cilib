@@ -9,6 +9,9 @@ if [[ -z "${WORKSPACE}" ]]; then
   fi
   WORKSPACE=/tmp
 fi
+if [[ ! -d "${WORKSPACE}/logs" ]] ; then 
+  mkdir -p ${WORKSPACE}/logs
+fi 
 
 function init_id() {
   conf_file="/home/$USER/.aurora.conf"
