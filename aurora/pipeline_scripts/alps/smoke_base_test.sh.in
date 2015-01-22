@@ -31,6 +31,7 @@ for run in $(seq 1 $itr); do
   echo  "Running iteration number: ${run}"
   # need to recreate the directory every time, because we move it away at the end of the loop
   for testno in $(seq $CTEST_ST $CTEST_ED); do
+    pgrep rsyslogd >> /dev/null  || $(echo 'echo ...Starting rsyslogd' && sudo rsyslogd &)
     test_name=$(ctest -N  -L ^type:local$ | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
     echo "Running $test_name"
     rm -rf /opt/pg/log/*
