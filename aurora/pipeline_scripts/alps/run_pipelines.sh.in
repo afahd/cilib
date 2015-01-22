@@ -119,10 +119,26 @@ function run_test() {
 
  5)
     # Generate failed test case report.
-    echo "Following test cases have been failed"
-    find ${untar_log_dir} -name "*FAIL*" > ${untar_log_dir}/failed_tests_report.txt
-    cat ${untar_log_dir}/failed_tests_report.txt
-    printf "\n\n ******* You can see failed tests later from ${untar_log_dir}/FAILED_TESTS_REPORT.txt ******* \n\n"
+    num_failures=$(find ${untar_log_dir} -name "*FAIL*" | wc -l)
+    cat > "${WORKSPACE}/status-message.log" <<__HEREDOC
+
+========== Test report for ${PIPELINE} pipeline: ==========
+
+Total tests run in the pipeline:
+
+Tests failed in the current run: ${num_failures}
+
+Following test cases have failed:
+
+__HEREDOC
+
+    failed_list=$(find ${untar_log_dir} -name "*FAIL*" | cut -d'/' -f7 | cut -d'_' -f3 | cut -d'.' -f1)
+    for test in ${failed_list[@]}; do
+      echo "* $test\n" >> ${WORKSPACE}/status-message.log
+    done
+    echo >> "${WORKSPACE}/status-message.log"
+    echo '>>> >>>' >> "${WORKSPACE}/status-message.log"
+    cat ${WORKSPACE}/status-message.log
     ;;
 
   6)
@@ -150,16 +166,20 @@ function run_test() {
     tar czf $script_dir.tar.gz -C $WORKSPACE/ ${script_dir#$WORKSPACE/}
     mv $script_dir.tar.gz ${WORKSPACE}/logs
 
+    status=0
     if [[ num_failures -eq 0 && DB_UPDATE == "true" ]];then
       # Update database
       echo "Update database ${db} from ${untar_log_dir}"
       ./build_db.sh -D ${db} -d ${untar_log_dir} > ${untar_log_dir}/DB_REPORT.txt
       cat ${untar_log_dir}/DB_REPORT.txt
       printf "\n\n******* Updation of database has been completed. Please see ${untar_log_dir}/DB_REPORT.txt ******\n\n"
+      status=0
     else
       echo "There are failures, Not going to update the Database"
+      status=1
     fi
     rm -rf $script_dir
+    return $status
     ;;
 
   *)
@@ -178,6 +198,7 @@ for MAJOR_STEP in $MAJOR_STEPS; do
       # ;;
       run)
         run_test $MINOR_STEP
+        ret_status=$?
       ;;
       *)
         echo "UNKNOWN STEP $MAJOR_STEP.$MINOR_STEP"
@@ -189,3 +210,4 @@ for MAJOR_STEP in $MAJOR_STEPS; do
   done
 done
 
+exit ${ret_status}
