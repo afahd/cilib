@@ -186,7 +186,7 @@ function delete_instances() {
 # *****************************************************************************
 # Function: delete_snapshots
 # Purpose : Deletes the cloud snapshots currently running for the user.
-# Usage   : delete_snapshots
+# Usage   : delete_user_snapshots
 # Prereq: Aurora init has been called.
 # *****************************************************************************
 function delete_snapshots() {

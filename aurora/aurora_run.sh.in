@@ -27,14 +27,14 @@ SUUID_="${UUID##*-}"
 SUUID="${SUUID_,,}"
 
 
-SKIP_AUTOMATON_INIT=0
+AUTOMATON_INIT=0
 CONTINUE=0
 KEEP_RUNNING=0
 LOCAL_CHANGES=0
 
 
 # read the options
-TEMP=`getopt -o l:s:o:n:W:CSKhLc:a:R:E: --long buildid:,script:,log_dir:,runid:,WORKSPACE:,\continue,skip-automaton,keep-running,\help,\local-changes,commit:,alps-path:,minor_st:,minor_end: -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o l:s:o:n:W:CAKhLc:a:R:E: --long buildid:,script:,log_dir:,runid:,WORKSPACE:,\continue,automaton-init,keep-running,\help,\local-changes,commit:,alps-path:,minor_st:,minor_end: -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 while true ; do
   case "$1" in
@@ -45,7 +45,7 @@ while true ; do
     -n| --runid ) RUNID=$2 ; shift 2 ;;
     -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
     -C| --continue ) CONTINUE=1; shift ;;
-    -S| --skip-automaton ) SKIP_AUTOMATON_INIT=1; shift ;;
+    -A| --automaton-init ) AUTOMATON_INIT=1; shift ;;
     -K| --keep-running ) KEEP_RUNNING=1; shift ;;
     -h| --help ) show_run_help;exit 0; shift ;;
 #Local changes flags
@@ -201,7 +201,7 @@ function run_test() {
     echo "sed -i '/restart_lxc lvm/a tryexec lxc-attach -n lvm -- /bin/bash -c \"echo 'NOZEROCONF=true' >> /etc/sysconfig/network\"' /opt/pg/systest/lxc/automaton/automaton-helpers.sh" >> ${local_file}
     echo "rm -f /opt/pg/var/www/temp" >> ${local_file}
     echo "ln -s  /opt/pg/web/temp /opt/pg/var/www/" >> ${local_file}
-    if [[ $SKIP_AUTOMATON_INIT == 1 ]]; then
+    if [[ $AUTOMATON_INIT != 1 ]]; then
       echo "sudo cp /etc/hosts /tmp" >> ${local_file}
       echo "sudo umount /etc/hosts" >> ${local_file}
       echo "sudo mv /tmp/hosts /etc/hosts" >> ${local_file}
@@ -216,7 +216,7 @@ function run_test() {
     ;;
 
   10)
-    if [[ $SKIP_AUTOMATON_INIT != 1 ]]; then
+    if [[ $AUTOMATON_INIT == 1 ]]; then
       echo "Execute the run-automaton script on docker container"
       tryexec run_automaton_init ${INSTANCE_IP} "/tmp/automaton_init.log"
       record_step $step $step_file
@@ -224,7 +224,7 @@ function run_test() {
     ;;
 
   11)
-    if [[ $SKIP_AUTOMATON_INIT != 1 ]]; then
+    if [[ $AUTOMATON_INIT == 1 ]]; then
       echo "Poll the automaton-init cmd (tailing \"/tmp/automaton_init.log\" for complete logs)"
       retryexec run_poll_cmd ${INSTANCE_IP} "run_automaton_init.sh" "/tmp/automaton_init.log" "1"
       download_from_docker ${INSTANCE_IP} "/tmp/automaton_init.log" "${LOG_DIR}/automaton_init_${INSTANCE_NAME}.log"

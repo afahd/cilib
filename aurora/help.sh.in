@@ -62,7 +62,7 @@ Optional Arguments:
   -W, --WORKSPACE       Set the workspace where all the logs will be stored.
                         Logs will be place in ${WORKSPACE}/logs
   -s, --script          Test script which you want to run (please see sample_test1.sh to get further idea)
-  -S, --skip-automaton  Skip running automaton-init.sh on the instance
+  -A, --automaton-init  Running automaton-init.sh on the instance
   -K, --keep-running    Instance will be left running after aurora run ends.
   -C, --continue        --continue option will resume the script from the point where it
                         stopped (because of broken ssh connection or simply because you powered-off

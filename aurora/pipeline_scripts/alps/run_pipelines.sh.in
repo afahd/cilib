@@ -106,7 +106,7 @@ function run_test() {
     echo "log_dir=$log_dir script_dir=$script_dir"
     while read -r -d $'\0'; do
       #echo "aurora run -l ${USER_BUILD_ID} -s $REPLY -o ${log_dir} -S"
-      aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -S $OPT_RUN_ARGS > $REPLY.txt 2>&1 &
+      aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY $OPT_RUN_ARGS > $REPLY.txt 2>&1 &
       #Get the pid of the last background command
       pids+=("$!")
     done < <(find ${script_dir} -regextype posix-extended  -regex '^.*.sh-[0-9]+$' -print0)
