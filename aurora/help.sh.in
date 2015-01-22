@@ -13,7 +13,7 @@ function show_build_help() {
     cat << BUILDHELP
 build
   Build a new image with given COMMIT-ID/TAG/LOCAL-CHANGES.
-  -r, --refspec       [optional] Gerrit RefSpec. e.g. refs/changes/20/11020/1.
+  -r, --refspec       [optional] Gerrit RefSpec or dev branch. e.g. refs/changes/20/11020/1 or bob_dev.
                       Not specifying a refspec will build an instance without any changes
                       on the specified branch.
   -p, --proj          Project with which commit belongs e.g. alps, pg_ui, pg_cli
@@ -139,7 +139,7 @@ HELP
 function show_load_help() {
     cat << HELP
 load
-  Shows the currently number of running instances, disk space used and the number of snapshots
+  Shows the number of running instances, disk space used and the number of snapshots
   for every user.
 HELP
 }

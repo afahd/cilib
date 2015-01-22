@@ -99,7 +99,7 @@ function run_cmd_docker() {
   local DOCKER_CMD=$2
 
   echo run_cmd_gci ${INSTANCE_IP} "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ${DOCKER_CMD}"
-  run_cmd_gci ${INSTANCE_IP} "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ${DOCKER_CMD}"
+  run_cmd_gci ${INSTANCE_IP} "ssh -t -o ServerAliveInterval=5 -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` ${DOCKER_CMD}"
 }
 
 
@@ -619,19 +619,12 @@ function check_build_inputs() {
       break
     fi
   done
-
   if [[ $RESULT -eq 1 ]]; then
     echo "Invalid project name: ${PROJECT}"
     show_build_help
     exit 1
   fi
   if [[ "$REFSPEC" != "none" ]]; then
-    #Check refspec format
-    if [[ ! $REFSPEC =~ ^refs/changes/[0-9]+/[0-9]+/[0-9]+$ ]]; then
-      echo "Invalid refspec format"
-      show_build_help
-      exit 1
-    fi
     #Check if refespec exists for the project
     git ls-remote ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/${PROJECT} "${REFSPEC}" | grep "${REFSPEC}" || RESULT=$?
     if [[ $RESULT -ne 0 ]];then

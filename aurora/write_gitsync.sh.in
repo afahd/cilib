@@ -81,11 +81,15 @@ echo "git reset --hard \${git_dep_branch[iovisor]}" >> ${git_script}
 echo "cd /home/plumgrid/work/pkg/scripts" >> $git_script
 echo "sed -i \"/export APT_REPO_HOST/ c\export APT_REPO_HOST=127.0.0.1 && export APT_COMPONENT=${APT_COMPONENT}\" build-all.sh" >> $git_script
 
-if [[ "$refspec" != "none" ]]; then
+if [[ "$refspec" =~ refs/changes/* ]]; then
   ## Checkout the request commit in the request project
   echo "cd /home/plumgrid/work/${project}" >> $git_script
   echo "git fetch ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/${project} ${refspec}" >> $git_script
   echo "git checkout FETCH_HEAD" >> $git_script
+elif [[ "$refspec" != "none" ]]; then
+  ##Checkout the requested branch
+  echo "cd /home/plumgrid/work/${project}" >> $git_script
+  echo "git checkout origin/$refspec" >> $git_script
 fi
 
 echo "cd /home/plumgrid/work/tools/build" >> ${git_script}

@@ -253,12 +253,9 @@ function run_aurora_build() {
       END_STEP=16
   fi
 
-  local MOD_REFSPEC=$(echo "$REFSPEC" | tr / -)
-  local MOD_BRANCH=$(echo "$BRANCH" | tr _ -)
-  MOD_REFSPEC=${MOD_REFSPEC:13}
-
   #Generating Instance name piece by piece
   local INSTANCE_NAME=${gerritid_lower}
+
   #Append tag if provided
   if [[ $TAG != "none" ]]; then
     #Only keeping alphanumeric characters
@@ -269,8 +266,11 @@ function run_aurora_build() {
   fi
   #Append refspec
   if [[ $REFSPEC == "none" ]]; then
+    local MOD_BRANCH=$(echo "$BRANCH" | tr _ -)
     local INSTANCE_NAME=${INSTANCE_NAME}-bld-${MOD_BRANCH}
   else
+    local MOD_REFSPEC=$(echo "$REFSPEC" | sed -e 's/refs\/changes\///')
+    MOD_REFSPEC=$(echo "$MOD_REFSPEC" | tr /_ -)
     local INSTANCE_NAME=${INSTANCE_NAME}-bld-${MOD_REFSPEC}
   fi
 

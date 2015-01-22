@@ -167,7 +167,7 @@ case $1 in
     ;;
     load)
       if [[ $2 == "help" ]] ; then
-        show_run_help
+        show_load_help
       else
         aurora_load.sh
       fi
