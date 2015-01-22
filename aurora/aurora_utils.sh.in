@@ -177,8 +177,21 @@ function delete_snapshots() {
     gcloud compute snapshots delete $snapshot -q
   done
 }
-
-
+# *****************************************************************************
+# Function: set_max_instances
+# Purpose : Changes the number of max instances allowed..
+# Usage   : set_max_instances <max instances>
+# Prereq:   aurora init has been called.
+# *****************************************************************************
+function set_max_instances() {
+  local MAX_INSTANCES=$1
+  if [[ "$MAX_INSTANCES" =~ ^[^0-9]+$ ]]; then
+    echo "Number of instances should be a number"
+    exit 1
+  fi
+  echo "Changing the maximum number of instances for user:${gerritid} to $MAX_INSTANCES"
+  sed -i "s/MAX_USER_INSTANCES=.*/MAX_USER_INSTANCES=$MAX_INSTANCES/" /home/$USER/.aurora.conf
+}
 # *****************************************************************************
 # Function: login_instance
 # Purpose : Logs into the insatance name provided.

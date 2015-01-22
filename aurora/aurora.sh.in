@@ -26,7 +26,7 @@ function check_parameters() {
 }
 
 # read the options
-TEMP=`getopt -o r:p:b:l:s:n:i:f:d:e:x:t:o:W:KCSh --long refspec:,proj:,branch:,buildid:,script:,runid:,instance:,file:,dest:,entity:,regex:,tag:,WORKSPACE:,log_dir:,keep-running,\continue,skip-automaton,\help -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o r:p:b:l:s:n:m:i:f:d:e:x:t:o:W:KCSh --long refspec:,proj:,branch:,buildid:,script:,runid:,instance:,file,max-instances:,dest:,entity:,regex:,tag:,WORKSPACE:,log_dir:,keep-running,\continue,skip-automaton,\help -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # Default values
@@ -71,6 +71,8 @@ while true ; do
       LOG_DIR=$2 ; shift 2 ;;
     -t|--tag)
       TAG=$2 ; shift 2 ;;
+    -m|--max-instances)
+      MAX_INSTANCES=$2 ; shift 2 ;;
     --pipeline)
       PIPELINE=$2 ; shift 2 ;;
     -K|--keep-running)
@@ -156,6 +158,13 @@ case $1 in
     ;;
     download)
       download_from_docker_instance_name ${INSTANCE} ${FILE} ${DEST}
+    ;;
+    set_max_instances)
+      if [[ $2 == "help" || $MAX_INSTANCES == "" ]]; then
+        show_set_max_instances_help
+      else
+        set_max_instances $MAX_INSTANCES
+      fi
     ;;
     *)
         echo "USAGE:"

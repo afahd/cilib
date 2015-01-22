@@ -3,9 +3,9 @@
 function show_common_help() {
     cat << COMMONHELP
 common flags that affect all aurora commands
--W, --WORKSPACE     Set the workspace where all the logs will be stored. 
-                    And Env variable can also be set using "export WORKSPACE=..." 
-                    to set the log directories. 
+-W, --WORKSPACE     Set the workspace where all the logs will be stored.
+                    And Env variable can also be set using "export WORKSPACE=..."
+                    to set the log directories.
 
 COMMONHELP
 }
@@ -124,6 +124,13 @@ pipeline
   -p, --pipeline            [OPTIONAL] The pipeline which you want to run.
                             Possible values are "smoke", "nightly".
                             Default is 'smoke'.
+HELP
+}
+function show_set_max_instances_help() {
+    cat << HELP
+set_max_instances
+  Change the number of concurrent instances allowed.
+  -m, --max-instances       Max number of instances allowed
 HELP
 }
 

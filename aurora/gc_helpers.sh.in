@@ -21,7 +21,8 @@ function init_id() {
   echo "gerritid_lower=${gerritid,,}" >> ${conf_file}
   echo "Please enter your plumgrid email: "
   read emailid
-  echo "emailid=${emailid }" >> ${conf_file}
+  echo "emailid=${emailid}" >> ${conf_file}
+  echo "MAX_USER_INSTANCES=15" >> ${conf_file}
   gcloud config set project $GCLOUD_PROJECT
   gcloud config set compute/zone $ZONE
   gcloud config set compute/region $REGION
