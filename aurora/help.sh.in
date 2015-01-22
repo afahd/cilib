@@ -100,7 +100,7 @@ HELP
 function show_rm_help() {
    cat << HELP
 rm
-  -e, --entity        Value can be either "instances" or "snapshots"
+  -e, --entity        Value can be "instances", "snapshots" or "disks"
                       Default is "instances".
   -x, --regex         Regex to match. e.g "run" will delete all instances or snapshots
                       having 'run' as part of name.

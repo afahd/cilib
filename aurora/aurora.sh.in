@@ -121,6 +121,8 @@ case $1 in
         delete_instances ${REGEX} ${4}
       elif [[ $ENTITY == "snapshots" ]] ; then
         delete_snapshots ${REGEX} ${4}
+      elif [[ $ENTITY == "disks" ]] ; then
+        delete_disks ${REGEX} ${4}
       else
         show_delete_help
       fi

@@ -150,16 +150,16 @@ function delete_instances() {
 }
 
 # *****************************************************************************
-# Function: delete_instances
-# Purpose : Deletes the cloud instances currently running for the user.
-# Usage   : delete_user_instances
+# Function: delete_snapshots
+# Purpose : Deletes the cloud snapshots currently running for the user.
+# Usage   : delete_snapshots
 # Prereq: Aurora init has been called.
 # *****************************************************************************
 function delete_snapshots() {
   local REGEX=".*$1.*"
   local user_snapshots=$(gcloud compute snapshots list --regexp "${REGEX}" | grep ${gerritid_lower} | cut -d ' ' -f 1)
 
-  echo "The following instances will be permanently deleted: "
+  echo "The following snapshots will be permanently deleted: "
   for snapshot in $user_snapshots; do
     echo "$snapshot"
   done
@@ -175,6 +175,34 @@ function delete_snapshots() {
   fi
   for snapshot in $user_snapshots; do
     gcloud compute snapshots delete $snapshot -q
+  done
+}
+# *****************************************************************************
+# Function: delete_disks
+# Purpose : Deletes the disks currently running for the user.
+# Usage   : delete_disks
+# Prereq: Aurora init has been called.
+# *****************************************************************************
+function delete_disks() {
+  local REGEX=".*$1.*"
+  local user_disks=$(gcloud compute disks list --regexp "${REGEX}" | grep ${gerritid_lower} | cut -d ' ' -f 1)
+
+  echo "The following disks will be permanently deleted: "
+  for disk in $user_disks; do
+    echo "$disk"
+  done
+
+  if [ "$2" != "-f" -a "$2" != "--force" ]; then
+    read -r -p "Are you sure you want to continue? (y/N)" response
+    response=${response,,}    # tolower
+    if [[ $response =~ ^(yes|y)$ ]]; then
+      echo "Proceeding with delete..."
+    else
+      exit
+    fi
+  fi
+  for disk in $user_disks; do
+    gcloud compute disks delete $disk -q
   done
 }
 # *****************************************************************************
@@ -229,12 +257,8 @@ function run_aurora_build() {
   local MOD_BRANCH=$(echo "$BRANCH" | tr _ -)
   MOD_REFSPEC=${MOD_REFSPEC:13}
 
-  #Append branch name if building without changes.
-  if [[ $REFSPEC == "none" ]]; then
-    local INSTANCE_NAME=${gerritid_lower}-bld-${MOD_BRANCH}
-  else
-    local INSTANCE_NAME=${gerritid_lower}-bld-${MOD_REFSPEC}
-  fi
+  #Generating Instance name piece by piece
+  local INSTANCE_NAME=${gerritid_lower}
   #Append tag if provided
   if [[ $TAG != "none" ]]; then
     #Only keeping alphanumeric characters
@@ -242,6 +266,12 @@ function run_aurora_build() {
     #Converting to lowercase since instance name cannot contain uppercase characters
     TAG=${TAG,,}
     INSTANCE_NAME=${INSTANCE_NAME}-${TAG}
+  fi
+  #Append refspec
+  if [[ $REFSPEC == "none" ]]; then
+    local INSTANCE_NAME=${INSTANCE_NAME}-bld-${MOD_BRANCH}
+  else
+    local INSTANCE_NAME=${INSTANCE_NAME}-bld-${MOD_REFSPEC}
   fi
 
   local step_rec_file=$WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step

@@ -1,0 +1,25 @@
+#!/bin/bash
+. ~/.aurora.conf
+. aurora_utils.sh
+
+# *****************************************************************************
+# Function: cleanup
+# Purpose : Cleans up the all the run-instances/bld-snapshots/run-disks for a
+#			particular build-id.
+# Usage   : cleanup <build-id>
+# Prereq  :
+# *****************************************************************************
+function cleanup() {
+  local BUILD_ID=$1
+  local RUN_ID=$(echo "$BUILD_ID" | sed "s/bld/run/g")
+  #Delete the build Instance
+  delete_instances "${BUILD_ID}" "--force"
+  #Delete the run instances
+  delete_instances "${RUN_ID}" "--force"
+  #Delete the snapshots
+  delete_snapshots "${BUILD_ID}-(ssd1|ssd2)" "--force"
+  #Delete any remaining disks just to be safe.
+  delete_disks "${RUN_ID}-.*(d1|d2)" "--force"
+  delete_disks "${BUILD_ID}-(d1|d2)" "--force"
+}
+cleanup $1
