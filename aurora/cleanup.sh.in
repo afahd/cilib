@@ -2,6 +2,7 @@
 . ~/.aurora.conf
 . aurora_utils.sh
 
+
 # *****************************************************************************
 # Function: cleanup
 # Purpose : Cleans up the all the run-instances/bld-snapshots/run-disks for a
