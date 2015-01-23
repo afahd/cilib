@@ -62,8 +62,6 @@ if [ -z ${SUUID+x} ]; then
   exit 1
 fi
 step_file=$WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
-
-# TODO: Get the latest snapshot id and use that in below variables
 DOCK_NAME="pg_dev_${BUILD_ID}:latest"
 INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
 
@@ -213,9 +211,6 @@ for MAJOR_STEP in $MAJOR_STEPS; do
   for MINOR_STEP in `seq ${MINOR_STEPS_ST[$MAJOR_STEP]} ${MINOR_STEPS_ED[$MAJOR_STEP]}`; do
     echo "    === Starting STEP [$MAJOR_STEP][$MINOR_STEP] ==="
     case "$MAJOR_STEP" in
-      # init)
-      # build_image $MINOR_STEP
-      # ;;
       run)
         start_time=$(date +%s)
         run_test $MINOR_STEP

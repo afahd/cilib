@@ -318,7 +318,7 @@ function add_to_dock_authorized_keys() {
 # *****************************************************************************
 function get_latest_snapshot_id() {
   #The snapshots are sorted in desencding order by name. Sorting by name also works for numbers.
-  local latest_ss=$(gcloud compute snapshots list --sort-by=~NAME --regexp=plumgrid-builder-v1-d1-.* --limit=1 | grep plumgrid-builder-v1-d1- | cut  -d ' ' -f 1)
+  local latest_ss=$(gcloud compute snapshots list --sort-by=~NAME --regexp=${PRIM_INST_NAME}-d1-.* --limit=1 | grep ${PRIM_INST_NAME}-d1- | cut  -d ' ' -f 1)
   local ssid="${latest_ss##*-}"
 
   echo $ssid

@@ -1,16 +1,12 @@
 #! /bin/bash -e
 PWD=`pwd`
-
-BASE_LINUX="ubuntu-1204-3-10-39-v3"
-MACHINETYPE="n1-standard-4"
-DISK_SIZE="10GB"
+source aurora_infra_settings.conf
 
 declare -A MINOR_STEPS_ST
 declare -A MINOR_STEPS_ED
 BUILD_ENV_USER=${USER}
 
 MAJOR_STEPS="build"
-#MAJOR_STEPS="init build"
 MINOR_STEPS_ED[init]=23
 MINOR_STEPS_ED[build]=21
 MINOR_STEPS_ST[init]=1
@@ -64,37 +60,36 @@ done
 
 function build_image() {
   local step=$1
-  local NAME=plumgrid-builder-v1
+  # It should give the version number as an argument.
 
   case "$step" in
       1)
-        echo "Creating the disk[${NAME}-d1] for the instance in the cloud"
-            gcloud -q --verbosity error compute disks create "${NAME}-d1"  --source-snapshot "$BASE_LINUX" --type "pd-standard"  --size="$DISK_SIZE"
-          gcloud compute disks create "${NAME}-d2" --size "200" --type "pd-standard"
+        echo "Creating the disk[${PRIM_INST_NAME}-d1] for the instance in the cloud"
+          gcloud -q --verbosity error compute disks create "${PRIM_INST_NAME}-d1"  --source-snapshot "$BASE_LINUX" --type "pd-standard"  --size="$DISK1_SIZE"
+          gcloud compute disks create "${PRIM_INST_NAME}-d2" --size "$DISK2_SIZE" --type "pd-standard"
         ;;
       2)
-        echo "Creating the instance[$NAME] in the cloud"
-        gcloud -q --verbosity error compute instances  create "${NAME}" --machine-type "$MACHINETYPE" --network "net-10-10" --maintenance-policy "MIGRATE" --scopes "https://www.googleapis.com/auth/devstorage.read_only" --disk "name=${NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" --disk "name=${NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes"
+        echo "Creating the instance[$PRIM_INST_NAME] in the cloud"
+        gcloud -q --verbosity error compute instances  create "${PRIM_INST_NAME}" --machine-type "$MACHINE_TYPE" --network "net-10-10" --maintenance-policy "MIGRATE" --scopes "https://www.googleapis.com/auth/devstorage.read_only" --disk "name=${PRIM_INST_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" --disk "name=${PRIM_INST_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes"
         ;;
       3)
           echo "Waiting for the machine to boot up and allow ssh access"
           for i in `seq 1 60`;
           do
-              echo "       Trying to ssh to $NAME Iteration [$i]"
-#              gcloud compute -q ssh work-nod --ssh-flag='-t' --command "ssh -t -o StrictHostKeyChecking=no $NAME 'echo \"${DOMAIN}\" | sudo tee /opt/pg/domains'" >> /tmp/cn_init.log 2>&1  && break
-              gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "ls" >> /tmp/build_image.2.log 2>&1  && break
+              echo "       Trying to ssh to $PRIM_INST_NAME Iteration [$i]"
+              gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "ls" >> /tmp/build_image.2.log 2>&1  && break
               sleep 1
           done
           ;;
       4)
           echo "copy my public key into the servers authorized keys"
-          gcloud compute copy-files ~/.ssh/id_rsa.pub $NAME:./auth-key.pub
-          gcloud compute -q ssh $NAME  --ssh-flag='-t' --command "cat ./auth-key.pub >> ~/.ssh/authorized_keys"
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "sudo apt-get install -y btrfs-tools haveged"
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command 'sudo mkfs.btrfs /dev/sdb -L DDISK && echo "LABEL=\"DDISK\" /opt btrfs defaults 0 0" > /tmp/b1 && sudo bash -c "cat /tmp/b1 >> /etc/fstab"'
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "sudo mount /opt &&  sudo mkdir -p /opt/var/lib"
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "sudo service docker stop && sudo mv /var/lib/docker /opt/var/lib"
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "sudo ln -s /opt/var/lib/docker /var/lib/ && sudo service docker start"
+          gcloud compute copy-files ~/.ssh/id_rsa.pub $PRIM_INST_NAME:./auth-key.pub
+          gcloud compute -q ssh $PRIM_INST_NAME  --ssh-flag='-t' --command "cat ./auth-key.pub >> ~/.ssh/authorized_keys"
+          gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "sudo apt-get install -y btrfs-tools haveged"
+          gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command 'sudo mkfs.btrfs /dev/sdb -L DDISK && echo "LABEL=\"DDISK\" /opt btrfs defaults 0 0" > /tmp/b1 && sudo bash -c "cat /tmp/b1 >> /etc/fstab"'
+          gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "sudo mount /opt &&  sudo mkdir -p /opt/var/lib"
+          gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "sudo service docker stop && sudo mv /var/lib/docker /opt/var/lib"
+          gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "sudo ln -s /opt/var/lib/docker /var/lib/ && sudo service docker start"
 	;;
       5)
           echo "updating the local dev-bootstrap repository"
@@ -103,29 +98,26 @@ function build_image() {
           cd ~ && tar cfz dev-bootstrap.tar.gz dev-bootstrap
           ;;
       6)
-          echo "Copying the dev-bootstrap directory to the build machine $NAME"
-          gcloud compute copy-files ~/dev-bootstrap.tar.gz ${NAME}:./
+          echo "Copying the dev-bootstrap directory to the build machine $PRIM_INST_NAME"
+          gcloud compute copy-files ~/dev-bootstrap.tar.gz ${PRIM_INST_NAME}:./
           ;;
       7)
           echo "Untaring the script on the remote machine"
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "tar xf ./dev-bootstrap.tar.gz"
+          gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "tar xf ./dev-bootstrap.tar.gz"
           ;;
       8)
           echo "Starting the build for pgdev-base container"
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "cd dev-bootstrap/pgdev-docker-base && sudo docker build -t plumgrid-pgdev-base ."
+          gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "cd dev-bootstrap/pgdev-docker-base && sudo docker build -t plumgrid-pgdev-base ."
           ;;
       9)
-          #echo "collecting the IP address for the docker container"
-          #BUILD_DOCKER_IP=$(gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "cat local_docker_ip")
-	  #echo "BUILD_DOCKER_IP=$BUILD_DOCKER_IP"
-          echo "setting up forward on ${NAME} Machine "
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "echo 'host *' > ~/.ssh/config; echo '    ForwardAgent yes'>>~/.ssh/config"
+          echo "setting up forward on ${PRIM_INST_NAME} Machine "
+          gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "echo 'host *' > ~/.ssh/config; echo '    ForwardAgent yes'>>~/.ssh/config"
           echo "Setting docker mtu and restarting docker services"
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "echo 'DOCKER_OPTS=\"--mtu 1400 --insecure-registry pg-docker-repo:5000\"' | sudo tee /etc/default/docker; sudo service docker restart"
+          gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "echo 'DOCKER_OPTS=\"--mtu 1400 --insecure-registry pg-docker-repo:5000\"' | sudo tee /etc/default/docker; sudo service docker restart"
          ;;
       10)
           echo "starting the pgdev-base container"
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "DID=\$(sudo docker run -d plumgrid-pgdev-base /usr/sbin/sshd -D); echo \$DID > ./local_docker_id; sudo docker inspect --format '{{ .NetworkSettings.IPAddress }}' \$DID > ./local_docker_ip"
+          gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "DID=\$(sudo docker run -d plumgrid-pgdev-base /usr/sbin/sshd -D); echo \$DID > ./local_docker_id; sudo docker inspect --format '{{ .NetworkSettings.IPAddress }}' \$DID > ./local_docker_ip"
           ;;
       11)
           echo "starting ssh agent and exporting keys"
@@ -136,24 +128,23 @@ function build_image() {
           ;;
       12)
  	  echo "Updating the repositories"
-  	  #gcloud compute -q ssh  $NAME --ssh-flag='-tA' --command "eval \`ssh-agent -s\`; ssh-add; ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` /bin/bash"
-  	  gcloud compute -q ssh  $NAME --ssh-flag='-tA' --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` /bin/bash ./git_update.sh"
+  	  gcloud compute -q ssh  $PRIM_INST_NAME --ssh-flag='-tA' --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` /bin/bash ./git_update.sh"
 	;;
       13)
          echo "Creating a snapshot with the repo installed in the docker"
-         gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "sudo docker commit \`cat local_docker_id\` plumgrid-pgdev-gitbase"
+         gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "sudo docker commit \`cat local_docker_id\` plumgrid-pgdev-gitbase"
         ;;
       14)
          echo "Stopping the container"
-         gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "sudo docker stop \`cat local_docker_id\`"
+         gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "sudo docker stop \`cat local_docker_id\`"
         ;;
       15)
           echo "Starting the build for pgdev container"
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "cd dev-bootstrap/pgdev-docker && sudo docker build -t plumgrid-pgdev ."
+          gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "cd dev-bootstrap/pgdev-docker && sudo docker build -t plumgrid-pgdev ."
           ;;
       16)
           echo "Starting prepration for build-all.sh(Starting the ssh server)"
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "DID=\$(sudo docker run  --cap-add=all  --cap-add=SYS_ADMIN --lxc-conf='lxc.aa_profile=unconfined' --privileged -d plumgrid-pgdev /home/plumgrid/startup.sh); echo \$DID > ./local_pgdev_docker_id; sudo docker inspect --format '{{ .NetworkSettings.IPAddress }}' \$DID > ./local_pgdev_docker_ip"
+          gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "DID=\$(sudo docker run  --cap-add=all  --cap-add=SYS_ADMIN --lxc-conf='lxc.aa_profile=unconfined' --privileged -d plumgrid-pgdev /home/plumgrid/startup.sh); echo \$DID > ./local_pgdev_docker_id; sudo docker inspect --format '{{ .NetworkSettings.IPAddress }}' \$DID > ./local_pgdev_docker_ip"
           ;;
       17)
           echo "check if ssh server is up and running"
@@ -163,41 +154,41 @@ function build_image() {
           fi
           for i in `seq 1 60`;
           do
-              echo "       Trying to ssh to $NAME Iteration [$i]"
-              gcloud compute -q ssh  $NAME --ssh-flag='-tA' --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_pgdev_docker_ip\` ls" >> /tmp/build_image.3.log  2>&1 && break
+              echo "       Trying to ssh to $PRIM_INST_NAME Iteration [$i]"
+              gcloud compute -q ssh  $PRIM_INST_NAME --ssh-flag='-tA' --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_pgdev_docker_ip\` ls" >> /tmp/build_image.3.log  2>&1 && break
               sleep 1
           done
           echo "Starting build-all.sh"
-          gcloud compute -q ssh  $NAME --ssh-flag='-tA' --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_pgdev_docker_ip\` /bin/bash /home/plumgrid/run_build_all.sh"
+          gcloud compute -q ssh  $PRIM_INST_NAME --ssh-flag='-tA' --command "ssh -t  -o StrictHostKeyChecking=no plumgrid@\`cat local_pgdev_docker_ip\` /bin/bash /home/plumgrid/run_build_all.sh"
           ;;
       18)
           echo "Making a snapshot for the container"
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "sudo docker commit \`cat ./local_pgdev_docker_id\` pg_dev:latest"
+          gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "sudo docker commit \`cat ./local_pgdev_docker_id\` pg_dev:latest"
          ;;
       19)
           echo "Pushing the container to the repo"
           SN_ID=`date +%s`
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "sudo docker tag pg_dev:latest pg-docker-repo:5000/pg_dev:${SN_ID}"
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "sudo docker push pg-docker-repo:5000/pg_dev:${SN_ID}"
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "echo pg_dev:${SN_ID} > ~/pgdev_latest_docker_image"
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "echo $NAME-d1-${SN_ID} > ~/pgtest_latest_d1_snapshot"
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "echo $NAME-d2-${SN_ID} > ~/pgtest_latest_d2_snapshot"
-          gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "echo ${BASE_LINUX} > ~/base_linux_vm_snapshot_name"
+          gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "sudo docker tag pg_dev:latest pg-docker-repo:5000/pg_dev:${SN_ID}"
+          #gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "sudo docker push pg-docker-repo:5000/pg_dev:${SN_ID}"
+          gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "echo pg_dev:${SN_ID} > ~/pgdev_latest_docker_image"
+          gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "echo $PRIM_INST_NAME-d1-${SN_ID} > ~/pgtest_latest_d1_snapshot"
+          gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "echo $PRIM_INST_NAME-d2-${SN_ID} > ~/pgtest_latest_d2_snapshot"
+          gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "echo ${BASE_LINUX} > ~/base_linux_vm_snapshot_name"
           ;;
       20)
           echo "Making a snapshot of the VM"a
-          SNAP_D1_=$(gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "cat ~/pgtest_latest_d1_snapshot")
-          SNAP_D2_=$(gcloud compute -q ssh ${NAME} --ssh-flag='-t' --command "cat ~/pgtest_latest_d2_snapshot")
+          SNAP_D1_=$(gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "cat ~/pgtest_latest_d1_snapshot")
+          SNAP_D2_=$(gcloud compute -q ssh ${PRIM_INST_NAME} --ssh-flag='-t' --command "cat ~/pgtest_latest_d2_snapshot")
           SNAP_D1=$(echo $SNAP_D1_ | tr -d '\n'| tr -d '\r')
           SNAP_D2=$(echo $SNAP_D2_ | tr -d '\n'| tr -d '\r')
           echo "SNAP_D1 = [$SNAP_D1]"
-          echo gcloud compute disks snapshot $NAME-d1 --snapshot-names $SNAP_D1
-          gcloud compute disks snapshot $NAME-d1 --snapshot-names "$SNAP_D1"
-          gcloud compute disks snapshot $NAME-d2 --snapshot-names "$SNAP_D2"
+          echo gcloud compute disks snapshot $PRIM_INST_NAME-d1 --snapshot-names $SNAP_D1
+          gcloud compute disks snapshot $PRIM_INST_NAME-d1 --snapshot-names "$SNAP_D1"
+          gcloud compute disks snapshot $PRIM_INST_NAME-d2 --snapshot-names "$SNAP_D2"
 	  ;;
       21)
-          echo "Shutting down the Instance $NAME"
-          gcloud compute instances delete $NAME --delete-disks all  -q
+          echo "Shutting down the Instance $PRIM_INST_NAME"
+          gcloud compute instances delete $PRIM_INST_NAME --delete-disks all  -q
           ;;
       *)
           echo "NOP - $step"
@@ -210,9 +201,6 @@ echo " ====== Starting STEP [$MAJOR_STEP] Number of Steps ::${MINOR_STEPS_ST[$MA
 for MINOR_STEP in `seq ${MINOR_STEPS_ST[$MAJOR_STEP]} ${MINOR_STEPS_ED[$MAJOR_STEP]}`; do
     echo "    === Starting STEP [$MAJOR_STEP][$MINOR_STEP] ==="
     case "$MAJOR_STEP" in
-#        init)
-#            build_image $MINOR_STEP
-#            ;;
         build)
             build_image $MINOR_STEP
             ;;

@@ -7,10 +7,11 @@ echo "aurora_build.sh started with [aurora_build.sh  $@]"
 source aurora_infra_settings.conf
 source /home/$USER/.aurora.conf
 
-# TODO: Get the latest snapshot id and use that in below variables
+# TODO: SN_ID variable should hold the "v3-d1" part as well.
+# This way we will not need to change v3 manually.
 SN_ID=$(get_latest_snapshot_id)
-SNAP1=plumgrid-builder-v1-d1-${SN_ID}
-SNAP2=plumgrid-builder-v1-d2-${SN_ID}
+SNAP1=${PRIM_INST_NAME}-d1-${SN_ID}
+SNAP2=${PRIM_INST_NAME}-d2-${SN_ID}
 DOCK_NAME=pg-docker-repo:5000/pg_dev:${SN_ID}
 
 # TODO: Make a decision about machine type and Disk sizes.

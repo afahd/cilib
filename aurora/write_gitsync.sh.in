@@ -57,15 +57,6 @@ echo "git fetch" >> ${git_script}
 echo "git checkout master"  >> ${git_script}
 echo "git reset --hard origin/master" >> ${git_script}
 
-## Update and install iovisor.
-modify_git_config "iovisor" "${gerritid}" "${git_script}"
-echo "echo 'Extracting and rebuild iovisor'"  >> ${git_script}
-echo "cd /home/plumgrid/work/iovisor" >> ${git_script}
-echo "git fetch" >> ${git_script}
-echo "git checkout master"  >> ${git_script}
-echo "git reset --hard origin/master" >> ${git_script}
-
-
 ## Checkout the requested branch on all the projects
 for p in ${PROJECT_LIST[@]}; do
   modify_git_config "${p}" "${gerritid}" "${git_script}"
@@ -76,6 +67,16 @@ for p in ${PROJECT_LIST[@]}; do
   echo "git checkout ${branch}" >> ${git_script}
   echo "git reset --hard origin/${branch}" >> ${git_script}
 done
+
+## Update and install iovisor.
+modify_git_config "iovisor" "${gerritid}" "${git_script}"
+echo "echo 'Getting right version of iovisor'"  >> ${git_script}
+echo "cd /home/plumgrid/work/alps"  >> ${git_script}
+echo "source dependencies-versions.sh"  >> ${git_script}
+echo "echo \${git_dep_branch[iovisor]}" >> ${git_script}
+echo "cd /home/plumgrid/work/iovisor" >> ${git_script}
+echo "git fetch" >> ${git_script}
+echo "git reset --hard \${git_dep_branch[iovisor]}" >> ${git_script}
 
 echo "cd /home/plumgrid/work/pkg/scripts" >> $git_script
 echo "sed -i \"/export APT_REPO_HOST/ c\export APT_REPO_HOST=127.0.0.1 && export APT_COMPONENT=${APT_COMPONENT}\" build-all.sh" >> $git_script
