@@ -152,7 +152,7 @@ case $1 in
       if [[ $2 == "help" || $BUILDID == "" ]] ; then
         show_pl_help
       else
-        run_pipelines.sh -l $BUILDID -p $PIPELINE --base_script_dir "/opt/pg/scripts/gcloud/aurora/pipeline_scripts/alps/"
+        run_pipelines.sh -l $BUILDID -p $PIPELINE --base_script_dir "@CMAKE_CURRENT_BINARY_DIR@/pipeline_scripts/alps/"
       fi
       ;;
     upload)

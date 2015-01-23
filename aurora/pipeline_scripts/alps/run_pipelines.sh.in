@@ -16,7 +16,7 @@ MINOR_STEPS_ED[run]=6
 DEST_SCRIPT_DIR=0
 
 echo " ***** WORKSPACE=${WORKSPACE} ***** "
-echo "/opt/pg/scripts/gcloud/aurora/pipeline_scripts/alps/run_pipelines.sh $@"
+echo "@CMAKE_CURRENT_BINARY_DIR@/run_pipelines.sh $@"
 # read the options
 TEMP=`getopt -o Q:R:E:l:p:i:f:t:n:\r:d:IFh --long major:,minor_start:,minor_end:,buildid:,pipeline:,test_iterations:,first_test:,step_size:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update\help -n 'run_all_test.sh' -- "$@"`
 eval set -- "$TEMP"
