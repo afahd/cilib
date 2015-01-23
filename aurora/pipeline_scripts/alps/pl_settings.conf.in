@@ -1,6 +1,6 @@
-DB=@CMAKE_BINARY_DIR@/dbs/alps.smoke.db
-SMOKE_DB=@CMAKE_BINARY_DIR@/dbs/alps.smoke.db
-NIGHTLY_DB=@CMAKE_BINARY_DIR@/dbs/alps.nightly.db
+DB=@CMAKE_CURRENT_BINARY_DIR@/dbs/alps.smoke.db
+SMOKE_DB=@CMAKE_CURRENT_BINARY_DIR@/dbs/alps.smoke.db
+NIGHTLY_DB=@CMAKE_CURRENT_BINARY_DIR@/dbs/alps.nightly.db
 SMOKE_BASE_SCRIPT="smoke_base_test.sh"
 NIGHTLY_BASE_SCRIPT="nightly_base_test.sh"
 INITIAL_RUN="false"
