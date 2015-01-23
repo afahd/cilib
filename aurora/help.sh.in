@@ -136,6 +136,14 @@ set_max_instances
 HELP
 }
 
+function show_load_help() {
+    cat << HELP
+load
+  Shows the currently number of running instances, disk space used and the number of snapshots
+  for every user.
+HELP
+}
+
 function show_help() {
   show_common_help
   show_init_help
@@ -148,4 +156,5 @@ function show_help() {
   show_ls_help
   show_login_help
   show_pl_help
+  show_load_help
 }

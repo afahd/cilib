@@ -165,6 +165,13 @@ case $1 in
     download)
       download_from_docker_instance_name ${INSTANCE} ${FILE} ${DEST}
     ;;
+    load)
+      if [[ $2 == "help" ]] ; then
+        show_run_help
+      else
+        aurora_load.sh
+      fi
+    ;;
     set_max_instances)
       if [[ $2 == "help" || $MAX_INSTANCES == "" ]]; then
         show_set_max_instances_help

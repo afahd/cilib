@@ -1,0 +1,39 @@
+#!/bin/bash
+declare -A instance_array
+declare -A disk_array
+declare -A snapshot_array
+
+#List the gerritid of the isntances/disks/snapshots
+instance_users=$(gcloud compute instances list --regexp ".*(run|bld).*" | grep "run\|bld" | cut -d ' ' -f 1 | cut -d '-' -f 1 )
+disk_d1_sizes=$(gcloud compute disks list --regexp ".*(run|bld).*-d1" | grep 'run\|bld' | awk '{print $1 " " $3}' )
+disk_d1_users=$(gcloud compute disks list --regexp ".*(run|bld).*" | grep "run\|bld" | cut -d ' ' -f 1 | cut -d '-' -f 1)
+disk_d2_sizes=$(gcloud compute disks list --regexp ".*(run|bld).*-d2" | grep 'run\|bld' | awk '{print $1 " " $3}' )
+disk_d2_users=$(gcloud compute disks list --regexp ".*(run|bld).*" | grep "run\|bld" | cut -d ' ' -f 1 | cut -d '-' -f 1)
+snapshot_users=$(gcloud compute snapshots list --regexp ".*(run|bld).*" | grep "run\|bld" | cut -d ' ' -f 1 | cut -d '-' -f 1 )
+
+#Gets the unique users acroos all entities
+all_users="$instance_users
+$disk_d1_users
+$disk_d2_users
+$snapshots_users"
+all_users=$(echo "$all_users" | sort | uniq )
+
+#Get the list of instances/snapshots/disks with run or build in the name, get the count per user
+user_instance_count=$(echo "$instance_users" | sort)
+user_disk_count_d1=$(echo "$disk_d1_users" | sort)
+user_disk_count_d2=$(echo "$disk_d2_users" | sort)
+user_snapshot_count=$(echo "$snapshot_users" | sort)
+
+for user in $all_users; do
+	instance_array[${user}]=$(echo "$user_instance_count" | grep $user -c)
+	user_d1_sizes=$(echo "$disk_d1_sizes" | grep $user | cut -d ' ' -f 2 | awk '{s+=$0} END {print s}')
+	user_d2_sizes=$(echo "$disk_d2_sizes" | grep $user | cut -d ' ' -f 2 | awk '{s+=$0} END {print s}')
+	disk_array[${user}]=$((user_d1_sizes + user_d2_sizes))
+	d2_array[${user}]=${user_d2_sizes}
+	snapshot_array[${user}]=$(echo "$user_snapshot_count" | grep $user -c)
+done
+
+printf "%-25s %-10s %-20s %-20s\n" "User" "Instances" "DiskSize(GB)" "Snapshots"
+for K in $all_users; do
+	printf "%-25s %-10s %-20s %-20s\n" "$K" "${instance_array[$K]}" "${disk_array[$K]}" "${snapshot_array[$K]}"
+done
