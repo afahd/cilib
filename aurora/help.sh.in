@@ -57,8 +57,10 @@ RUNHELP
 
 function show_init_help() {
    cat << INITHELP
-init                Setup aurora environment
+init                Setup aurora environment.
 
+                    During setup, when you are asked to "enter your gerrid id:"; enter only "gerrit-id" name which may differ from your email
+                    address. For you email, you are prompted separately to "enter your plumgrid email:". An example is "username@plumgrid.com".
 INITHELP
 }
 

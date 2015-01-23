@@ -94,7 +94,11 @@ done
 
 case $1 in
     init)
-      init_id
+      if [[ $2 == "help" ]] ; then
+        show_init_help
+      else
+        init_id
+      fi
       ;;
     ls)
       if [[ $2 != "" && $ENTITY == "" ]] ; then
