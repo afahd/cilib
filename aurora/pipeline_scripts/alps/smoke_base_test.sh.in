@@ -23,7 +23,7 @@ export EXCLUDE_UNSTABLE=1
 cmake ..
 echo 1 | sudo tee /proc/sys/net/ipv6/conf/all/disable_ipv6
 if [[ "x$CTEST_ED" == "x" ]] ; then   
- CTEST_ED=`ctest -N | grep "Test " | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
+ CTEST_ED=`ctest -N -L ^type:local$ | grep "Test " | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
 fi 
 # use a common, but hopefully unique prefix for the log destination
 formatted_date=$(date '+%Y%m%d-%H%M%S')

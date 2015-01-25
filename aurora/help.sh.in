@@ -123,7 +123,7 @@ function show_pl_help() {
 pipeline
   Run smoke/extended pipeline for some particular commit
   -l, --buildid             Build-ID against which you want to run pipeline
-  -p, --pipeline            [OPTIONAL] The pipeline which you want to run.
+  -P, --pipeline            [OPTIONAL] The pipeline which you want to run.
                             Possible values are "smoke", "nightly".
                             Default is 'smoke'.
 HELP
