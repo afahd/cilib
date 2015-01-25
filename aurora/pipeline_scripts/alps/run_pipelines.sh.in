@@ -103,6 +103,7 @@ function run_test() {
     ;;
 
   3)
+    start_time=$(date +%s)
     echo "Waiting for command to finish ..."
     # TODO: replace following hard code value.
     while [[ ! -z `pgrep -f "run -l ${USER_BUILD_ID} -o ${log_dir}"` ]]; do
@@ -111,6 +112,7 @@ function run_test() {
       sleep 60;
     done;
     echo "Run completed successfully"
+    end_time=$(date +%s)
     ;;
 
   4)
@@ -122,6 +124,9 @@ function run_test() {
  5)
     # Generate failed test case report.
     num_failures=$(find ${untar_log_dir} -name "*FAILED.log" | wc -l)
+    test_count=( $(find ${untar_log_dir} -name "total_tests" -type f))
+    num_total_tests=$(cat ${test_count} | grep 'Total Tests: ' | cut -f 3 -d ' ')
+    time_taken=$(print_time_taken $start_time $end_time "running aurora-$PIPELINE tests")
     # Write to status-message.log in case of failures
     if [[ ${num_failures} -gt 0 ]]; then
       cat > "${WORKSPACE}/status-message.log" <<__HEREDOC
@@ -131,7 +136,9 @@ function run_test() {
 ==================================================================
 ========== Test report for aurora-${PIPELINE} pipeline: ==========
 
-Total tests run in the pipeline:
+Total tests run in the pipeline: ${num_total_tests}
+
+$time_taken
 
 Tests failed in the current run: ${num_failures}
 
@@ -143,7 +150,7 @@ __HEREDOC
       for test in ${failed_list[@]}; do
         test=$(basename "$test")
         test=$(echo "$test" | sed 's/ctestout_iter[0-9]*_//' | sed 's/.FAILED.log//' )
-        echo "* $test\n" >> ${WORKSPACE}/status-message.log
+        echo "* $test" >> ${WORKSPACE}/status-message.log
       done
       echo >> "${WORKSPACE}/status-message.log"
       echo '>>> >>>' >> "${WORKSPACE}/status-message.log"

@@ -751,6 +751,6 @@ function download_from_docker() {
   local end_time=$2
   local step=$3
   local time_diff=$(( ${end_time}- ${start_time} ))
-  printf "Time taken in ${step}: %02d:%02d:%02d\n" "$(( time_diff/3600 ))" "$(( (time_diff%3600)/60 ))" "$(( time_diff%60 ))"
+  printf "Total Time taken in ${step}: %02d:%02d:%02d\n" "$(( time_diff/3600 ))" "$(( (time_diff%3600)/60 ))" "$(( time_diff%60 ))"
 
   }

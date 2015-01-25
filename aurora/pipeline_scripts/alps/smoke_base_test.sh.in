@@ -24,7 +24,9 @@ cmake ..
 echo 1 | sudo tee /proc/sys/net/ipv6/conf/all/disable_ipv6
 if [[ "x$CTEST_ED" == "x" ]] ; then   
  CTEST_ED=`ctest -N -L ^type:local$ | grep "Test " | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
-fi 
+fi
+total_tests=`ctest -N -L ^type:local$ | grep "Total Tests"`
+echo "$total_tests" > logs/total_tests
 # use a common, but hopefully unique prefix for the log destination
 formatted_date=$(date '+%Y%m%d-%H%M%S')
 for run in $(seq 1 $itr); do
