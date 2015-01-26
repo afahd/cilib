@@ -87,15 +87,14 @@ function list_snapshots() {
 # *****************************************************************************
 function list_buildids() {
   echo "Listing build-ids for the user:$gerritid"
-  local snapshot_list=$(gcloud compute snapshots list --format=text --sort-by=creationTimestamp --regexp "${gerritid_lower}-.*-ssd2" | sed -e "s/${gerritid_lower}-bld-//g" | sed -e "s/-ssd2//g" )
+  local snapshot_list=$(gcloud compute snapshots list --format=text --sort-by=creationTimestamp --regexp "${gerritid_lower}-.*-ssd2" | sed -e "s/${gerritid_lower}-//" | sed -e "s/-ssd2//g" )
   local snapshot_names=($(echo "$snapshot_list" | grep name))
   local snapshot_status=($(echo "$snapshot_list" | grep status))
   local snapshot_creationtime=($(echo "$snapshot_list" | grep creationTimestamp))
-  printf "%-25s %-15s %-30s %-10s\n" "Refspec" "Build-id" "CreationTime" "Status"
+  printf "%-20s %-30s %-30s %-10s\n" "Refspec/Branch" "Build-id" "CreationTime" "Status"
   for (( i = 1 ; i < ${#snapshot_names[@]} ; i=i+2 )) do
-    local refspec=$(echo "${snapshot_names[$i]}" | tr - \/)
-    refspec="refs/changes/$refspec"
-    printf "%-25s %-15s %-30s %-10s\n" "$refspec" "bld-${snapshot_names[$i]}" "${snapshot_creationtime[$i]}" "${snapshot_status[$i]}"
+    local refspec=$(echo "${snapshot_names[$i]}" | sed -e "s/.*bld-//g" )
+    printf "%-20s %-30s %-30s %-10s\n" "$refspec" "${snapshot_names[$i]}" "${snapshot_creationtime[$i]}" "${snapshot_status[$i]}"
   done
   echo "------------------------------------------------"
 }
@@ -107,7 +106,7 @@ function list_buildids() {
 # *****************************************************************************
 function list_runids() {
   echo "Listing run-ids for the user:$gerritid"
-  local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp  --regexp "${gerritid_lower}-run-.*" | sed -e "s/${gerritid_lower}-//g")
+  local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp  --regexp "${gerritid_lower}-.*run-.*" | sed -e "s/${gerritid_lower}-//g")
   local instance_names=($(echo "$instance_list" | grep '^name'))
   local instance_status=($(echo "$instance_list" | grep status))
   printf "%-15s %-20s %-10s\n" "Run-id" "Build-id" "Status"
