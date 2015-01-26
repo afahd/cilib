@@ -11,6 +11,7 @@
 # Prereq  :
 # *****************************************************************************
 function cleanup() {
+  start_time=$(date +%s)
   local BUILD_ID=$1
   local RUN_ID=$(echo "$BUILD_ID" | sed "s/bld/run/g")
   #Delete the build Instance
@@ -22,5 +23,7 @@ function cleanup() {
   #Delete any remaining disks just to be safe.
   delete_disks "${RUN_ID}-.*(d1|d2)" "--force"
   delete_disks "${BUILD_ID}-(d1|d2)" "--force"
+  end_time=$(date +%s)
+  print_time_taken $start_time $end_time "cleanup"
 }
 cleanup $1
