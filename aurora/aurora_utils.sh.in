@@ -301,6 +301,8 @@ function run_aurora_build() {
   local step_rec_file=$WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
   #Validate Inputs
   check_build_inputs $INSTANCE_NAME $PROJ $REFSPEC $BRANCH
+  #Check /home/$USER/.ssh/id_rsa.pub file
+  check_file_existance "/home/$USER/.ssh/id_rsa.pub"
   # If "continue" switch has been given then do following steps
   #   a. Get the last successfully completed step.
   #   b. Start the build process from step next to last completed step.
@@ -355,6 +357,8 @@ function run_aurora_run() {
   fi
   #Validate Inputs
   check_run_inputs $BUILD_ID $TEST_SCRIPT
+  #Check /home/$USER/.ssh/id_rsa.pub file
+  check_file_existance "/home/$USER/.ssh/id_rsa.pub"
   # If "continue" switch has been given then do following steps
   #   a. Get the RUN-ID provided by user.
   #   b. Get the last successfully completed step.

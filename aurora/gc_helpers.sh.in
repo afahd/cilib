@@ -792,6 +792,18 @@ function tryexec() {
     fi
 }
 # *****************************************************************************
+# Function: check_file_existance
+# Purpose : Checks if the file exists.
+# Usage   : check_file_existance <Path with filename>
+# Prereq  :
+# *****************************************************************************
+function check_file_existance() {
+  if [ ! -f "$1" ] ; then
+    echo "$1 does not exists!"
+    exit 1
+  fi
+}
+# *****************************************************************************
 # Function: check_build_inputs
 # Purpose : Checks if the inputs provided to aurora build are correct.
 # Usage   : check_build_inputs <PROJECT> <REFSPEC> <BRANCH>
