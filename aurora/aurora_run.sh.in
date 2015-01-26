@@ -71,9 +71,9 @@ function run_test() {
   case "$step" in
   1)
     echo "Creating the disk[${INSTANCE_NAME}-d1] and [${INSTANCE_NAME}-d2] for the instance in the cloud from ${BUILD_ID}"
-    tryexec gcloud -q --verbosity ${VERBOSITY} compute disks create "${INSTANCE_NAME}-d1" \
+    exec_gcloud_cmd disks create "${INSTANCE_NAME}-d1" -q \
       --source-snapshot "${BUILD_ID}-ssd1" --type "$DISK_TYPE" --size="$DISK1_SIZE"
-    tryexec gcloud -q --verbosity ${VERBOSITY} compute disks create "${INSTANCE_NAME}-d2" \
+    exec_gcloud_cmd disks create "${INSTANCE_NAME}-d2" -q \
       --source-snapshot "${BUILD_ID}-ssd2" --type "$DISK_TYPE" --size="$DISK2_SIZE"
     record_step $step $step_file
     ;;
@@ -82,7 +82,7 @@ function run_test() {
     echo ${USER}:$(cat /home/${USER}/.ssh/id_rsa.pub) > /tmp/keys
     echo plumgrid:$(echo ${COMMON_KEY}) >> /tmp/keys
     echo "Creating the instance[$INSTANCE_NAME] in the cloud"
-    tryexec gcloud -q --verbosity ${VERBOSITY} compute instances create "${INSTANCE_NAME}" \
+    exec_gcloud_cmd instances create "${INSTANCE_NAME}" -q\
       --machine-type "$MACHINE_TYPE" --network "$NETWORK" --maintenance-policy \
       "MIGRATE" --scopes "$SCOPES" \
       --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
@@ -195,7 +195,7 @@ function run_test() {
 
   14)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
-    tryexec gcloud compute instances delete ${INSTANCE_NAME} --delete-disks all  -q
+    exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     rm $step_file
     printf "\n\n********* Run has been completed successfully. Please see all logs in ${LOG_DIR} direcotry *********\n\n"
     ;;

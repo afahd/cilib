@@ -498,60 +498,247 @@ function run_automaton_init() {
   tryexec run_bg_cmd ${INSTANCE_IP} ${docker_file} "/bin/bash ${docker_file}" "$LOG_FILE"
 }
 
+# *****************************************************************************
+# Function: exec_gcloud_instances
+# Purpose : Wrapper for gcloud instances commands, retries the command if an error is encountered.
+# Usage   : exec_gcloud_instances <operation> <name> <options>
+# *****************************************************************************
+function exec_gcloud_instances() {
+  local operation=$1
+  local name=$2
+  local options=${@:3}
 
-# *****************************************************************************
-# Function: create_snapshot
-# Purpose : Creates a snapshot from disk.
-#           After issuing the request for snapshot creation, it will start
-#           polling that whether creation is successfull or not? If unsuccessful
-#           for 450 seconds, then another request will be issued for creation.
-#           Function also handles the situation where "false alarm" of error
-#           is raised by system.
-# Usage   : create_snapshot <diskname> <snapshotname>
-# *****************************************************************************
-function create_snapshot {
-  local DISK_NAME=$1
-  local SNAPSHOT_NAME=$2
-  local success=0
-  local retval=0
-  # Check if snapshot already exists
-  gcloud compute snapshots list ${SNAPSHOT_NAME} | grep "${SNAPSHOT_NAME}" || retval=$?
-  if [ $retval -eq 0 ]; then
-    echo "Snapshot already exists"
-    exit 1
-  fi
+  case $operation in
+    create)
+      # Check if the instance already exists
+      gcloud compute instances list ${name} --zones $ZONE | grep -q "${name}" || retval=$?
+      if [ $retval -eq 0 ]; then
+        echo "Instance:$name already exists."
+        exit 1
+      fi
+      ;;
+    delete)
+        # Check if the instance is already deleted
+        gcloud compute instances list ${name} --zones $ZONE | grep -q "${name}" || retval=$?
+        if [ $retval -ne 0 ]; then
+          echo "Instance:$name does not exist."
+          exit 1
+        fi
+      ;;
+    *)
+      echo "Operation:$operation on Entity:Instances is invalid, Exiting"
+      exit 1
+  esac
 
   for i in `seq 1 5`;
   do
-    echo "Try-$i: Request for snapshot creation"
-    # Issue snapshot creation command.
+    echo "Try-$i: gcloud compute instances $operation $name $options"
+    # Execute the command.
     retval=0
-    gcloud compute disks snapshot ${DISK_NAME} --snapshot-names ${SNAPSHOT_NAME} || retval=$?
+    gcloud compute instances $operation $name $options || retval=$?
     if [ $retval -eq 0 ]; then
       return 0;
     fi
+
     for j in `seq 1 15`;
     do
-      echo "$j: checking snapshot ${SNAPSHOT_NAME} creation...."
-      # Make sure snapshot is in READY state (not in UPLOADING or anyother state).
-      retval=0
-      gcloud compute snapshots list ${SNAPSHOT_NAME} | grep "${SNAPSHOT_NAME}" | grep "READY"|| retval=$?
-      if [ $retval -eq 0 ]; then
-        success=1
-        break
-      fi
-      sleep 2
+      case $operation in
+        create)
+          gcloud compute instances list $name | grep "${name}" | grep "RUNNING" || retval=$?
+          if [ $retval -eq 0 ]; then
+            success=1
+            break
+          fi
+          ;;
+        delete)
+          gcloud compute instances list $name | grep "${name}" || retval=$?
+          if [ $retval -ne 0 ]; then
+            success=1
+            break
+          fi
+          ;;
+      esac
+      sleep 5
     done
-
-    # Check whether Snapshot creation remains successfull? If so, then exit from loop.
-    # Otherwise, issue a fresh request for it.
     if [ ${success} -eq 1 ]; then
-      echo "SNAPSHOT:${SNAPSHOT_NAME} creation successful: exiting outer loop"
+      echo "SUCCESS"
       return 0
     fi
     sleep 30
   done
+  return 1
 }
+# *****************************************************************************
+# Function: exec_gcloud_snapshots
+# Purpose : Wrapper for gcloud snapshots commands, retries the command if an error is encountered.
+# Usage   : exec_gcloud_snapshots <operation> <name> <options>
+# *****************************************************************************
+function exec_gcloud_snapshots() {
+  local operation=$1
+  local name=$2
+  local options=${@:3}
+  case $operation in
+  delete)
+    # Check if the snapshot is already deleted
+    gcloud compute snapshots list ${name} | grep -q "${name}" || retval=$?
+    if [ $retval -ne 0 ]; then
+      echo "Snapshot:$name does not exist."
+      exit 1
+    fi
+    ;;
+  *)
+    echo "Operation:$operation on Entity:snapshot is invalid, Exiting"
+    exit 1
+  esac
+
+  for i in `seq 1 5`;
+  do
+    echo "Try-$i: gcloud compute snapshot $operation $name $options"
+    # Execute the command.
+    retval=0
+    gcloud compute snapshots $operation $name $options || retval=$?
+    if [ $retval -eq 0 ]; then
+      return 0;
+    fi
+
+    for j in `seq 1 15`;
+    do
+      echo "$j: Checking if $operation snapshots:$name succeeded"
+      retval=0
+
+      gcloud compute snapshots list $name | grep "${name}" || retval=$?
+      if [ $retval -ne 0 ]; then
+        success=1
+        break
+      fi
+    sleep 5
+    done
+    if [ ${success} -eq 1 ]; then
+      echo "SUCCESS"
+      return 0
+    fi
+    sleep 30
+  done
+  return 1
+}
+# *****************************************************************************
+# Function: exec_gcloud_disks
+# Purpose : Wrapper for gcloud disks commands, retries the command if an error is encountered.
+# Usage   : exec_gcloud_disks <operation> <name> <options>
+# *****************************************************************************
+function exec_gcloud_disks() {
+  local operation=$1
+  local name=$2
+  local options=${@:3}
+  case $operation in
+    create)
+      # Check if disk already exists
+      gcloud compute disks list ${name} --zones $ZONE | grep -q "${name}" || retval=$?
+      if [ $retval -eq 0 ]; then
+        echo "Disk:$name already exists."
+        exit 1
+      fi
+      ;;
+    delete)
+      # Check if disk already deleted
+      gcloud compute disks list ${name} --zones $ZONE | grep -q "${name}" || retval=$?
+      if [ $retval -ne 0 ]; then
+        echo "Disk:$name does not exist."
+        exit 1
+      fi
+      ;;
+    snapshot)
+      local snapshot_name=$4
+      # Check if disk already deleted
+      gcloud compute snapshots list ${snapshot_name} | grep -q "${snapshot_name}" || retval=$?
+      if [ $retval -eq 0 ]; then
+        echo "Snapshot:$snapshot_name already exists."
+        exit 1
+      fi
+      ;;
+    *)
+      echo "Operation:$operation on Entity:disks is invalid, Exiting"
+      exit 1
+  esac
+
+  for i in `seq 1 5`;
+  do
+    echo "Try-$i: gcloud compute disks $operation $name $options"
+    # Execute the command.
+    retval=0
+    gcloud compute disks $operation $name $options || retval=$?
+    if [ $retval -eq 0 ]; then
+      return 0;
+    fi
+
+    for j in `seq 1 15`;
+    do
+      echo "$j: Checking if $operation disks:$name succeeded"
+      retval=0
+      case $operation in
+        create)
+          gcloud compute disks list $name | grep "${name}" | grep "READY" || retval=$?
+          if [ $retval -eq 0 ]; then
+            success=1
+            break
+          fi
+          ;;
+        delete)
+          gcloud compute disks list $name | grep "${name}" || retval=$?
+          if [ $retval -ne 0 ]; then
+            success=1
+            break
+          fi
+          ;;
+        snapshot)
+          gcloud compute snapshots list $snapshot_name | grep "${snapshot_name}" | grep "READY" || retval=$?
+          if [ $retval -eq 0 ]; then
+            success=1
+            break
+          fi
+          ;;
+      esac
+      sleep 5
+    done
+    if [ ${success} -eq 1 ]; then
+      echo "SUCCESS"
+      return 0
+    fi
+    sleep 30
+  done
+  return 1
+}
+
+# *****************************************************************************
+# Function: exec_gcloud_cmd
+# Purpose : Wrapper for gcloud commands, retries the command if an error is encountered.
+# Usage   : exec_gcloud_cmd <entity> <operation> <name> <options>
+# *****************************************************************************
+function exec_gcloud_cmd {
+  local entity=$1
+  local operation=$2
+  local name=$3
+  local options=${@:4}
+  local retval=0
+  local success=0
+  #Check if the operation is valid on the entity
+  case $entity in
+    disks)
+      exec_gcloud_disks $operation $name $options
+      ;;
+    instances)
+      exec_gcloud_instances $operation $name $options
+      ;;
+    snapshots)
+      exec_gcloud_snapshots $operation $name $options
+      ;;
+  *)
+    echo "Entity:$entity is invalid. Exiting"
+    exit 1
+  esac
+
+}
+
 # *****************************************************************************
 # Function: cleanup
 # Purpose : Cleans up the instances and disks in case of failure.

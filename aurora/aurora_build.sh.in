@@ -94,10 +94,10 @@ function build_image() {
 
   1)
     echo "Creating the disk[${INSTANCE_NAME}-d1] and [${INSTANCE_NAME}-d2] for the instance in the cloud"
-    tryexec gcloud -q --verbosity ${VERBOSITY} compute disks create "${INSTANCE_NAME}-d1" \
-      --source-snapshot "${SNAP1}" --type "$DISK_TYPE" --size="$DISK1_SIZE"
-    tryexec gcloud -q --verbosity ${VERBOSITY} compute disks create "${INSTANCE_NAME}-d2" \
-      --source-snapshot "${SNAP2}" --type "$DISK_TYPE" --size="$DISK2_SIZE"
+    exec_gcloud_cmd disks create "${INSTANCE_NAME}-d1" \
+      --source-snapshot "${SNAP1}" --type "$DISK_TYPE" --size="$DISK1_SIZE" -q
+    exec_gcloud_cmd disks create "${INSTANCE_NAME}-d2" \
+      --source-snapshot "${SNAP2}" --type "$DISK_TYPE" --size="$DISK2_SIZE" -q
     record_step $step $step_file
     ;;
 
@@ -105,9 +105,9 @@ function build_image() {
     echo ${USER}:$(cat /home/${USER}/.ssh/id_rsa.pub) > /tmp/keys
     echo plumgrid:$(echo ${COMMON_KEY}) >> /tmp/keys
     echo "Creating the instance[$INSTANCE_NAME] in the cloud"
-    tryexec gcloud -q --verbosity ${VERBOSITY} compute instances create "${INSTANCE_NAME}" \
+    exec_gcloud_cmd instances create "${INSTANCE_NAME}" \
       --machine-type "$MACHINE_TYPE" --network "$NETWORK" --maintenance-policy \
-      "MIGRATE" --scopes "$SCOPES" \
+      "MIGRATE" --scopes "$SCOPES" -q \
       --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
       --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip" \
       --metadata-from-file sshKeys=/tmp/keys --metadata email="$emailid"
@@ -231,12 +231,12 @@ function build_image() {
     #Flushing the disk buffers
     run_cmd_gci ${INSTANCE_IP} "sudo sync"
     run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f /opt"
-    create_snapshot ${INSTANCE_NAME}-d2 ${INSTANCE_NAME}-ssd2
+    exec_gcloud_cmd disks snapshot ${INSTANCE_NAME}-d2 --snapshot-names ${INSTANCE_NAME}-ssd2
 
     #Flushing the disk buffers
     run_cmd_gci ${INSTANCE_IP} "sudo sync"
     run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f /"
-    create_snapshot ${INSTANCE_NAME}-d1 ${INSTANCE_NAME}-ssd1
+    exec_gcloud_cmd disks snapshot ${INSTANCE_NAME}-d1 --snapshot-names ${INSTANCE_NAME}-ssd1
 
     echo "BUILD-ID=${BUILD_ID}" | tee $WORKSPACE/logs/build_id
     record_step $step $step_file
@@ -244,7 +244,7 @@ function build_image() {
 
   17)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
-    tryexec gcloud compute instances delete ${INSTANCE_NAME} --delete-disks all  -q
+    exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     rm $step_file
     printf "\n\n *********************** BUILD-ID = ${BUILD_ID} *********************** \n\n"
     ;;
