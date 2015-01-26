@@ -9,7 +9,7 @@ build
   -R, --minor_st            [OPTIONAL] Jump to specific minor step in the install process
   -E, --minor_end           [OPTIONAL] Stop at this step when in debug
   -p, --pipeline            [OPTIONAL] The pipeline which you want to run.
-                            Possible values are "smoke", "nightly".
+                            Possible values are "smoke", "extended".
                             Default is 'smoke'.
   -i, --test_iterations     [OPTIONAL] Number of iterations, script needs to run
                             Default is '1'.

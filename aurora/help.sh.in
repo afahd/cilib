@@ -124,7 +124,7 @@ pipeline
   Run smoke/extended pipeline for some particular commit
   -l, --buildid             Build-ID against which you want to run pipeline
   -P, --pipeline            [OPTIONAL] The pipeline which you want to run.
-                            Possible values are "smoke", "nightly".
+                            Possible values are "smoke", "extended".
                             Default is 'smoke'.
 HELP
 }

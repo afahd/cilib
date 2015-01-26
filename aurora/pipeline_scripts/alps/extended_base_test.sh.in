@@ -1,7 +1,7 @@
 #!/bin/bash
-# Script to run tests in alps director 
+# Script to run tests in alps director
 # and collect log from the failing tests
-# these are designed to work with aurora  
+# these are designed to work with aurora
 
 CTEST_ST=1
 CTEST_ED=70
@@ -19,8 +19,8 @@ rm -rf logs
 mkdir logs
 #export BUILD_GUI=1
 #export EXCLUDE_UI_NON_PITA=1
-export BUILD_NIGHTLY=1
-export EXCLUDE_NON_NIGHTLY=1
+export BUILD_EXTENDED=1
+export EXCLUDE_NON_EXTENDED=1
 export EXCLUDE_UNSTABLE=1
 export EXCLUDE_UI_NON_PITA=1
 export BUILD_GUI=1
@@ -43,10 +43,10 @@ for run in $(seq 1 $itr); do
     touch /opt/pg/log/${test_name}
     ctest --output-on-failure  -L ^type:local$ -R "^${test_name}$" >& "logs/ctestout_iter${run}_${test_name}.log"
     result="$?"
-    if [[ "x$result" != "x0" ]] ; then 
+    if [[ "x$result" != "x0" ]] ; then
       echo "                 FAILED"
-     
-      mv "logs/ctestout_iter${run}_${test_name}.log" "logs/ctestout_iter${run}_${test_name}.FAILED.log" 
+
+      mv "logs/ctestout_iter${run}_${test_name}.log" "logs/ctestout_iter${run}_${test_name}.FAILED.log"
       mkdir "logs/ctestout_iter${run}_${test_name}"
       cp -R /opt/pg/log/* "logs/ctestout_iter${run}_${test_name}/"
     fi

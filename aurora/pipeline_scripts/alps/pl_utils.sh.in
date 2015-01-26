@@ -7,8 +7,8 @@ function get_base_script() {
 
   if [[ $pipeline == "smoke" ]]; then
     base_script=${SMOKE_BASE_SCRIPT}
-  elif [[ $pipeline == "nightly" ]]; then
-    base_script=${NIGHTLY_BASE_SCRIPT}
+  elif [[ $pipeline == "extended" ]]; then
+    base_script=${EXTENDED_BASE_SCRIPT}
   else
     echo "Unknown Pipeline"
     return 1
@@ -22,8 +22,8 @@ function get_db() {
 
   if [[ $pipeline == "smoke" ]]; then
     db=${SMOKE_DB}
-  elif [[ $pipeline == "nightly" ]]; then
-    db=${NIGHTLY_DB}
+  elif [[ $pipeline == "extended" ]]; then
+    db=${EXTENDED_DB}
   else
     echo "Unknown Pipeline"
     return 1
