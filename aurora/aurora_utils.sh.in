@@ -270,11 +270,11 @@ function run_aurora_build() {
   local KEEP_RUNNING=$5
   local CONTINUE=$6
   local START_STEP=1
-  local END_STEP=17
+  local END_STEP=21
 
   #keep_running equalling 1 means -k was specified, end step should be 1 less.
   if [[ $KEEP_RUNNING == "1" ]]; then
-      END_STEP=16
+      END_STEP=20
   fi
 
   #Generating Instance name piece by piece

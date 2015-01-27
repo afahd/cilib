@@ -154,7 +154,7 @@ function build_image() {
     check_ssh_server_status ${INSTANCE_IP} || retval=$?
     if [[ $retval == 1 ]]; then
       run_cmd_gci ${INSTANCE_IP} "sudo docker ps"
-      echo "Dokcer stopped.. Please run aurora build with --continue to retry!!"
+      echo "Docker stopped.. Please run aurora build with --continue to retry!!"
       record_step 4 $step_file
       exit $retval
     fi
@@ -167,47 +167,60 @@ function build_image() {
     tryexec write_gitsync.sh "${GIT_SYNC_SCRIPT}" "${BRANCH}" "${PROJECT}" "${REFSPEC}"
     tryexec upload_to_docker ${INSTANCE_IP} ${GIT_SYNC_SCRIPT} /tmp/
     tryexec run_cmd_docker ${INSTANCE_IP} "mv ${GIT_SYNC_SCRIPT} /tmp/gitsync.sh"
-    #rm ${GIT_SYNC_SCRIPT}
+    rm ${GIT_SYNC_SCRIPT}
     record_step $step $step_file
     ;;
 
   10)
     echo "Execute the gitsynch script on docker container in steps"
     # Run Step1: cleanup
-    tryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh 1"
-
-    # Run Step2: Fetch tools
-    pkill "ssh-agent" || true
+    echo "gitsync Step1: Perform cleanup on the setup"
     tryexec check_ssh_server_status ${INSTANCE_IP}
-    tryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh 2"
-
-    # Run Step3: Fetch all repos
-    for p in ${PROJECT_LIST[@]}; do
-      pkill "ssh-agent" || true
-      tryexec check_ssh_server_status ${INSTANCE_IP}
-      tryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh 3 $p"
-    done
-
-    # Run Step4: Fetch iovisor
-    pkill "ssh-agent" || true
-    tryexec check_ssh_server_status ${INSTANCE_IP}
-    tryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh 4"
-
-    # Checkout the required changes for specified project and build repos
-    pkill "ssh-agent" || true
-    tryexec check_ssh_server_status ${INSTANCE_IP}
-    tryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh 5"
-
+    tryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh cleanup"
     record_step $step $step_file
     ;;
 
   11)
+    # Run Step2: Fetch tools
+    echo "gitsync Step2: Fetching latest tools"
+    pkill "ssh-agent" || true
+    retryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh tools"
+    record_step $step $step_file
+    ;;
+
+  12)
+    # Run Step3: Fetch all repos
+    echo "gitsync Step3: Fetching all the repos (${PROJECT_LIST[@]})"
+    for p in ${PROJECT_LIST[@]}; do
+      pkill "ssh-agent" || true
+      retryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh all_repos $p"
+    done
+    record_step $step $step_file
+    ;;
+
+  13)
+    # Run Step4: Fetch iovisor
+    echo "gitsync Step4: Fetching latest iovisor"
+    pkill "ssh-agent" || true
+    retryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh iovisor"
+    record_step $step $step_file
+    ;;
+
+  14)
+    # Checkout the required changes for specified project and set apt_component
+    echo "gitsync Step5: Checking out required code on ${PROJECT}"
+    pkill "ssh-agent" || true
+    retryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh checkout"
+    record_step $step $step_file
+    ;;
+
+  15)
     echo "Starting build-all.sh for ${APT_COMPONENT}==="
     tryexec run_build_all ${INSTANCE_IP} ${APT_COMPONENT} "/tmp/build_all.log"
     record_step $step $step_file
     ;;
 
-  12)
+  16)
     # Adding polling as a separate step, so that if the connection broke at the previous step,
     # this step can be run directly to see if the previous command is still running
     echo "Polling for build-all (tailing \"/tmp/build_all.log\" for complete logs)"
@@ -215,7 +228,8 @@ function build_image() {
     download_from_docker ${INSTANCE_IP} "/tmp/build_all.log" "${WORKSPACE}/logs/"
     record_step $step $step_file
     ;;
-  13)
+
+  17)
     local local_file=$(mktemp /tmp/post_build_all.sh-XXXXX)
     cat /dev/null > ${local_file}
     echo "find /home/plumgrid -name \"*.o\" -not -name 'setcontext.o' | xargs rm -f" >> ${local_file}
@@ -229,20 +243,20 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  14)
+  18)
     echo "Making a snapshot for the container"
     tryexec run_cmd_gci ${INSTANCE_IP} "echo \"pg_dev_${INSTANCE_NAME}\" > docker_build_id" "t"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo docker commit \`cat ./local_docker_id\` pg_dev_${INSTANCE_NAME}:latest"
     record_step $step $step_file
     ;;
 
-  15)
+  19)
     echo "Making sure docker(pg_dev_${INSTANCE_NAME}:latest) is commited successfully"
     tryexec verify_docker_commited ${INSTANCE_IP} "pg_dev_${INSTANCE_NAME}"
     record_step $step $step_file
     ;;
 
-  16)
+  20)
     BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${gerritid_lower}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
     tryexec run_cmd_gci ${INSTANCE_IP} "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
@@ -264,7 +278,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  17)
+  21)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     rm $step_file

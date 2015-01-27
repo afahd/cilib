@@ -45,7 +45,7 @@ echo "repo=\$2" >> ${git_script}
 # STEP-1: cleanup
 cat >> ${git_script} <<DELIM__
 case \$step in
-  1)
+  cleanup)
 DELIM__
 #GPG keys expire after ~10 days, after which /opt/pg/var/www needs to
 #be nuked for master as well and fresh build-all.sh needs to be run
@@ -59,7 +59,7 @@ echo "rm -rf /opt/pg/systest" >> ${git_script}
 # STEP-2: Fetch tools
 cat >> ${git_script} <<DELIM__
     ;;
-  2)
+  tools)
 DELIM__
 ## Update and install the tools in the snapshot in case some new packages were added.
 modify_git_config "tools" "${gerritid}" "${git_script}"
@@ -72,7 +72,7 @@ echo "git reset --hard origin/master" >> ${git_script}
 # STEP-3: Fetch all repos
 cat >> ${git_script} <<DELIM__
     ;;
-  3)
+  all_repos)
 DELIM__
 ## Checkout the requested branch on all the projects
 modify_git_config "\${repo}" "${gerritid}" "${git_script}"
@@ -86,7 +86,7 @@ echo "git reset --hard origin/${branch}" >> ${git_script}
 # Step-4: Fetch iovisor
 cat >> ${git_script} <<DELIM__
     ;;
-  4)
+  iovisor)
 DELIM__
 ## Update and install iovisor.
 modify_git_config "iovisor" "${gerritid}" "${git_script}"
@@ -106,7 +106,7 @@ echo "sed -i \"/export APT_REPO_HOST/ c\export APT_REPO_HOST=127.0.0.1 && export
 #         -- Set apt-component on the repos and run cmake .. again
 cat >> ${git_script} <<DELIM__
     ;;
-  5)
+  checkout)
 DELIM__
 if [[ "$refspec" =~ refs/changes/* ]]; then
   ## Checkout the request commit in the request project

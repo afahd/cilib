@@ -776,6 +776,42 @@ function tryexec() {
       exit $retval
     fi
 }
+
+# *****************************************************************************
+# Function: retryexec
+# Purpose : Try to execute a command. If the command returns success, this
+#           function returns 0. Otherwise, the script retries for a while. If
+#           it still fails, its then aborted with the status code of the failed
+#           command.
+# Usage   : retryexec <command>
+# Prereq  :
+# *****************************************************************************
+function retryexec() {
+  retry=1
+  until [[ $retry == "5" ]]
+  do
+     echo "Try $retry for command "
+     echo "  $@"
+     "$@"
+     if [[ $? == "0" ]]; then break; fi
+     let retry++
+     if [[ $n == "5" ]]; then
+       echo "Command $@ failed -- Failed to run gitsync"
+       echo "$(basename $0) Failed, do you want to cleanup the instances?"
+       read -r -p "Are you sure you want to continue? (y/N)" response
+       response=${response,,}    # tolower
+       if [[ $response =~ ^(yes|y)$ ]]; then
+         echo "Proceeding with cleanup..."
+         cleanup
+         exit 1
+       else
+         exit 1
+       fi
+     fi
+     sleep 0.5
+  done
+}
+
 # *****************************************************************************
 # Function: check_file_existance
 # Purpose : Checks if the file exists.
