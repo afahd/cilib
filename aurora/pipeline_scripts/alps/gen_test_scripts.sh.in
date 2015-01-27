@@ -79,7 +79,7 @@ else
     CurrentTest=1
     CurrentTime=0
     for ITR in `seq 1 $SPLIT` ; do
-      let CURTIME=CURTIME+AVGTime
+      let CURTIME=CurrentTime+AVGTime
       TestInfo=$(sqlite3 $DB "select ID, (select sum(RunTime) from tests t2 where t2.id <= t1.id) as accumulated from tests t1 where accumulated < $CURTIME order by ID;" | tail -1)
       TestID=$(echo $TestInfo | cut -d "|" -f 1)
       TestTime=$(echo $TestInfo | cut -d "|" -f 2)
