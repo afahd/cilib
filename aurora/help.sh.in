@@ -95,7 +95,7 @@ ls
                       snapshots: Lists all the snapshots.
                       build_ids or build: Lists the build-ids and their corresponding RefSpec.
                       run_ids or run :   Lists the run instances and the corresponding build-ids.
-
+                      disks: Lists the disks without instances.
 HELP
 }
 
