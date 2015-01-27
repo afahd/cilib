@@ -249,11 +249,16 @@ function build_image() {
     tryexec run_cmd_gci ${INSTANCE_IP} "echo ${INSTANCE_NAME}-ssd2 > ~/build_d2_snapshot"
     tryexec run_cmd_gci ${INSTANCE_IP} "echo ${SN_ID} > ~/primary_snapshot"
 
-    #Power off the instance
-    exec_gcloud_cmd instances stop ${INSTANCE_NAME}
-    #Create the snapshots
-    exec_gcloud_cmd disks snapshot ${INSTANCE_NAME}-d1 --snapshot-names ${INSTANCE_NAME}-ssd1
+    #SSD-2 needs to be created 1st because using fsfreeze on / causes ssh timeout
+    #Flushing the disk buffers
+    run_cmd_gci ${INSTANCE_IP} "sudo sync"
+    run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f /opt"
     exec_gcloud_cmd disks snapshot ${INSTANCE_NAME}-d2 --snapshot-names ${INSTANCE_NAME}-ssd2
+
+    #Flushing the disk buffers
+    run_cmd_gci ${INSTANCE_IP} "sudo sync"
+    run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f /"
+    exec_gcloud_cmd disks snapshot ${INSTANCE_NAME}-d1 --snapshot-names ${INSTANCE_NAME}-ssd1
 
     echo "BUILD-ID=${BUILD_ID}" | tee $WORKSPACE/logs/build_id
     record_step $step $step_file
