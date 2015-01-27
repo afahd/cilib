@@ -183,7 +183,6 @@ function build_image() {
   11)
     # Run Step2: Fetch tools
     echo "gitsync Step2: Fetching latest tools"
-    pkill "ssh-agent" || true
     retryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh tools"
     record_step $step $step_file
     ;;
@@ -192,7 +191,6 @@ function build_image() {
     # Run Step3: Fetch all repos
     echo "gitsync Step3: Fetching all the repos (${PROJECT_LIST[@]})"
     for p in ${PROJECT_LIST[@]}; do
-      pkill "ssh-agent" || true
       retryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh all_repos $p"
     done
     record_step $step $step_file
@@ -201,7 +199,6 @@ function build_image() {
   13)
     # Run Step4: Fetch iovisor
     echo "gitsync Step4: Fetching latest iovisor"
-    pkill "ssh-agent" || true
     retryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh iovisor"
     record_step $step $step_file
     ;;
@@ -209,7 +206,6 @@ function build_image() {
   14)
     # Checkout the required changes for specified project and set apt_component
     echo "gitsync Step5: Checking out required code on ${PROJECT}"
-    pkill "ssh-agent" || true
     retryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh checkout"
     record_step $step $step_file
     ;;

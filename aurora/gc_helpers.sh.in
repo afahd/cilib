@@ -808,6 +808,8 @@ function retryexec() {
          exit 1
        fi
      fi
+     echo "Command $@ Failed on try $retry : Will try again, restarting ssh-agent befor retrying"
+     pkill "ssh-agent" || true
      sleep 0.5
   done
 }
