@@ -113,6 +113,8 @@ case $1 in
         list_runids
       elif [[ $ENTITY == "build_ids" || $ENTITY == "build" ]] ; then
         list_buildids
+      elif [[ $ENTITY == "disks" ]] ; then
+        list_disks
       else
         #echo "ERROR: invalid entity: It can be either 'instances' or 'snapshots'"
         show_ls_help

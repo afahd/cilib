@@ -119,6 +119,31 @@ function list_runids() {
   echo "------------------------------------------------"
 }
 # *****************************************************************************
+# Function: list_disks
+# Purpose : Lists the disks without instances for the user.
+# Usage   : list_disks
+# Prereq: Aurora init has been called.
+# *****************************************************************************
+function list_disks() {
+  # Instances
+  local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp --regexp ".*" | grep ${gerritid_lower} | sed -e "s/${gerritid_lower}-//g")
+  local instance_names=($(echo "$instance_list" | grep '^name'))
+  local instances_str=${instance_names[1]}
+  for (( i = 3; i < ${#instance_names[@]} ; i=i+2 )) do
+    instances_str="$instances_str\|${instance_names[$i]}"
+  done
+
+  # Disks without instances
+  local REGEX=".*$1.*"
+  local disk_list=$(gcloud compute disks list --format=text --sort-by=creationTimestamp --regexp "${REGEX}" | grep ${gerritid_lower} | sed -e "s/${gerritid_lower}-//g" | grep -v $instances_str)
+  local disk_names=($(echo "$disk_list" | grep name))
+  printf "%-35s %-20s\n" "Name"
+  for (( i = 1 ; i < ${#disk_names[@]} ; i=i+2 )) do
+    printf "%-35s\n" ${disk_names[$i]}
+  done
+  echo "------------------------------------------------"
+}
+# *****************************************************************************
 # Function: delete_instances
 # Purpose : Deletes the cloud instances currently running for the user.
 # Usage   : delete_user_instances
