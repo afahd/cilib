@@ -518,12 +518,20 @@ function exec_gcloud_instances() {
       fi
       ;;
     delete)
-        # Check if the instance is already deleted
-        gcloud compute instances list ${name} --zones $ZONE | grep -q "${name}" || retval=$?
-        if [ $retval -ne 0 ]; then
-          echo "Instance:$name does not exist."
-          exit 1
-        fi
+      # Check if the instance is already deleted
+      gcloud compute instances list ${name} --zones $ZONE | grep -q "${name}" || retval=$?
+      if [ $retval -ne 0 ]; then
+        echo "Instance:$name does not exist."
+        exit 1
+      fi
+      ;;
+    stop)
+      # Check if the instance exists
+      gcloud compute instances list ${name} --zones $ZONE | grep -q "${name}" || retval=$?
+      if [ $retval -ne 0 ]; then
+        echo "Instance:$name does not exist."
+        exit 1
+      fi
       ;;
     *)
       echo "Operation:$operation on Entity:Instances is invalid, Exiting"
@@ -553,6 +561,13 @@ function exec_gcloud_instances() {
         delete)
           gcloud compute instances list $name | grep "${name}" || retval=$?
           if [ $retval -ne 0 ]; then
+            success=1
+            break
+          fi
+          ;;
+        stop)
+          gcloud compute instances list $name | grep "${name}" | grep "TERMINATED" || retval=$?
+          if [ $retval -eq 0 ]; then
             success=1
             break
           fi
