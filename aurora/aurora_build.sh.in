@@ -167,15 +167,37 @@ function build_image() {
     tryexec write_gitsync.sh "${GIT_SYNC_SCRIPT}" "${BRANCH}" "${PROJECT}" "${REFSPEC}"
     tryexec upload_to_docker ${INSTANCE_IP} ${GIT_SYNC_SCRIPT} /tmp/
     tryexec run_cmd_docker ${INSTANCE_IP} "mv ${GIT_SYNC_SCRIPT} /tmp/gitsync.sh"
-    rm ${GIT_SYNC_SCRIPT}
+    #rm ${GIT_SYNC_SCRIPT}
     record_step $step $step_file
     ;;
 
   10)
-    echo "Execute the gitsynch script on docker container"
+    echo "Execute the gitsynch script on docker container in steps"
+    # Run Step1: cleanup
+    tryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh 1"
+
+    # Run Step2: Fetch tools
     pkill "ssh-agent" || true
     tryexec check_ssh_server_status ${INSTANCE_IP}
-    tryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh"
+    tryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh 2"
+
+    # Run Step3: Fetch all repos
+    for p in ${PROJECT_LIST[@]}; do
+      pkill "ssh-agent" || true
+      tryexec check_ssh_server_status ${INSTANCE_IP}
+      tryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh 3 $p"
+    done
+
+    # Run Step4: Fetch iovisor
+    pkill "ssh-agent" || true
+    tryexec check_ssh_server_status ${INSTANCE_IP}
+    tryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh 4"
+
+    # Checkout the required changes for specified project and build repos
+    pkill "ssh-agent" || true
+    tryexec check_ssh_server_status ${INSTANCE_IP}
+    tryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh 5"
+
     record_step $step $step_file
     ;;
 

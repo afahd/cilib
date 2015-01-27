@@ -39,7 +39,14 @@ cat /dev/null > ${git_script}
 echo "#!/bin/bash -e" >> ${git_script}
 echo "set -e" >> ${git_script}
 echo ". /opt/pg/env/alps.bashrc" >> ${git_script}
+echo "step=\$1" >> ${git_script}
+echo "repo=\$2" >> ${git_script}
 
+# STEP-1: cleanup
+cat >> ${git_script} <<DELIM__
+case \$step in
+  1)
+DELIM__
 #GPG keys expire after ~10 days, after which /opt/pg/var/www needs to
 #be nuked for master as well and fresh build-all.sh needs to be run
 echo "echo 'Performing cleanup'" >> ${git_script}
@@ -49,6 +56,11 @@ for p in ${PROJECT_LIST[@]}; do
 done
 echo "rm -rf /opt/pg/systest" >> ${git_script}
 
+# STEP-2: Fetch tools
+cat >> ${git_script} <<DELIM__
+    ;;
+  2)
+DELIM__
 ## Update and install the tools in the snapshot in case some new packages were added.
 modify_git_config "tools" "${gerritid}" "${git_script}"
 echo "echo 'Extracting and rebuild tools'"  >> ${git_script}
@@ -57,17 +69,25 @@ echo "git fetch" >> ${git_script}
 echo "git checkout master"  >> ${git_script}
 echo "git reset --hard origin/master" >> ${git_script}
 
+# STEP-3: Fetch all repos
+cat >> ${git_script} <<DELIM__
+    ;;
+  3)
+DELIM__
 ## Checkout the requested branch on all the projects
-for p in ${PROJECT_LIST[@]}; do
-  modify_git_config "${p}" "${gerritid}" "${git_script}"
-  echo "echo \"Extracting and rebuilding $p for branch ${branch}\""
-  echo "cd /home/plumgrid/work/${p}" >> ${git_script}
-  echo "git fetch" >> ${git_script}
-  echo "git reset --hard origin/${branch}" >> ${git_script}
-  echo "git checkout ${branch}" >> ${git_script}
-  echo "git reset --hard origin/${branch}" >> ${git_script}
-done
+modify_git_config "\${repo}" "${gerritid}" "${git_script}"
+echo "echo \"Extracting and rebuilding \${repo} for branch ${branch}\""
+echo "cd /home/plumgrid/work/\${repo}" >> ${git_script}
+echo "git fetch" >> ${git_script}
+echo "git reset --hard origin/${branch}" >> ${git_script}
+echo "git checkout ${branch}" >> ${git_script}
+echo "git reset --hard origin/${branch}" >> ${git_script}
 
+# Step-4: Fetch iovisor
+cat >> ${git_script} <<DELIM__
+    ;;
+  4)
+DELIM__
 ## Update and install iovisor.
 modify_git_config "iovisor" "${gerritid}" "${git_script}"
 echo "echo 'Getting right version of iovisor'"  >> ${git_script}
@@ -81,6 +101,13 @@ echo "git reset --hard \${git_dep_branch[iovisor]}" >> ${git_script}
 echo "cd /home/plumgrid/work/pkg/scripts" >> $git_script
 echo "sed -i \"/export APT_REPO_HOST/ c\export APT_REPO_HOST=127.0.0.1 && export APT_COMPONENT=${APT_COMPONENT}\" build-all.sh" >> $git_script
 
+# Step-5: -- Checkout the required changes for the defined porject
+#         -- Build tools and iovisor
+#         -- Set apt-component on the repos and run cmake .. again
+cat >> ${git_script} <<DELIM__
+    ;;
+  5)
+DELIM__
 if [[ "$refspec" =~ refs/changes/* ]]; then
   ## Checkout the request commit in the request project
   echo "cd /home/plumgrid/work/${project}" >> $git_script
@@ -113,3 +140,11 @@ done
 echo "cd /home/plumgrid/work/${project}/build" >> ${git_script}
 echo "export APT_COMPONENT=${APT_COMPONENT}" >> ${git_script}
 echo "cmake .." >> ${git_script}
+cat >> ${git_script} <<DELIM__
+    ;;
+  *)
+    echo "Step \$step provided is invalid. Exiting!"
+    exit 1
+esac
+DELIM__
+
