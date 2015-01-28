@@ -19,8 +19,8 @@ rm -rf logs
 mkdir logs
 #export BUILD_GUI=1
 #export EXCLUDE_UI_NON_PITA=1
-export BUILD_EXTENDED=1
-export EXCLUDE_NON_EXTENDED=1
+export BUILD_NIGHTLY=1
+export EXCLUDE_NON_NIGHTLY=1
 export EXCLUDE_UNSTABLE=1
 export EXCLUDE_UI_NON_PITA=1
 export BUILD_GUI=1
