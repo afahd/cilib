@@ -73,17 +73,36 @@ else
 
     ITime=${TotalTestRuntime%.*}
     AVGTime=$(expr $ITime / $SPLIT)
-    echo $AVGTime
+    echo "Average Run Time = $AVGTime"
 
     CURTIME="0"
     CurrentTest=1
     CurrentTime=0
     for ITR in `seq 1 $SPLIT` ; do
       let CURTIME=CurrentTime+AVGTime
-      TestInfo=$(sqlite3 $DB "select ID, (select sum(RunTime) from tests t2 where t2.id <= t1.id) as accumulated from tests t1 where accumulated < $CURTIME order by ID;" | tail -1)
-      TestID=$(echo $TestInfo | cut -d "|" -f 1)
-      TestTime=$(echo $TestInfo | cut -d "|" -f 2)
-      TestTime=${TestTime%.*}
+      if [[ "$ITR" == "$SPLIT" ]] ; then
+           # the last run needs to include all the tests so dont put a limit on the query
+           TestInfo=$(sqlite3 $DB "select ID, (select sum(RunTime) from tests t2 where t2.id <= t1.id) as accumulated from tests t1 order by ID;" | tail -1)
+           TestID=$(echo $TestInfo | cut -d "|" -f 1)
+           TestTime=$(echo $TestInfo | cut -d "|" -f 2)
+           TestTime=${TestTime%.*}
+      else 
+           TestInfo=$(sqlite3 $DB "select ID, (select sum(RunTime) from tests t2 where t2.id <= t1.id) as accumulated from tests t1 where accumulated < $CURTIME order by ID;" | tail -1)
+           TestID=$(echo $TestInfo | cut -d "|" -f 1)
+           NextTestID=$(sqlite3 $DB "select ID from tests t1 where ID > $TestID  order by ID;" | head -1)     
+           NextTestRTime=$(sqlite3 $DB "select RunTime from tests t1 where ID = $NextTestID  order by ID;" | head -1)     
+           NextTestRTime=${NextTestRTime%.*}
+           TestTime=$(echo $TestInfo | cut -d "|" -f 2)
+           TestTime=${TestTime%.*}
+           # if the next test is only taking the run over by less then 10% of the average time
+           # include it in this run 
+           # this prevents the last vm from taking all the left over load, 
+           IncludeNext=$(echo "scale=3; ($NextTestRTime - ($CURTIME - $TestTime))/$AVGTime < 0.1" | bc) 
+           if [[ "$IncludeNext" == "1" ]] ; then 
+              TestID=$NextTestID
+              let TestTime=TestTime+NextTestRTime 
+           fi 
+      fi
       let RunTime=TestTime-CurrentTime
       let NoTest=TestID-CurrentTest
       if [[ ! -z ${BASE_SCRIPT_DIR}/$ScriptName ]] ; then
