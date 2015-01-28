@@ -116,6 +116,7 @@ function build_image() {
 
   3)
     INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
+    ssh-keygen -R ${INSTANCE_IP}
     echo "Waiting for the machine to boot up and allow ssh access"
     wait_for_instance ${INSTANCE_IP}
     record_step $step $step_file
