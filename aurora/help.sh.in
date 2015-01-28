@@ -166,6 +166,7 @@ Optional Arguments:
 -P, --pipeline        [OPTIONAL] The pipeline which you want to run.
                       Possible values are "smoke", "extended".
                       Default is 'smoke'.
+-i, --test_iterations [OPTIONAL] Run the pipeline for the specified number of iterations.
 HELP
 }
 function show_set_max_instances_help() {

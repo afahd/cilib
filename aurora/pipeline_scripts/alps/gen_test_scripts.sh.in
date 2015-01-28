@@ -6,14 +6,17 @@ source pl_settings.conf
 # Run this script in the directory where you have expanded all the results
 # from aurora run's
 # this script when run like "analyze_results.sh build" will create a new database
-# then it can be run to create tests splits "analyze_results.sh 10" will generate the test splits for
+# then it can be run to create tests splits by default will generate the test splits for
 # running in 10 VM's and display on the screen
-# then it can be run to create tests splits "analyze_results.sh 10 run_tests.sh" will gerates the scripts
-# run_tests.sh-1..10 with the splits to run the tests in 10 vm's
+# then it can be run to create tests splits which generates the scripts
+# run_tests.sh-1..10 with the splits to run the tests in 10 vm's for the specified number of iterations.
 
 # read the options
 TEMP=`getopt -o b:i:f:t:n:b:d:I:p:D:h --long base_script:,test_iterations:,first_test:,step_size:,num_instances:,pipeline:,base_script_dir:,dest_script_dir:,initial_run:,db:,\help -n 'gen_test_script.sh' -- "$@"`
 eval set -- "$TEMP"
+
+#Default value for iterations.
+TEST_ITERATIONS=1
 
 # extract options and their arguments into variables.
 while true ; do
@@ -64,7 +67,6 @@ if [[ ${INITIAL_RUN} == "true" ]] ; then
 else
     let SPLIT=${NUM_INSTANCES}
     ScriptName=${BASE_SCRIPT}
-    TEST_ITERATIONS=1
     TotalTestRuntime=$(sqlite3 $DB "select sum(RunTime) from tests;")
     MaxTestID=$(sqlite3 $DB "select max(id) from tests;")
     TestCount=$(sqlite3 $DB "select count(id) from tests;")
