@@ -1,21 +1,6 @@
 #!/bin/bash -e
 source pl_settings.conf
 
-function get_base_script() {
-  local pipeline=$1
-  local base_script=""
-
-  if [[ $pipeline == "smoke" ]]; then
-    base_script=${SMOKE_BASE_SCRIPT}
-  elif [[ $pipeline == "extended" ]]; then
-    base_script=${EXTENDED_BASE_SCRIPT}
-  else
-    echo "Unknown Pipeline"
-    return 1
-  fi
-  echo "${base_script}"
-}
-
 function get_db() {
   local pipeline=$1
   local db=""

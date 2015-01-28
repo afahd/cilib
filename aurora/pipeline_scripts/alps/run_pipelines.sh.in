@@ -75,7 +75,6 @@ MOD_BUILD_ID=`echo ${BUILD_ID} | sed 's/bld/run/'`
 
 # TODO: log/untar_log directory is defined in two locations.
 script_dir=$(get_script_dir $WORKSPACE $DEST_SCRIPT_DIR $PIPELINE $MOD_BUILD_ID)
-base_script=$(get_base_script $PIPELINE)
 log_dir=${script_dir}/logs
 untar_log_dir=${script_dir}/untar_logs
 db=$(get_db $PIPELINE)
@@ -90,7 +89,7 @@ function run_test() {
     # Generate scripts to be used by "aurora run"
     echo "Going to generate test scripts"
     echo "gen_test_scripts.sh -b ${base_script} -i ${TEST_ITERATIONS} -f ${FIRST_TEST} -t ${STEP_SIZE} -n ${NUM_INSTANCES} -d ${script_dir} -I ${INITIAL_RUN} -D ${db} -r ${BASE_SCRIPT_DIR}"
-    gen_test_scripts.sh -b ${base_script} -i ${TEST_ITERATIONS} -f ${FIRST_TEST} -t ${STEP_SIZE} -n ${NUM_INSTANCES} -d ${script_dir} -I ${INITIAL_RUN} -D ${db} --base_script_dir $BASE_SCRIPT_DIR
+    gen_test_scripts.sh -p $PIPELINE -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -f ${FIRST_TEST} -t ${STEP_SIZE} -n ${NUM_INSTANCES} -d ${script_dir} -I ${INITIAL_RUN} -D ${db} --base_script_dir $BASE_SCRIPT_DIR
     ;;
 
   2)

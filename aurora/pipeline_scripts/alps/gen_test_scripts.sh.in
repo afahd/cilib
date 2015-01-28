@@ -12,7 +12,7 @@ source pl_settings.conf
 # run_tests.sh-1..10 with the splits to run the tests in 10 vm's
 
 # read the options
-TEMP=`getopt -o b:i:f:t:n:b:d:I:D:h --long base_script:,test_iterations:,first_test:,step_size:,num_instances:,base_script_dir:,dest_script_dir:,initial_run:,db:,\help -n 'gen_test_script.sh' -- "$@"`
+TEMP=`getopt -o b:i:f:t:n:b:d:I:p:D:h --long base_script:,test_iterations:,first_test:,step_size:,num_instances:,pipeline:,base_script_dir:,dest_script_dir:,initial_run:,db:,\help -n 'gen_test_script.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # extract options and their arguments into variables.
@@ -36,6 +36,8 @@ while true ; do
       INITIAL_RUN=$2 ; shift 2 ;;
     -D|--db)
       DB=$2 ; shift 2 ;;
+    -p|--pipeline)
+      PIPELINE=$2 ; shift 2 ;;
     -h|--help)
       show_gen_test_scripts_help
       exit 0 ;;
@@ -43,7 +45,6 @@ while true ; do
     *) exit 1 ;;
   esac
 done
-
 echo "**** BASE_SCRIPT_DIR=$BASE_SCRIPT_DIR **** "
 
 if [[ ${INITIAL_RUN} == "true" ]] ; then
@@ -55,6 +56,7 @@ if [[ ${INITIAL_RUN} == "true" ]] ; then
     let end_test=FIRST_TEST+stp*STEP_SIZE-1
     echo "Step = $stp Test = ${start_test} - ${end_test}"
     cp ${BASE_SCRIPT_DIR}/$BASE_SCRIPT ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$stp
+    sed -i 's/PIPELINE=.*/PIPELINE='${PIPELINE}'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$stp
     sed -i 's/CTEST_ST=[0-9]*/CTEST_ST='${start_test}'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$stp
     sed -i 's/CTEST_ED=[0-9]*/CTEST_ED='${end_test}'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$stp
     sed -i 's/itr=[0-9]*/itr='${TEST_ITERATIONS}'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$stp
@@ -110,6 +112,7 @@ else
         echo "[$DScript]"$'\t'":: Test[$NoTest] "$'\t'" $CurrentTest - $TestID "$'\t'", RunTime : $RunTime"
         #echo "cp $ScriptName ${DEST_SCRIPT_DIR}/$DScript"
         cp ${BASE_SCRIPT_DIR}/$ScriptName ${DEST_SCRIPT_DIR}/$DScript
+        sed -i 's/PIPELINE=.*/PIPELINE='${PIPELINE}'/' ${DEST_SCRIPT_DIR}/$DScript
         sed -i 's/CTEST_ST=[0-9]*/CTEST_ST='${CurrentTest}'/' ${DEST_SCRIPT_DIR}/$DScript
         if [[ $ITR == $SPLIT ]] ; then
           sed -i 's/CTEST_ED=[0-9]*/CTEST_ED=/' ${DEST_SCRIPT_DIR}/${DScript}

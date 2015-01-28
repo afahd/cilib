@@ -4,8 +4,9 @@
 # these are designed to work with aurora
 
 CTEST_ST=1
-CTEST_ED=70
-itr=1
+CTEST_ED=25
+itr=2
+PIPELINE="smoke"
 CTEST_OPT=' '
 TESTID="ctest-$CTEST_ST-$CTEST_ED"
 export EXPORT_FAILURES_DIR="/opt/pg/log/$TESTID"
@@ -17,20 +18,25 @@ mkdir -p "$EXPORT_FAILURES_DIR_TMP"
 cd ~/work/alps/build
 rm -rf logs
 mkdir logs
-#export BUILD_GUI=1
-#export EXCLUDE_UI_NON_PITA=1
-export BUILD_NIGHTLY=1
-export EXCLUDE_NON_NIGHTLY=1
-export EXCLUDE_UNSTABLE=1
-export EXCLUDE_UI_NON_PITA=1
-export BUILD_GUI=1
+#Exporting pipeline variables
+if [[ $PIPELINE == "smoke" ]]; then
+  export BUILD_GUI=1
+  export EXCLUDE_UI_NON_PITA=1
+  export EXCLUDE_UNSTABLE=1
+elif [[ $PIPELINE == "extended" ]]; then
+  export BUILD_NIGHTLY=1
+  export EXCLUDE_NON_NIGHTLY=1
+  export EXCLUDE_UNSTABLE=1
+  export EXCLUDE_UI_NON_PITA=1
+  export BUILD_GUI=1
+fi
 cmake ..
 echo 1 | sudo tee /proc/sys/net/ipv6/conf/all/disable_ipv6
-
 if [[ "x$CTEST_ED" == "x" ]] ; then
  CTEST_ED=`ctest -N -L ^type:local$ | grep "Test " | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
 fi
-
+total_tests=`ctest -N -L ^type:local$ | grep "Total Tests"`
+echo "$total_tests" > logs/total_tests
 # use a common, but hopefully unique prefix for the log destination
 formatted_date=$(date '+%Y%m%d-%H%M%S')
 for run in $(seq 1 $itr); do
