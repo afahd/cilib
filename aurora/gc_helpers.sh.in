@@ -793,10 +793,12 @@ function retryexec() {
      echo "Try $retry for command "
      echo "  $@"
      "$@"
-     if [[ $? == "0" ]]; then break; fi
+     if [[ $? == "0" ]]; then
+       break
+     fi
      let retry++
-     if [[ $n == "5" ]]; then
-       echo "Command $@ failed -- Failed to run gitsync"
+     if [[ $retry == "5" ]]; then
+       echo "Command $@ failed"
        echo "$(basename $0) Failed, do you want to cleanup the instances?"
        read -r -p "Are you sure you want to continue? (y/N)" response
        response=${response,,}    # tolower
@@ -810,7 +812,6 @@ function retryexec() {
      fi
      echo "Command $@ Failed on try $retry : Will try again, restarting ssh-agent befor retrying"
      pkill "ssh-agent" || true
-     sleep 0.5
   done
 }
 

@@ -130,9 +130,6 @@ function run_test() {
     if [[ ${num_failures} -gt 0 ]]; then
       cat > "${WORKSPACE}/status-message.log" <<__HEREDOC
 
-==================================================================
-           Trial Aurora Runs on Google Cloud
-==================================================================
 ========== Test report for aurora-${PIPELINE} pipeline: ==========
 
 Total tests run in the pipeline: ${num_total_tests}
@@ -152,7 +149,6 @@ __HEREDOC
         echo "* $test" >> ${WORKSPACE}/status-message.log
       done
       echo >> "${WORKSPACE}/status-message.log"
-      echo '>>> >>>' >> "${WORKSPACE}/status-message.log"
       cat ${WORKSPACE}/status-message.log
     fi
     ;;
