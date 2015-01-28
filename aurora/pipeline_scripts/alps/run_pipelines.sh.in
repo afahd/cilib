@@ -184,17 +184,22 @@ __HEREDOC
     mv $script_dir.tar.gz ${WORKSPACE}/logs
 
     status=0
-    if [[ num_failures -eq 0 && DB_UPDATE == "true" ]];then
+    if [[ $num_failures -eq 0 && $DB_UPDATE == "true" ]];then
       # Update database
       echo "Update database ${db} from ${untar_log_dir}"
       ./build_db.sh -D ${db} -d ${untar_log_dir} > ${untar_log_dir}/DB_REPORT.txt
       cat ${untar_log_dir}/DB_REPORT.txt
       printf "\n\n******* Updation of database has been completed. Please see ${untar_log_dir}/DB_REPORT.txt ******\n\n"
+    else
+      echo "Not going to update the Database"
+    fi
+
+    if [[ $num_failures -eq 0 ]]; then
       status=0
     else
-      echo "There are failures, Not going to update the Database"
       status=1
     fi
+
     rm -rf $script_dir
     return $status
     ;;
