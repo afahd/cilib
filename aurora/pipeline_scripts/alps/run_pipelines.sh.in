@@ -124,7 +124,7 @@ function run_test() {
     # Generate failed test case report.
     num_failures=$(find ${untar_log_dir} -name "*FAILED.log" | wc -l)
     test_count=( $(find ${untar_log_dir} -name "total_tests" -type f))
-    num_total_tests=$(cat ${test_count} | grep 'Total Tests: ' | cut -f 3 -d ' ')
+    num_total_tests=$(cat "${test_count}" | grep 'Total Tests: ' | cut -f 3 -d ' ')
     time_taken=$(print_time_taken $start_time $end_time "running aurora-$PIPELINE tests")
     # Write to status-message.log in case of failures
     if [[ ${num_failures} -gt 0 ]]; then

@@ -330,7 +330,8 @@ function get_latest_snapshot_id() {
 # *****************************************************************************
 function get_instance_ip() {
   local INSTANCE_NAME=$1
-  local internal_ip=$(gcloud compute instances list ${INSTANCE_NAME} --zones=${ZONE} | grep ${INSTANCE_NAME} | cut -d ' ' -f 4)
+  local internal_ip=$(gcloud compute instances list ${INSTANCE_NAME} --zones=${ZONE} | grep ${INSTANCE_NAME})
+  internal_ip=$(echo "$internal_ip" | cut -d ' ' -f 4)
 
   echo $internal_ip
 }
