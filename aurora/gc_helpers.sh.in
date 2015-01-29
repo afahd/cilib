@@ -58,10 +58,10 @@ function run_cmd_gci() {
 # *****************************************************************************
 function check_and_start_ssh_agent() {
   PFOUND="0"
-  AGENT_PID=$(pgrep ssh-agent) && PFOUND="1"
-  if [[ -z "$SSH_AUTH_SOCK" ]] ; then
-    PFOUND="0"
-  fi
+  # start a new agent only if the agent env variables are not
+  # available, or if the agent is not around for whatever reason
+  [[ -n "$SSH_AUTH_SOCK" && -n "$SSH_AGENT_PID" ]] && kill -0 "$SSH_AGENT_PID" &>/dev/null && PFOUND="1"
+
   if [[ "$PFOUND" == "0" ]] ; then
     echo "running ssh-add"
     eval `ssh-agent -s`
@@ -77,6 +77,7 @@ function check_and_start_ssh_agent() {
       # if ssh add failed
       # Re star the ssh agent and re-add the keys
       pkill ssh-agent
+      echo "Restarting ssh-add"
       eval `ssh-agent -s`
       if [[ -f ${HOME}/.ssh/jenkins-slave-gerrit ]]; then
         ssh-add ${HOME}/.ssh/jenkins-slave-gerrit
