@@ -7,182 +7,34 @@ if [ $1 != "init" ]; then
     . aurora_utils.sh
 fi
 
-
-# *****************************************************************************
-# Function: check_parameters
-# Purpose : Checks if the number of parameters are equal/greater than a number.
-# Usage   : check_parameters <parameters-passed> <value to check against>
-# Prereq  :
-# *****************************************************************************
-function check_parameters() {
-  local ARGUMENTS_REQUIRED=${@: -1}
-  #Need to add one argument since 'ARGUMENTS_REQUIRED' is also an argument
-  ARGUMENTS_REQUIRED=$(($ARGUMENTS_REQUIRED+1))
-  if [ "$#" -lt $ARGUMENTS_REQUIRED ]; then
-    echo "Wrong number of arguments"
-    show_help
-    exit 1
-  fi
-}
-
-# read the options
-TEMP=`getopt -o r:p:b:l:s:n:m:i:f:d:e:x:t:o:P:W:KCSh --long refspec:,proj:,branch:,buildid:,pipeline:,script:,runid:,instance:,file,max-instances:,dest:,entity:,regex:,tag:,WORKSPACE:,log_dir:,keep-running,\continue,skip-automaton,\help -n 'aurora.sh' -- "$@"`
-eval set -- "$TEMP"
-
-# Default values
-# KEEP_RUNNING: Instance should be deleted immediately after build/run.
-# Automaton will be run.
-# Build will be created on master.
-# Logs will be downloaded to /tmp directry by default.
-CONTINUE=""
-KEEP_RUNNING=0
-SKIP_AUTOMATON=0
-REFSPEC="none"
-PIPELINE="smoke"
-LOG_DIR="${WORKSPACE}/logs/"
-TAG="none"
-
-# extract options and their arguments into variables.
-while true ; do
-  case "$1" in
-    -r|--refspec)
-      REFSPEC=$2 ; shift 2 ;;
-    -p|--proj)
-      PROJ=$2 ; shift 2 ;;
-    -b|--branch)
-      BRANCH=$2 ; shift 2 ;;
-    -l|--buildid)
-      BUILDID=$2 ; shift 2 ;;
-    -s|--script)
-      SCRIPT=$2 ; shift 2 ;;
-    -n|--runid)
-      RUNID=$2 ; shift 2 ;;
-    -i|--instance)
-      INSTANCE=$2 ; shift 2 ;;
-    -f|--file)
-      FILE=$2 ; shift 2 ;;
-    -d|--dest)
-      DEST=$2 ; shift 2 ;;
-    -e|--entity)
-      ENTITY=$2 ; shift 2 ;;
-    -x|--regex)
-      REGEX=$2 ; shift 2 ;;
-    -o|--log_dir)
-      LOG_DIR=$2 ; shift 2 ;;
-    -t|--tag)
-      TAG=$2 ; shift 2 ;;
-    -m|--max-instances)
-      MAX_INSTANCES=$2 ; shift 2 ;;
-    -P|--pipeline)
-      PIPELINE=$2 ; shift 2 ;;
-    -K|--keep-running)
-      KEEP_RUNNING=1 ; shift ;;
-    -C|--continue)
-      CONTINUE="--continue" ; shift 1 ;;
-    -S|--skip-automaton)
-      SKIP_AUTOMATON=1 ; shift ;;
-    -W|--WORKSPACE)
-      export WORKSPACE=$2 ; shift 2 ;;
-    -h|--help)
-      show_help
-      exit 0
-      shift ;;
-    --) shift ; break ;;
-    *) exit 1 ;;
-  esac
-done
-
 case $1 in
     init)
-      if [[ $2 == "help" ]] ; then
-        show_init_help
-      else
-        init_id
-      fi
-      ;;
+      init_id ${@:2} ;;
     ls)
-      if [[ $2 != "" && $ENTITY == "" ]] ; then
-      #  show_ls_help
-       ENTITY="$2"
-      fi
-      if [[ $ENTITY == "instances" || $ENTITY == "" ]] ; then
-        list_instances
-      elif [[ $ENTITY == "snapshots" ]] ; then
-        list_snapshots
-      elif [[ $ENTITY == "run_ids" || $ENTITY == "run" ]] ; then
-        list_runids
-      elif [[ $ENTITY == "build_ids" || $ENTITY == "build" ]] ; then
-        list_buildids
-      elif [[ $ENTITY == "disks" ]] ; then
-        list_disks
-      else
-        #echo "ERROR: invalid entity: It can be either 'instances' or 'snapshots'"
-        show_ls_help
-      fi
-      ;;
+      list_entities ${@:2} ;;
     rm)
-      if [[ $2 != "" || ${REGEX} == "" ]] ; then
-        show_rm_help
-      elif [[ $ENTITY == "instances"  || $ENTITY == "" ]] ; then
-        delete_instances ${REGEX} ${4}
-      elif [[ $ENTITY == "snapshots" ]] ; then
-        delete_snapshots ${REGEX} ${4}
-      elif [[ $ENTITY == "disks" ]] ; then
-        delete_disks ${REGEX} ${4}
-      else
-        show_delete_help
-      fi
-      ;;
+      delete_entities ${@:2} ;;
     login)
-      if [[ $2 != "" && $2 != "help" && $INSTANCE == "" ]] ; then
-       INSTANCE="$2"
-      fi
-      login_instance ${INSTANCE}
-      ;;
+      login_instance ${@:2} ;;
     build)
-      if [[ $2 == "help" ]] ; then
-        show_build_help
-      else
-        run_aurora_build $REFSPEC $PROJ $BRANCH $TAG $KEEP_RUNNING $CONTINUE
-      fi
-      ;;
+      aurora_build.sh ${@:2} ;;
     run)
-      if [[ $2 == "help" ]] ; then
-        show_run_help
-      else
-        echo "run_aurora_run $BUILDID $SCRIPT $KEEP_RUNNING $SKIP_AUTOMATON ${LOG_DIR} $CONTINUE $RUNID "
-        run_aurora_run $BUILDID $SCRIPT $KEEP_RUNNING $SKIP_AUTOMATON ${LOG_DIR} $CONTINUE $RUNID
-      fi
-      ;;
+      aurora_run.sh ${@:2} ;;
     pipeline)
-      if [[ $2 == "help" || $BUILDID == "" ]] ; then
-        show_pl_help
-      else
-        run_pipelines.sh -l $BUILDID -P $PIPELINE --base_script_dir "@CMAKE_CURRENT_BINARY_DIR@/pipeline_scripts/alps/"
-      fi
-      ;;
+      run_pipelines.sh --base_script_dir "@CMAKE_CURRENT_BINARY_DIR@/pipeline_scripts/alps/" ${@:2} ;;
+    debug-test)
+      run_debug_test ${@:2} ;;
     upload)
-      upload_to_docker_instance_name ${INSTANCE} ${FILE} ${DEST}
-    ;;
+      upload_to_docker_name ${@:2} ;;
     download)
-      download_from_docker_instance_name ${INSTANCE} ${FILE} ${DEST}
-    ;;
+      download_from_docker_name ${@:2} ;;
     load)
-      if [[ $2 == "help" ]] ; then
-        show_load_help
-      else
-        aurora_load.sh
-      fi
-    ;;
+      aurora_load.sh ${@:2} ;;
     set_max_instances)
-      if [[ $2 == "help" || $MAX_INSTANCES == "" ]]; then
-        show_set_max_instances_help
-      else
-        set_max_instances $MAX_INSTANCES
-      fi
-    ;;
+      set_max_instances ${@:2} ;;
+    help)
+      show_aurora_help ;;
     *)
-        echo "USAGE:"
-        show_help
+      show_aurora_help
     ;;
 esac

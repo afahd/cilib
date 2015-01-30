@@ -2,6 +2,7 @@
 source aurora_infra_settings.conf
 source gc_helpers.sh
 source ~/.aurora.conf
+source help.sh
 
 if [ -z ${gerritid+x} ]; then
   echo "ERROR: gerritid has not been defined. Please make sure to run aurora init. Exiting"
@@ -9,14 +10,18 @@ if [ -z ${gerritid+x} ]; then
 fi
 
 # ***********************************************************************************
-# Function: upload_to_docker_instance_name
+# Function: upload_to_docker_name
 # Purpose : wrapper for upload_to_docker to translate instance name to instance IP
 # Usage   : upload_to_docker_instance_name <Cloud instance name where docker container is running>
 #                            <Local file which needs to be uploaded>
 #                            <path to destination directory>
 # Prereq: Your laptop's key must be already in docker container before this operation
 # ***********************************************************************************
-function upload_to_docker_instance_name() {
+function upload_to_docker_name() {
+  if [[ $# -ne 3 ]]; then
+    show_upload_help
+    exit
+  fi
   local INSTANCE_NAME="${gerritid_lower}-$1"
   local FILE=$2
   local DESTINATION=$3
@@ -25,14 +30,18 @@ function upload_to_docker_instance_name() {
 }
 
 # ***********************************************************************************
-# Function: download_from_docker_instance_name
+# Function: download_from_docker_name
 # Purpose : wrapper for download_from_docker to translate instance name to instance IP
 # Usage   : download_from_instance_name <Cloud instance name where docker container is running>
 #                            <Location of file which needs to be downloaded>
 #                            <Local machine's path where you need to download>
 # Prereq: Your laptop's key must be already in docker container before this operation
 # ***********************************************************************************
-function download_from_docker_instance_name() {
+function download_from_docker_name() {
+  if [[ $# -ne 3 ]]; then
+    show_download_help
+    exit
+  fi
   local INSTANCE_NAME="${gerritid_lower}-$1"
   local FILE=$2
   local DESTINATION=$3
@@ -125,6 +134,7 @@ function list_runids() {
 # Prereq: Aurora init has been called.
 # *****************************************************************************
 function list_disks() {
+  echo "Listing disks for the user:$gerritid"
   # Instances
   local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp --regexp ".*" | grep ${gerritid_lower} | sed -e "s/${gerritid_lower}-//g")
   local instance_names=($(echo "$instance_list" | grep '^name'))
@@ -251,6 +261,10 @@ function set_max_instances() {
 # Prereq: The instance should exsist.
 # *****************************************************************************
 function login_instance() {
+  if [[ $1 == "help" || -z $1 ]]; then
+    show_login_help
+    exit 1
+  fi
   local INSTANCE_NAME="${gerritid_lower}-$1"
   gcloud compute instances list ${INSTANCE_NAME} | grep "${INSTANCE_NAME}" || RESULT=$? &> /dev/null
   local INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
@@ -261,126 +275,135 @@ function login_instance() {
   fi
   run_cmd_docker_sshforwarding ${INSTANCE_IP} "/bin/bash"
 }
-
-function run_aurora_build() {
-  local REFSPEC=$1
-  local PROJ=$2
-  local BRANCH=$3
-  local TAG=$4
-  local KEEP_RUNNING=$5
-  local CONTINUE=$6
-  local START_STEP=1
-  local END_STEP=21
-
-  #keep_running equalling 1 means -k was specified, end step should be 1 less.
-  if [[ $KEEP_RUNNING == "1" ]]; then
-      END_STEP=20
+# *****************************************************************************
+# Function: list_entities
+# Purpose : Parses the options for aurora ls and calls the respective functions
+# Usage   : list_entities <entity type>
+# Prereq:   aurora init has been called.
+# *****************************************************************************
+function list_entities()
+{
+  if [[ $1 == "help" ]]; then
+    show_ls_help
+    exit 1
   fi
 
-  #Generating Instance name piece by piece
-  local INSTANCE_NAME=${gerritid_lower}
-
-  #Append tag if provided
-  if [[ $TAG != "none" ]]; then
-    #Only keeping alphanumeric characters
-    TAG=${TAG//[^[:alnum:]]/}
-    #Converting to lowercase since instance name cannot contain uppercase characters
-    TAG=${TAG,,}
-    INSTANCE_NAME=${INSTANCE_NAME}-${TAG}
-  fi
-  #Append refspec
-  if [[ $REFSPEC == "none" ]]; then
-    local MOD_BRANCH=$(echo "$BRANCH" | tr _ -)
-    local INSTANCE_NAME=${INSTANCE_NAME}-bld-${MOD_BRANCH}
-  else
-    local MOD_REFSPEC=$(echo "$REFSPEC" | sed -e 's/refs\/changes\///')
-    MOD_REFSPEC=$(echo "$MOD_REFSPEC" | tr /_ -)
-    local INSTANCE_NAME=${INSTANCE_NAME}-bld-${MOD_REFSPEC}
+  if [[ -z "${gerritid}" ]]; then
+    echo "gerrit id not set, please run aurora init"
+    exit 1
   fi
 
-  local step_rec_file=$WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
-  #Validate Inputs
-  check_build_inputs $INSTANCE_NAME $PROJ $REFSPEC $BRANCH
-  #Check /home/$USER/.ssh/id_rsa.pub file
-  check_file_existance "/home/$USER/.ssh/id_rsa.pub"
-  # If "continue" switch has been given then do following steps
-  #   a. Get the last successfully completed step.
-  #   b. Start the build process from step next to last completed step.
-  if [[ $CONTINUE == "--continue" ]] ; then
-    # Get the last successfull step from /tmp/${INSTANCE_NAME}-last-successful-step
-    LAST_SUCCESSFULL_STEP=( $(<${step_rec_file}) )
-    START_STEP=$((LAST_SUCCESSFULL_STEP+1))
-  else
-    check_instance_limit
-  fi
-
-  #Calulate total build time
-  local start_time=$(date +%s)
-  aurora_build.sh -Q build -R ${START_STEP} -E ${END_STEP} -G ${REFSPEC} -P ${PROJ} -B ${BRANCH} -I ${INSTANCE_NAME}
-  local end_time=$(date +%s)
-  print_time_taken $start_time $end_time "aurora build"
+  case $1 in
+    instances)
+      list_instances ;;
+    snapshots)
+      list_snapshots ;;
+    run)
+      list_runids ;;
+    build)
+      list_buildids ;;
+    disks)
+      list_disks ;;
+    *)
+      list_instances ;;
+  esac
 }
 
 # *****************************************************************************
-# Function: run_aurora_run
-# Purpose : Starting an instance to run test script.
-# Usage   : run_aurora_run <build-id> <test-script>
-#           <flag to keep instance running> <Flag to skip automaton-init step>
-#           <Log directory path> <continue an already proceeding run>
-#           <RUNID which you want to continue>
+# Function: delete_entities
+# Purpose : Parses the options for aurora rm and calls the respective functions
+# Usage   : delete_entities <entity type> <regex>
+# Prereq:   aurora init has been called.
 # *****************************************************************************
-function run_aurora_run() {
-  local USER_BUILD_ID=$1
-  local TEST_SCRIPT=$2
-  local KEEP_RUNNING=$3
-  local SKIP_AUTOMATON_INIT=$4
-  local log_dir=$5
-  local CONTINUE=$6
-  local RUNID=$7
-
-  local START_STEP=1
-  local END_STEP=14
-  local UUID=`uuidgen`
-  local SUUID_="${UUID##*-}"
-  SUUID="${SUUID_,,}"
-  BUILD_ID=${gerritid_lower}-${USER_BUILD_ID}
-  local INSTANCE_NAME=`echo ${BUILD_ID}-${SUUID} | sed 's/bld/run/'`
-  local step_rec_file=$WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
-
-  #keep_running equalling 1 means -k was specified, end step should be 1 less.
-  # TODO: Need to replace following code. Everytime, some new step gets added
-  # or deleted, following value will need modification. High probability of miss.
-  # We can define build and run steps in conf file and should start using those
-  # values everywhere.
-  if [[ $KEEP_RUNNING == "1" ]]; then
-      END_STEP=13
+function delete_entities()
+{
+  if [[ $1 == "help" || $# -lt 2 ]]; then
+    show_rm_help
+    exit 1
   fi
-  #Validate Inputs
-  check_run_inputs $BUILD_ID $TEST_SCRIPT
-  #Check /home/$USER/.ssh/id_rsa.pub file
-  check_file_existance "/home/$USER/.ssh/id_rsa.pub"
-  # If "continue" switch has been given then do following steps
-  #   a. Get the RUN-ID provided by user.
-  #   b. Get the last successfully completed step.
-  #   c. Start the run process from step next to last completed step.
-  if [[ $CONTINUE == "--continue" ]] ; then
-    # User must give the run-id(SUUID generated during first time execution of run process.)
-    # along with continue such that we can know that which "aurora run" he needs to resume.
-    # TODO: Exit if user does not give the run-id.
-    if [ -z ${RUNID+x} ]; then
-      echo "Please provide the RUN-ID which you want to continue e.g. f82ba2b78256"
-      exit
-    fi
-    INSTANCE_NAME=`echo ${BUILD_ID}-${RUNID} | sed 's/bld/run/'`
-    local step_rec_file=/tmp/${INSTANCE_NAME}-last-successful-step
-    LAST_SUCCESSFULL_STEP=( $(<${step_rec_file}) )
-    START_STEP=$((LAST_SUCCESSFULL_STEP+1))
+
+  if [[ -z "${gerritid}" ]]; then
+    echo "gerrit id not set, please run aurora init"
+    exit 1
+  fi
+
+  case $1 in
+    instances)
+      delete_instances $2 $3 ;;
+    snapshots)
+      delete_snapshots $2 $3 ;;
+    disks)
+      delete_disks $2 $3;;
+    *)
+      show_rm_help;;
+  esac
+}
+# *****************************************************************************
+# Function: run_debug_test
+# Purpose : Parses the options for debug-test for local and non-local changes
+# Usage   : run_debug_test <arguments>
+# Prereq:   aurora init has been called.
+# *****************************************************************************
+function run_debug_test() {
+  local TEMP=`getopt -o W:l:i:n:s:La:c:h --long WORKSPACE:,buildid:,test_iterations:,num_instances:,script:,local-changes,commit:,alps-path,\help -n 'aurora.sh' -- "$@"`
+eval set -- "$TEMP"
+
+TEST_ITERATIONS=1
+NUM_INSTANCES=1
+LOCAL_CHANGES_ENABLED=0
+ALPS_PATH=/home/${USER}/work/alps
+# extract options and their arguments into variables.
+while true ; do
+  case "$1" in
+    -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
+    -l|--buildid) BUILD_ID=$2 ; shift 2 ;;
+    -i|--test_iterations) TEST_ITERATIONS=$2 ; shift 2 ;;
+    -s|--script) USER_SCRIPT=$2 ; shift 2 ;;
+    -n|--num_instances) NUM_INSTANCES=$2 ; shift 2 ;;
+#Optional argments for local changes transfer
+    -L|--local-changes) LOCAL_CHANGES_ENABLED="1"; shift ;;
+    -c|--commit) COMMIT_HASH=$2 ; shift 2 ;;
+    -a|--alps-path) ALPS_PATH=$2 ; shift 2 ;;
+    -h|--help)
+      show_debug_test_help
+      exit 0
+      shift ;;
+    --) shift ; break ;;
+    *)
+      echo "Unrecognized option $1"
+       exit 1 ;;
+  esac
+done
+
+if [[ -z "$BUILD_ID" || -z "$USER_SCRIPT"  ]]; then
+  echo "Missing required arguments"
+  show_debug_test_help
+  exit 1
+fi
+check_file_existence "$USER_SCRIPT"
+
+if [[ "$LOCAL_CHANGES_ENABLED" == "1" ]]; then
+  #Check if ALPS_PATH is correct
+  local retval=0
+  git rev-parse --resolve-git-dir $ALPS_PATH/.git || retval=$?
+  if [[ $retval != "0" ]]; then
+    echo "Alps not found at :$ALPS_PATH"
+    echo "Use the -a(--alps-path) to specify the path to alps"
+    exit 1
+  fi
+  if [[ -z "$COMMIT_HASH" ]]; then
+    echo "Missing required argument for transferring local changes"
+    show_debug_test_help
+    exit 1
   else
-    check_instance_limit
+    #Run with local changes
+    run_pipelines.sh -P "DEBUG-TEST" --base_script_dir "@CMAKE_CURRENT_BINARY_DIR@/pipeline_scripts/alps/" -i $TEST_ITERATIONS -s $USER_SCRIPT\
+ -n $NUM_INSTANCES -l $BUILD_ID -L -a $ALPS_PATH -c $COMMIT_HASH
   fi
-  #Calulate total run time
-  local start_time=$(date +%s)
-  aurora_run.sh -Q run -R ${START_STEP} -E ${END_STEP} -B ${BUILD_ID} -T ${TEST_SCRIPT} -U ${SUUID} -I ${INSTANCE_NAME} --skip-automaton-init ${SKIP_AUTOMATON_INIT} -o ${log_dir}
-  local end_time=$(date +%s)
-  print_time_taken $start_time $end_time "aurora run"
+else
+  #Run without local changes
+  run_pipelines.sh -P "DEBUG-TEST" --base_script_dir "@CMAKE_CURRENT_BINARY_DIR@/pipeline_scripts/alps/" -i $TEST_ITERATIONS -s $USER_SCRIPT\
+ -n $NUM_INSTANCES -l $BUILD_ID
+fi
+
 }

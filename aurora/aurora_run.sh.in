@@ -1,4 +1,5 @@
 #!/bin/bash -e
+source help.sh
 
 echo "aurora_run.sh started with [aurora_run.sh  $@]"
 
@@ -8,59 +9,96 @@ export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
 source /home/$USER/.aurora.conf
 source aurora_infra_settings.conf
 
-
-declare -A MINOR_STEPS_ST
-declare -A MINOR_STEPS_ED
-MAJOR_STEPS="build"
-MINOR_STEPS_ST[run]=1
-MINOR_STEPS_ED[run]=15
-
-function usage() {
-cat <<EOF
-usage: $0
--c | --cleanup : Test Cleanup
--Q | --major : Jump to specific major step in the install process
--R | --minor : Jump to specific minor step in the install process
--E | --minor_end : Stop at this step when in debug
--B | --build_id: Mention the build-id on which you want to test
--T | --test: Test script to run.
--o | --log_dir: Directory where you want to download the logs of this run.
-                Please provide absolute path.
--U | --test_uuid: Test unique id to use.
--O | --stop : DONT Continue beyond the specifict step to end of the installation
--h | --help : help
-EOF
-exit 0
-}
-
-# Parsing arguments
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    -c|--cleanup ) CLEANUP=1;  ;;
-    -Q| --major ) MAJOR_STEPS="$2"; TMP_MAJOR="$2"; shift ;;
-    -R| --minor ) MINOR_STEPS_ST[$TMP_MAJOR]="$2"; shift ;;
-    -E| --minor ) MINOR_STEPS_ED[$TMP_MAJOR]="$2"; shift ;;
-    -B| --build_id ) BUILD_ID=$2; shift ;;
-    -T| --test_script ) TEST_SCRIPT=$2; shift ;;
-    -I| --instance_name ) INSTANCE_NAME=$2; shift ;;
-    -o| --log_dir) LOG_DIR=$2; shift ;;
-    -U| --test_uuid ) SUUID=$2; shift ;;
-    -O| --stop ) STOP=1; ;;
-    -h| --help ) usage; ;;
-    --skip-automaton-init ) SKIP_AUTOMATON_INIT="$2"; shift ;;
-    -- ) shift; break ;;
-    * )
-      echo "Unknown parameter: $1";
-      usage; break;;
-  esac
-  shift
-done
-
-printf "\n\n********* RUNID= ${SUUID} *********\n\n"
-if [ -z ${SUUID+x} ]; then
-  echo "Input parameter -U is required"
+#Show help
+if [[ $1 == "help" ]]; then
+  show_run_help
   exit 1
 fi
+#Starting and ending steps
+declare -A MINOR_STEPS_ST
+declare -A MINOR_STEPS_ED
+MAJOR_STEPS="run"
+MINOR_STEPS_ST[$MAJOR_STEPS]=1
+MINOR_STEPS_ED[$MAJOR_STEPS]=15
+
+UUID=`uuidgen`
+SUUID_="${UUID##*-}"
+SUUID="${SUUID_,,}"
+
+#Set default values for optional arguments
+LOG_DIR="${WORKSPACE}/logs/"
+SKIP_AUTOMATON_INIT=0
+CONTINUE=0
+KEEP_RUNNING=0
+LOCAL_CHANGES=0
+
+
+# read the options
+TEMP=`getopt -o l:s:o:n:W:CSKhLc:a:R:E: --long buildid:,script:,log_dir:,runid:,WORKSPACE:,\continue,skip-automaton,keep-running,\help,\local-changes,commit:,alps-path:,minor_st:,minor_end: -n 'aurora.sh' -- "$@"`
+eval set -- "$TEMP"
+while true ; do
+  case "$1" in
+#Basic Funtionality
+    -l| --buildid ) BUILD_ID=$2; shift 2 ;;
+    -s| --script ) TEST_SCRIPT=$2; shift 2 ;;
+    -o| --log_dir) LOG_DIR=$2; shift 2 ;;
+    -n| --runid ) RUNID=$2 ; shift 2 ;;
+    -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
+    -C| --continue ) CONTINUE=1; shift ;;
+    -S| --skip-automaton ) SKIP_AUTOMATON_INIT=1; shift ;;
+    -K| --keep-running ) KEEP_RUNNING=1; shift ;;
+    -h| --help ) show_run_help;exit 0; shift ;;
+#Local changes flags
+    -L| --local-changes) LOCAL_CHANGES=1; shift ;;
+    -c| --commit) COMMIT_ID=$2; shift 2;;
+    -a| --alps-path) ALPS_PATH=$2; shift 2;;
+#Start-End steps
+    -R| --minor_st ) MINOR_STEPS_ST[$MAJOR_STEPS]="$2"; shift 2 ;;
+    -E| --minor_end ) MINOR_STEPS_ED[$MAJOR_STEPS]="$2"; shift 2 ;;
+    --) shift ; break ;;
+    *) exit 1 ;;
+  esac
+done
+#Check required Arguments
+if [[ -z "$BUILD_ID" || -z "$TEST_SCRIPT" ]]; then
+  echo "Required argument -l(--buildid) or -s(--script)"
+  show_run_help
+  exit 1
+fi
+
+BUILD_ID=${gerritid_lower}-${BUILD_ID}
+INSTANCE_NAME=`echo ${BUILD_ID}-${SUUID} | sed 's/bld/run/'`
+
+if [[ $KEEP_RUNNING == "1" ]]; then
+      MINOR_STEPS_ED[$MAJOR_STEPS]=14
+fi
+#Validate Inputs
+check_run_inputs $BUILD_ID $TEST_SCRIPT
+#Check /home/$USER/.ssh/id_rsa.pub file
+check_file_existence "/home/$USER/.ssh/id_rsa.pub"
+
+printf "\n\n********* RUNID= ${SUUID} *********\n\n"
+
+# If "continue" switch has been given then do following steps
+#   a. Get the RUN-ID provided by user.
+#   b. Get the last successfully completed step.
+#   c. Start the run process from step next to last completed step.
+if [[ $CONTINUE == "1" ]] ; then
+  # User must give the run-id(SUUID generated during first time execution of run process.)
+  # along with continue such that we can know that which "aurora run" he needs to resume.
+  # TODO: Exit if user does not give the run-id.
+  if [ -z ${RUNID+x} ]; then
+    echo "Please provide the RUN-ID which you want to continue e.g. f82ba2b78256"
+    exit
+  fi
+  INSTANCE_NAME=`echo ${BUILD_ID}-${RUNID} | sed 's/bld/run/'`
+  step_rec_file=$WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
+  LAST_SUCCESSFULL_STEP=( $(<${step_rec_file}) )
+  MINOR_STEPS_ST[$MAJOR_STEPS]=$((LAST_SUCCESSFULL_STEP+1))
+else
+  check_instance_limit
+fi
+
 step_file=$WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
 DOCK_NAME="pg_dev_${BUILD_ID}:latest"
 INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
@@ -133,8 +171,15 @@ function run_test() {
 
     record_step $step $step_file
     ;;
-
   8)
+    if [[ $LOCAL_CHANGES == 1 ]]; then
+      tryexec push_local_changes ${INSTANCE_IP} ${COMMIT_ID} ${ALPS_PATH}
+      tryexec make_install_alps ${INSTANCE_IP} "/tmp/make_install_alps.log"
+      tryexec run_poll_cmd ${INSTANCE_IP} "make_install_alps.sh" "/tmp/make_install_alps.log" "1"
+      record_step $step $step_file
+    fi
+    ;;
+  9)
     # This is here only untill https://gerrit:8443/#/c/10751/ gets merged.
     echo "Execute the pre run-automaton on docker container"
     local local_file=$(mktemp /tmp/container_preinit.sh-XXXXX)
@@ -157,7 +202,7 @@ function run_test() {
     record_step $step $step_file
     ;;
 
-  9)
+  10)
     if [[ $SKIP_AUTOMATON_INIT != 1 ]]; then
       echo "Execute the run-automaton script on docker container"
       tryexec run_automaton_init ${INSTANCE_IP} "/tmp/automaton_init.log"
@@ -165,7 +210,7 @@ function run_test() {
     fi
     ;;
 
-  10)
+  11)
     if [[ $SKIP_AUTOMATON_INIT != 1 ]]; then
       echo "Poll the automaton-init cmd (tailing \"/tmp/automaton_init.log\" for complete logs)"
       tryexec run_poll_cmd ${INSTANCE_IP} "run_automaton_init.sh" "/tmp/automaton_init.log" "1"
@@ -174,27 +219,27 @@ function run_test() {
     fi
     ;;
 
-  11)
+  12)
     tryexec upload_to_docker ${INSTANCE_IP} ${TEST_SCRIPT} /tmp/user_test_script.sh
     # tryexec is not needed because test can fail as well
     run_cmd_docker_bg ${INSTANCE_IP} "/bin/bash /tmp/user_test_script.sh" "/tmp/test.logs"
     record_step $step $step_file
     ;;
 
-  12)
+  13)
     echo "Poll the test logs (tailing \"/tmp/test.log\")"
     tryexec run_poll_cmd ${INSTANCE_IP} "/tmp/user_test_script.sh" "/tmp/test.logs" "0"
     tryexec download_from_docker ${INSTANCE_IP} "/tmp/test.logs" "${WORKSPACE}/logs/${INSTANCE_NAME}.log"
     record_step $step $step_file
     ;;
 
-  13)
+  14)
     echo "Downloading logs in ${LOG_DIR} directory"
     tryexec get_latest_logs ${INSTANCE_IP} ${INSTANCE_NAME} ${LOG_DIR}
     record_step $step $step_file
     ;;
 
-  14)
+  15)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     rm $step_file

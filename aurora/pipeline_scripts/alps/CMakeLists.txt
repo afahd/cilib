@@ -5,12 +5,15 @@ configure_file(pl_settings.conf.in "${CMAKE_CURRENT_BINARY_DIR}/pl_settings.conf
 configure_file(run_pipelines.sh.in "${CMAKE_CURRENT_BINARY_DIR}/run_pipelines.sh" @ONLY)
 configure_file(base_test.sh.in "${CMAKE_CURRENT_BINARY_DIR}/base_test.sh" @ONLY)
 configure_file(pl_utils.sh.in "${CMAKE_CURRENT_BINARY_DIR}/pl_utils.sh" @ONLY)
+configure_file(gen_user_tests.sh.in "${CMAKE_CURRENT_BINARY_DIR}/gen_user_tests.sh" @ONLY)
 
 install_programs (/gcloud/aurora/pipeline_scripts/alps FILES "${CMAKE_CURRENT_BINARY_DIR}/build_db.sh")
 install_programs (/gcloud/aurora/pipeline_scripts/alps FILES "${CMAKE_CURRENT_BINARY_DIR}/gen_test_scripts.sh")
 install_programs (/gcloud/aurora/pipeline_scripts/alps FILES "${CMAKE_CURRENT_BINARY_DIR}/run_pipelines.sh")
+install_programs (/gcloud/aurora/pipeline_scripts/alps FILES "${CMAKE_CURRENT_BINARY_DIR}/gen_user_tests.sh")
 install_files (/gcloud/aurora/pipeline_scripts/alps FILES "${CMAKE_CURRENT_BINARY_DIR}/pl_help.sh")
 install_files (/gcloud/aurora/pipeline_scripts/alps FILES "${CMAKE_CURRENT_BINARY_DIR}/pl_settings.conf")
 install_files (/gcloud/aurora/pipeline_scripts/alps FILES "${CMAKE_CURRENT_BINARY_DIR}/base_test.sh")
 install_files (/gcloud/aurora/pipeline_scripts/alps FILES "${CMAKE_CURRENT_BINARY_DIR}/pl_utils.sh")
+
 add_subdirectory(dbs)

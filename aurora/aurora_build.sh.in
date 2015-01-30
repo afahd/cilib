@@ -1,4 +1,5 @@
 #!/bin/bash -e
+source help.sh
 
 export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
 echo "aurora_build.sh started with [aurora_build.sh  $@]"
@@ -7,64 +8,96 @@ echo "aurora_build.sh started with [aurora_build.sh  $@]"
 source aurora_infra_settings.conf
 source /home/$USER/.aurora.conf
 
-# TODO: SN_ID variable should hold the "v3-d1" part as well.
-# This way we will not need to change v3 manually.
-SN_ID=$(get_latest_snapshot_id)
-SNAP1=${PRIM_INST_NAME}-d1-${SN_ID}
-SNAP2=${PRIM_INST_NAME}-d2-${SN_ID}
-DOCK_NAME=pg-docker-repo:5000/pg_dev:${SN_ID}
 
+#Show help
+if [[ $1 == "help" ]]; then
+  show_build_help
+  exit 1
+fi
 # TODO: Make a decision about machine type and Disk sizes.
 
 BRANCH=""
-REFSPEC=""
+REFSPEC="none"
+TAG="none"
 PROJECT=""
 
 declare -A MINOR_STEPS_ST
 declare -A MINOR_STEPS_ED
 MAJOR_STEPS="build"
-MINOR_STEPS_ST[init]=1
 MINOR_STEPS_ST[build]=1
-MINOR_STEPS_ED[init]=1
-MINOR_STEPS_ED[build]=17
+MINOR_STEPS_ED[build]=20
 
+CONTINUE=0
 
-function usage() {
-cat <<EOF
-usage: $0
- -c | --cleanup : Test Cleanup
- -Q | --major : Jump to specific major step in the install process
- -R | --minor_st : Jump to specific minor step in the install process
- -E | --minor_end : Stop at this step when in debug
- -G | --gerrit_refpec: Mention the gerrit refspec
- -B | --branch: branch to run the setup on. Options: master, stable_4_0
- -P | --project: project on which the code change is expected. Options: alps, pg_ui, etc
- -O | --stop : DONT Continue beyond the specifict step to end of the installation
- -h | --help : help
-EOF
-exit 0
-}
-
-# Parsing arguments
-while [[ $# -gt 0 ]]; do
+# read the options
+TEMP=`getopt -o Kr:t:Cb:p:Q:R:E:Oh --long keep-running,refspec,tag:,\continue,branch:,proj:,stop,help,major:,minor_st:,minor_end: -n 'aurora.sh' -- "$@"`
+eval set -- "$TEMP"
+while true ; do
   case "$1" in
-     -c| --cleanup ) CLEANUP=1;  ;;
-     -Q| --major ) MAJOR_STEPS="$2"; TMP_MAJOR="$2"; shift ;;
-     -R| --minor_st ) MINOR_STEPS_ST[$TMP_MAJOR]="$2"; shift ;;
-     -E| --minor_end ) MINOR_STEPS_ED[$TMP_MAJOR]="$2"; shift ;;
-     -G| --gerrit_refspec ) REFSPEC=$2; shift ;;
-     -B| --branch ) BRANCH=$2; shift ;;
-     -P| --project ) PROJECT=$2; shift ;;
-     -I| --instance_name ) INSTANCE_NAME=$2; shift ;;
-     -O| --stop ) STOP=1; ;;
-     -h | --help ) usage; ;;
-    -- ) shift; break ;;
-    * )
-      echo "Unknown parameter: $1";
-      usage; break;;
+     -K| --keep-running ) KEEP_RUNNING=1; shift ;;
+     -r| --refspec) REFSPEC=$2; shift 2 ;;
+     -t| --tag) TAG=$2 ; shift 2 ;;
+     -C| --continue) CONTINUE=1 ; shift ;;
+     -b|--branch) BRANCH=$2; shift 2 ;;
+     -p|--proj) PROJECT=$2; shift 2 ;;
+
+     -Q| --major ) MAJOR_STEPS="$2"; TMP_MAJOR="$2"; shift 2;;
+     -R| --minor_st ) MINOR_STEPS_ST[$TMP_MAJOR]="$2"; shift 2 ;;
+     -E| --minor_end ) MINOR_STEPS_ED[$TMP_MAJOR]="$2"; shift 2 ;;
+     -O| --stop ) STOP=1; shift ;;
+     -h| --help ) show_build_help; exit 0; shift;;
+     --) shift ; break ;;
+     *) exit 1 ;;
   esac
-  shift
 done
+
+#Check required Arguments
+if [[ -z "$BRANCH" || -z "PROJECT" ]]; then
+  echo "Required argument -b(--branch) or -p(--project)"
+  show_build_help
+  exit 1
+fi
+
+#keep_running equalling 1 means -k was specified, end step should be 1 less.
+if [[ $KEEP_RUNNING == "1" ]]; then
+  END_STEP=19
+fi
+#Generating Instance name piece by piece
+INSTANCE_NAME=${gerritid_lower}
+#Append tag if provided
+if [[ $TAG != "none" ]]; then
+  #Only keeping alphanumeric characters
+  TAG=${TAG//[^[:alnum:]]/}
+  #Converting to lowercase since instance name cannot contain uppercase characters
+  TAG=${TAG,,}
+  INSTANCE_NAME=${INSTANCE_NAME}-${TAG}
+fi
+
+#Append refspec
+if [[ $REFSPEC == "none" ]]; then
+  MOD_BRANCH=$(echo "$BRANCH" | tr _ -)
+  INSTANCE_NAME=${INSTANCE_NAME}-bld-${MOD_BRANCH}
+else
+  MOD_REFSPEC=$(echo "$REFSPEC" | sed -e 's/refs\/changes\///')
+  MOD_REFSPEC=$(echo "$MOD_REFSPEC" | tr /_ -)
+  INSTANCE_NAME=${INSTANCE_NAME}-bld-${MOD_REFSPEC}
+fi
+
+step_rec_file=$WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
+#Validate Inputs
+check_build_inputs $INSTANCE_NAME $PROJECT $REFSPEC $BRANCH
+#Check /home/$USER/.ssh/id_rsa.pub file
+check_file_existence "/home/$USER/.ssh/id_rsa.pub"
+# If "continue" switch has been given then do following steps
+#   a. Get the last successfully completed step.
+#   b. Start the build process from step next to last completed step.
+if [[ $CONTINUE == "1" ]] ; then
+  # Get the last successfull step from /tmp/${INSTANCE_NAME}-last-successful-step
+  LAST_SUCCESSFULL_STEP=( $(<${step_rec_file}) )
+  START_STEP=$((LAST_SUCCESSFULL_STEP+1))
+else
+  check_instance_limit
+fi
 
 # Describe the possible mappings for branch->component translations
 declare -A branch_to_component
@@ -81,12 +114,12 @@ step_file=$WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
 #Get the IP address of the instances, needed incase continue is specified.
 INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
 
-function init_id() {
-  conf_file="/opt/pg/scripts/aurora.conf"
-  echo "Please enter your gerrit id: "
-  read gerritid
-  echo "gerritid=${gerritid}" > ${conf_file}
-}
+# TODO: SN_ID variable should hold the "v3-d1" part as well.
+# This way we will not need to change v3 manually.
+SN_ID=$(get_latest_snapshot_id)
+SNAP1=${PRIM_INST_NAME}-d1-${SN_ID}
+SNAP2=${PRIM_INST_NAME}-d2-${SN_ID}
+DOCK_NAME=pg-docker-repo:5000/pg_dev:${SN_ID}
 
 function build_image() {
   local step=$1
@@ -227,33 +260,19 @@ function build_image() {
     ;;
 
   17)
-    local local_file=$(mktemp /tmp/post_build_all.sh-XXXXX)
-    cat /dev/null > ${local_file}
-    echo "find /home/plumgrid -name \"*.o\" -not -name 'setcontext.o' | xargs rm -f" >> ${local_file}
-    echo "find /home/plumgrid -name \"*.a\" | xargs rm -f" >> ${local_file}
-    echo "find /home/plumgrid -name \"*_pre\" | xargs rm -f" >> ${local_file}
-    echo "#sudo su plumgrid -c /bin/bash" >> ${local_file}
-
-    tryexec upload_to_docker ${INSTANCE_IP}  ${local_file} ${local_file}
-    rm ${local_file}
-    tryexec run_cmd_docker ${INSTANCE_IP} "/bin/bash ${local_file}"
-    record_step $step $step_file
-    ;;
-
-  18)
     echo "Making a snapshot for the container"
     tryexec run_cmd_gci ${INSTANCE_IP} "echo \"pg_dev_${INSTANCE_NAME}\" > docker_build_id" "t"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo docker commit \`cat ./local_docker_id\` pg_dev_${INSTANCE_NAME}:latest"
     record_step $step $step_file
     ;;
 
-  19)
+  18)
     echo "Making sure docker(pg_dev_${INSTANCE_NAME}:latest) is commited successfully"
     tryexec verify_docker_commited ${INSTANCE_IP} "pg_dev_${INSTANCE_NAME}"
     record_step $step $step_file
     ;;
 
-  20)
+  19)
     BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${gerritid_lower}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
     tryexec run_cmd_gci ${INSTANCE_IP} "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
@@ -275,7 +294,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  21)
+  20)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     rm $step_file
@@ -297,10 +316,6 @@ for MAJOR_STEP in $MAJOR_STEPS; do
     echo "    === Starting STEP [$MAJOR_STEP][$MINOR_STEP] ==="
     echo ""
     case "$MAJOR_STEP" in
-      init)
-        echo "Going to call init function"
-        init_id
-      ;;
       build)
         start_time=$(date +%s)
         build_image $MINOR_STEP

@@ -2,9 +2,14 @@
 
 function show_run_tests_help() {
     cat << HELP
-build
-  Run all test cases
+-------------------------------------------------------------------------------
+USAGE: aurora pipeline -l <BUILD-ID> [OPTIONS]
+                      Run all test cases
+
+Required Arguments:
   -l, --buildid             Build-ID against which you want to run test cases
+
+Optional Arguments:
   -Q, --major               [OPTIONAL] Jump to specific major step in the install process
   -R, --minor_st            [OPTIONAL] Jump to specific minor step in the install process
   -E, --minor_end           [OPTIONAL] Stop at this step when in debug
@@ -23,6 +28,7 @@ build
                             Default is /tmp/<gerrit-id>-run-<modified_refspec><timestamp>
                             /tmp/trauf-run-81-11281-1-2015_01_17_14:34:59
   -I, --initial_run         [OPTIONAL} Set it, if you are running it first time.
+-------------------------------------------------------------------------------
 HELP
 }
 

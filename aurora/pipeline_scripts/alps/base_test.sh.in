@@ -5,6 +5,8 @@
 
 CTEST_ST=1
 CTEST_ED=25
+USER_TEST=""
+instance_no="1"
 itr=2
 PIPELINE="smoke"
 CTEST_OPT=' '
@@ -30,6 +32,10 @@ elif [[ $PIPELINE == "extended" ]]; then
   export EXCLUDE_UNSTABLE=1
   export EXCLUDE_UI_NON_PITA=1
   export BUILD_GUI=1
+elif [[ $PIPELINE == "DEBUG-TEST" ]]; then
+  unset EXCLUDE_UNSTABLE
+  export BUILD_NIGHTLY=1
+  export BUILD_GUI=1
 fi
 cmake ..
 echo 1 | sudo tee /proc/sys/net/ipv6/conf/all/disable_ipv6
@@ -50,14 +56,14 @@ for run in $(seq 1 $itr); do
     echo "Running $test_name"
     rm -rf /opt/pg/log/*
     touch /opt/pg/log/${test_name}
-    ctest --output-on-failure  -L ^type:local$ -R "^${test_name}$" >& "logs/ctestout_iter${run}_${test_name}.log"
+    ctest --output-on-failure  -L ^type:local$ -R "^${test_name}$" >& "logs/ctestout_inst${instance_no}_iter${run}_${test_name}.log"
     result="$?"
     if [[ "x$result" != "x0" ]] ; then
       echo "                 FAILED"
 
-      mv "logs/ctestout_iter${run}_${test_name}.log" "logs/ctestout_iter${run}_${test_name}.FAILED.log"
-      mkdir "logs/ctestout_iter${run}_${test_name}"
-      cp -R /opt/pg/log/* "logs/ctestout_iter${run}_${test_name}/"
+      mv "logs/ctestout_inst${instance_no}_iter${run}_${test_name}.log" "logs/ctestout_inst${instance_no}_iter${run}_${test_name}.FAILED.log"
+      mkdir "logs/ctestout_inst${instance_no}_iter${run}_${test_name}"
+      cp -R /opt/pg/log/* "logs/ctestout_inst${instance_no}_iter${run}_${test_name}/"
     fi
   done
   echo "Moving Logs to ${EXPORT_FAILURES_DIR_TMP}/logs.${formatted_date}.run${run}"

@@ -1,4 +1,11 @@
 #!/bin/bash
+source help.sh
+#show help
+if [[ $1 == "help" ]];then
+	show_load_help
+	exit 1
+fi
+
 declare -A instance_array
 declare -A disk_array
 declare -A snapshot_array

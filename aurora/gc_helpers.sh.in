@@ -14,6 +14,10 @@ if [[ ! -d "${WORKSPACE}/logs" ]] ; then
 fi
 
 function init_id() {
+  if [[ $1 == "help" ]] ; then
+    show_init_help
+    exit 1
+  fi
   conf_file="/home/$USER/.aurora.conf"
   echo "Please enter your gerrit id: "
   read gerritid
@@ -142,6 +146,35 @@ function run_cmd_docker_sshforwarding_bg() {
   local LOG_FILE=$3
 
   run_cmd_gci_sshforwarding ${INSTANCE_IP} "ssh -t -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\` \" nohup bash -c '${DOCKER_CMD} > ${LOG_FILE} 2>&1 &' \""
+}
+
+
+# *****************************************************************************
+# Function: push_local_changes
+# Purpose : Pushes the specified local changes to the docker container.
+# Usage   : push_local_changes
+# Prereq: Aurora init has been called.
+# *****************************************************************************
+function push_local_changes() {
+  local INSTANCE_IP=$1
+  local COMMIT_ID=$2
+  local ALPS_PATH=$3
+
+  cd $ALPS_PATH
+  #Get branch name from commit
+  local BRANCH=$(git branch --contains $COMMIT_ID | cut -d ' ' -f 2)
+  local DOCKER_IP=$(get_docker_ip ${INSTANCE_IP})
+  run_cmd_docker ${INSTANCE_IP} "git config  -f /home/plumgrid/work/alps/.git/config receive.denyCurrentBranch ignore"
+  local local_file=$(mktemp /tmp/ssh-command-XXXXX)
+  #Proxy command to SSH directly into the docker container
+  echo "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no  -o \"ProxyCommand ssh ${INSTANCE_IP} nc ${DOCKER_IP} 22\" \$*" > ${local_file}
+  #Has to be executable
+  chmod +x $local_file
+  #Push the changes
+  cd $ALPS_PATH;GIT_SSH="${local_file}" git push plumgrid@${DOCKER_IP}:/home/plumgrid/work/alps $COMMIT_ID:$BRANCH
+  #Checkout the branch
+  run_cmd_docker ${INSTANCE_IP} "git --git-dir=/home/plumgrid/work/alps/.git --work-tree=/home/plumgrid/work/alps checkout $BRANCH"
+  rm ${local_file}
 }
 
 # *****************************************************************************
@@ -324,6 +357,17 @@ function get_latest_snapshot_id() {
   echo $ssid
 }
 # *****************************************************************************
+# Function: get_docker_ip
+# Purpose : Gets the  IP address of the docker container.
+# Usage   : get_docker_ip <instance IP>
+# *****************************************************************************
+function get_docker_ip() {
+local INSTANCE_IP=$1
+local DOCKER_IP=$(run_cmd_gci ${INSTANCE_IP} "cat /home/$USER/local_docker_ip")
+
+echo -n "$DOCKER_IP"
+}
+# *****************************************************************************
 # Function: get_instance_ip
 # Purpose : Gets the internal IP address of the instance.
 # Usage   : get_instance_ip <instance name>
@@ -440,6 +484,29 @@ function run_bg_cmd() {
   #Run the command in the background
   tryexec run_cmd_docker_sshforwarding_bg ${INSTANCE_IP} "$CMD" "$LOG_FILE"
 
+}
+# ******************************************************************************
+# Function: make_install_alps
+# Purpose : Creates a script for running building alps, uploads and runs the script
+#           on the docker container. The return value for the install is echoed to
+#           check for failure.
+# Usage   : make_install_alps <cloud_instance_ip> <log file>
+# ******************************************************************************
+function make_install_alps() {
+  local INSTANCE_IP=$1
+  local LOG_FILE=$2
+  local local_file=$(mktemp /tmp/make_install_alps-XXXXX)
+  cat /dev/null > ${local_file}
+  echo "cd /home/plumgrid/work/alps/build;" >> ${local_file}
+  echo "cmake ..;" >> ${local_file}
+  echo "make -j4 install" >> ${local_file}
+  tryexec upload_to_docker ${INSTANCE_IP}  ${local_file} ${local_file}
+  #File name needs to be constant for continue functionality, thus renaming.
+  local docker_file=$(dirname $local_file)
+  docker_file="${docker_file}/make_install_alps.sh"
+  tryexec run_cmd_docker ${INSTANCE_IP} "mv ${local_file} ${docker_file}"
+  rm ${local_file}
+  tryexec run_bg_cmd ${INSTANCE_IP} ${docker_file} "/bin/bash ${docker_file}" "$LOG_FILE"
 }
 # ******************************************************************************
 # Function: run_build_all
@@ -817,14 +884,14 @@ function retryexec() {
 }
 
 # *****************************************************************************
-# Function: check_file_existance
+# Function: check_file_existence
 # Purpose : Checks if the file exists.
-# Usage   : check_file_existance <Path with filename>
+# Usage   : check_file_existence <Path with filename>
 # Prereq  :
 # *****************************************************************************
-function check_file_existance() {
+function check_file_existence() {
   if [ ! -f "$1" ] ; then
-    echo "$1 does not exists!"
+    echo "$1 does not exist!"
     exit 1
   fi
 }
