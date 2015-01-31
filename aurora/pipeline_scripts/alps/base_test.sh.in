@@ -18,6 +18,7 @@ mkdir -p "$EXPORT_FAILURES_DIR_TMP"
 cd ~/work/alps/build
 rm -rf logs
 mkdir logs
+export AURORA=1
 #Exporting pipeline variables
 if [[ $PIPELINE == "smoke" ]]; then
   export BUILD_GUI=1
