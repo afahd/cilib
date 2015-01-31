@@ -7,7 +7,7 @@ SCOPES=https://www.googleapis.com/auth/devstorage.read_only
 NETWORK=net-10-10
 DISK_TYPE=pd-standard
 DISK1_SIZE=10GB
-DISK2_SIZE=50GB
+DISK2_SIZE=75GB
 PRIM_INST_NAME=plumgrid-builder-v2
 
 VERBOSITY=error
