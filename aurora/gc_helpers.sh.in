@@ -42,7 +42,7 @@ function run_cmd_gci() {
   local CMD=$2
   local SSH_FLAGS=${3:-t}
 
-  ssh -${SSH_FLAGS} -o StrictHostKeyChecking=no -o ServerAliveInterval=5 ${USER}@${INSTANCE_IP} "$CMD"
+  ssh -${SSH_FLAGS} -o UserKnownHostsFile=/dev/null -o CheckHostIP=no -o StrictHostKeyChecking=no -o ServerAliveInterval=5 ${USER}@${INSTANCE_IP} "$CMD"
 }
 
 # *****************************************************************************
