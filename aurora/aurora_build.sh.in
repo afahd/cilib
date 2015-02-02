@@ -60,7 +60,7 @@ fi
 
 #keep_running equalling 1 means -k was specified, end step should be 1 less.
 if [[ $KEEP_RUNNING == "1" ]]; then
-  END_STEP=19
+  MINOR_STEPS_ED[build]=19
 fi
 #Generating Instance name piece by piece
 INSTANCE_NAME=${gerritid_lower}
@@ -94,7 +94,7 @@ check_file_existence "/home/$USER/.ssh/id_rsa.pub"
 if [[ $CONTINUE == "1" ]] ; then
   # Get the last successfull step from /tmp/${INSTANCE_NAME}-last-successful-step
   LAST_SUCCESSFULL_STEP=( $(<${step_rec_file}) )
-  START_STEP=$((LAST_SUCCESSFULL_STEP+1))
+  MINOR_STEPS_ST[build]=$((LAST_SUCCESSFULL_STEP+1))
 else
   check_instance_limit
 fi
