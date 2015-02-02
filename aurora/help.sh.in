@@ -2,79 +2,67 @@
 
 function show_aurora_help() {
     cat << AURORAHELP
--------------------------------------------------------------------------------
-USAGE:aurora <COMMAND>
-common flags that affect all aurora commands
 
--W, --WORKSPACE     Set the workspace where all the logs will be stored.
+USAGE: aurora <COMMAND> ...
+COMMAND:
+  init                Setup aurora environment.
+  build               Build a new image
+  run                 Run test script on cloud instance with aurora BUILD-ID.
+  pipeline            Run smoke/extended pipeline for some particular commit.
+  debug-test          Run multiple iterations of specified tests on several instances.
 
-                    And Env variable can also be set using "export WORKSPACE=..."
+  download            Download file from docker container to local machine.
+  upload              Upload file to docker container to local machine.
+  rm                  Deletes the ENTITY containing value in REGEX
+  ls                  List all currently active cloud instances or snapshots
+  login               Login to the specified INSTANCE
+  load                Shows the resources used by all users.
 
-                    to set the log directories.
+To Get more specific help for each command, you can run "aurora <COMMAND> help"
 
-USAGE:
-
-init                Setup aurora environment.
-build               Build a new image
-run                 Run test script on cloud instance with aurora BUILD-ID.
-pipeline            Run smoke/extended pipeline for some particular commit.
-debug-test          Run multiple iterations of specified tests on several instances.
-
-download            Download file from docker container to local machine.
-upload              Upload file to docker container to local machine.
-rm                  Deletes the ENTITY containing value in REGEX
-ls                  List all currently active cloud instances or snapshots
-login               Login to the specified INSTANCE
-load                Shows the resources used by all user.
-
-To Get more specific help you can run "aurora <COMMAND> help"
--------------------------------------------------------------------------------
 AURORAHELP
 }
 function show_build_help() {
     cat << BUILDHELP
--------------------------------------------------------------------------------
+
 USAGE: aurora build -p <PROJECT> -b <BRANCH> [OPTIONS]
-                      Build a new image with given COMMIT-ID/TAG/LOCAL-CHANGES.
+       Build a new image with given COMMIT-ID/TAG/LOCAL-CHANGES.
 
 Required Arguments:
-
   -p, --proj          Project with which commit belongs e.g. alps, pg_ui, pg_cli
   -b, --branch        Branch on which you want to test e.g. master, stable_4_0
 
 Optional Arguments:
-
-  -r, --refspec       [optional] Gerrit RefSpec or dev branch. e.g. refs/changes/20/11020/1 or bob_dev.
+  -r, --refspec       Gerrit RefSpec or dev branch. e.g. refs/changes/20/11020/1 or bob_dev.
                       Not specifying a refspec will build an instance without any changes
                       on the specified branch.
-  -C, --continue      [optional] --continue option will resume the script from the point where it
+  -C, --continue      --continue option will resume the script from the point where it
                       stopped (because of broken ssh connection or simply because you powered-off
                       your machine).
                       It is also useful in case script hits some failures. Rather than running
                       whole script from scratch, --continue switch will make sure to run only those
                       steps which had hit failures or had not been run at all.
-  -k, --keep-running  [optional] Instance will be left running after aurora run ends.
-  -t, --tag           [optional] Add a tag to the instance name. Useful if multiple build instances for the
+  -k, --keep-running  Instance will be left running after aurora run ends.
+  -t, --tag           Add a tag to the instance name. Useful if multiple build instances for the
                       same refspec are required.
--------------------------------------------------------------------------------
 BUILDHELP
 }
 
 function show_run_help() {
     cat << RUNHELP
--------------------------------------------------------------------------------
+
 USAGE: aurora run -l <BUILD-ID> -s <Script Path> [OPTIONS]
-                        Run test script on cloud instance with aurora BUILD-ID.
+       Run test script on cloud instance with aurora BUILD-ID.
 
 Required Arguments:
   -l, --buildid         Build on which you want to run test.
   -s, --script          Test script which you want to run (please see sample_test1.sh to get further idea)
 
 Optional Arguments:
-  -o, --log_dir         [optional] Directory where you want to keep test logs.
-  -S, --skip-automaton  [optional] Skip running automaton-init.sh on the instance
-  -K, --keep-running    [optional] Instance will be left running after aurora run ends.
-  -C, --continue        [optional] --continue option will resume the script from the point where it
+  -o, --log_dir         Directory where you want to keep test logs.
+  -S, --skip-automaton  Skip running automaton-init.sh on the instance
+  -K, --keep-running    Instance will be left running after aurora run ends.
+  -C, --continue        --continue option will resume the script from the point where it
                         stopped (because of broken ssh connection or simply because you powered-off
                         your machine).
                         It is also useful in case script hits some failures. Rather than running
@@ -85,55 +73,50 @@ Optional Arguments:
                         It is being printed out on screen immediately after you kick off the "aurora run"
                         first time.
                         It is part of your run-instance name as well [aurora ls instances].
--------------------------------------------------------------------------------
 RUNHELP
 }
 
 function show_init_help() {
    cat << INITHELP
--------------------------------------------------------------------------------
-USAGE:aurora init
-                      Setup aurora environment.
 
-During setup, when you are asked to "enter your gerrid id:"; enter only "gerrit-id" name which may differ from your email
-address. For you email, you are prompted separately to "enter your plumgrid email:". An example is "username@plumgrid.com".
--------------------------------------------------------------------------------
+USAGE: aurora init
+       Setup aurora environment.
+
+Setup will ask following questions
+enter your gerrid id     : mclarck (only name, NO need to give @plumgrid.com)
+enter your plumgrid email: clarck@plumgrid.com
 INITHELP
 }
 
 function show_upload_help() {
    cat << HELP
--------------------------------------------------------------------------------
-USAGE:aurora upload <INSTANCE-NAME> <UPLOAD-FILE> <DESTINATION>
-                      Download file from docker container to local machine.
+
+USAGE: aurora upload <INSTANCE-NAME> <UPLOAD-FILE> <DESTINATION>
+       Download file from docker container to local machine.
 
 <INSTANCE-NAME>       Name of the instance to upload to.
                       To see a list of available instances use "aurora ls instances"
 <UPLOAD-FILE>         Path to the local file to upload
 <DESTINATION>         Path to the remote destination.
--------------------------------------------------------------------------------
 HELP
 }
 
 function show_download_help() {
    cat << HELP
--------------------------------------------------------------------------------
-USAGE:aurora download <INSTANCE-NAME> <DOWNLOAD-FILE> <DESTINATION>
-                      Download file from docker container to local machine.
+USAGE: aurora download <INSTANCE-NAME> <DOWNLOAD-FILE> <DESTINATION>
+       Download file from docker container to local machine.
 
 <INSTANCE-NAME>       Name of the instance to download from.
                       To see a list of available instances use "aurora ls instances"
 <DOWNLOAD-FILE>       Path to the remote file to download
 <DESTINATION>         Destination path for download.
--------------------------------------------------------------------------------
 HELP
 }
 
 function show_ls_help() {
    cat << HELP
--------------------------------------------------------------------------------
-USAGE:aurora ls <ENTITY>
-                      List all currently active cloud instances or snapshots
+USAGE: aurora ls <ENTITY>
+       List all currently active cloud instances or snapshots
 
 <ENTITY>              Value can be:
                       instances: Lists all the instances running.
@@ -142,42 +125,36 @@ USAGE:aurora ls <ENTITY>
                       run: Lists the run instances and the corresponding build-ids.
                       disks: Lists the disks not attached to instances.
                       Default is instances.
--------------------------------------------------------------------------------
 HELP
 }
 
 function show_rm_help() {
    cat << HELP
--------------------------------------------------------------------------------
-USAGE:aurora rm <ENTITY> <REGEX> [-f --force]
-                      Deletes the ENTITY containing value in REGEX
+USAGE: aurora rm <ENTITY> <REGEX> [-f --force]
+       Deletes the ENTITY containing value in REGEX
 
 <ENTITY>              Value can be "instances", "snapshots" or "disks"
 <REGEX>               Regex to match. e.g "run" will delete all instances or snapshots
                       having 'run' as part of name.
 Options:
 -f, --force           Suppresses user confirmation
--------------------------------------------------------------------------------
 HELP
 }
 
 function show_login_help() {
    cat << HELP
--------------------------------------------------------------------------------
-USAGE:aurora login <INSTANCE-NAME>
-                      Login to the specified INSTANCE
+USAGE: aurora login <INSTANCE-NAME>
+       Login to the specified INSTANCE
 
 <INSTANCE-NAME>       Name of the instance to login.
                       To see a list of available instances use "aurora ls instances"
--------------------------------------------------------------------------------
 HELP
 }
 
 function show_pl_help() {
     cat << HELP
--------------------------------------------------------------------------------
 USAGE: aurora pipeline -l <BUILD-ID> [OPTIONS]
-                      Run smoke/extended pipeline for some particular commit
+       Run smoke/extended pipeline for some particular commit
 
 Required Arguments:
 -l, --buildid         Build-ID against which you want to run pipeline
@@ -186,62 +163,53 @@ Optional Arguments:
 -P, --pipeline        [OPTIONAL] The pipeline which you want to run.
                       Possible values are "smoke", "extended".
                       Default is 'smoke'.
--------------------------------------------------------------------------------
 HELP
 }
 function show_set_max_instances_help() {
     cat << HELP
--------------------------------------------------------------------------------
 USAGE: aurora set_max_instances <MAX-INSTANCES>
-                      Change the number of concurrent instances allowed.
+       Change the number of concurrent instances allowed.
 
 <MAX_INSTANCES>       Max number of instances allowed
--------------------------------------------------------------------------------
 HELP
 }
 
 function show_load_help() {
     cat << HELP
--------------------------------------------------------------------------------
 USAGE: aurora load
                       Shows the number of running instances, disk space used and
                       the number of snapshots for every user.
--------------------------------------------------------------------------------
 HELP
 }
 
 function show_debug_test_help() {
     cat << HELP
--------------------------------------------------------------------------------
+
 USAGE: aurora debug-test -l <BUILD-ID> -s <TEST-SCRIPT> [OPTIONS]
-                       Runs the tests specified in the test-script multiple instances
-                       for multiple iterations. Optionally can also transfer local changes
-                       to the cloud instance.
+       Runs the tests specified in the test-script on multiple instances
+       for multiple iterations. Optionally can also transfer local changes
+       to the cloud instance.
 
 Required Arguments:
--l, --build-id         Build on which to run the tests.
--s, --script           Path to a local file containing the names of tests to run.
-                       Currently only non-automaton tests are supported.
+  -l, --build-id          Build on which to run the tests.
+  -s, --script            Path to a local file containing the names of tests to run.
+                          Currently only non-automaton tests are supported.
 
 Optional Arguments:
--i, --test_iterations  [OPTIONAL] Specify the number of iterations for the tests.
-                                  Default=1
--n, --num_instances    [OPTIONAL] Run concurrently on the specified number of instances.
-                       Default=1
+  -i, --test_iterations   Specify the number of iterations for the tests.
+                          Default=1
+  -n, --num_instances     Run concurrently on the specified number of instances.
+                          Default=1
+  -L, --local changes     Flag to represent that you want to transfer local changes to the cloud instance.
+                          The changes can be specified by the SHA-1 hash of a local commit.
+                          All changes up to that commit are applied on the instance on the corresponding
+                          branch.
+                          NOTE: You must supply --commit in conjunction with this flag (-a is optional).
+  -c, --commit            SHA-1 HASH of the commit to apply (supposed to be used with -L flag only)
+  -a, --alps-path         Path to the local alps repository (supposed to be used with -L flag only)
+                          Default is /home/${USER}/work/alps
 
-Transferring local changes to the cloud instance can be enabled by passing the OPTIONAL
--L (--local-changes) flag:
-
-The changes can be specified by the SHA-1 hash of a local commit. All changes up to that
-commit are applied on the instance on the corresponding branch.
-
-The following flags are REQUIRED if local changes (-L,--local-changes) are enabled:
-
--c, --commit          SHA-1 HASH of the commit to apply
--a, --alps-path       [OPTIONAL]Path to the local alps repository
-                      Default is /home/${USER}/work/alps
 EXAMPLE:
-aurora debug-test -l bld-stable-4-0 -s /home/plumgrid/test1.txt -L -c c4c2dd54897c4f2c090a794c567ead550e9ff2f1
--------------------------------------------------------------------------------
+  aurora debug-test -l bld-stable-4-0 -s /home/plumgrid/test1.txt -L -c c4c2dd54897c4f2c090a794c567ead550e9ff2f1
 HELP
 }
