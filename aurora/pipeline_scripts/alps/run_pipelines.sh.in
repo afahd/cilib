@@ -101,12 +101,8 @@ function run_test() {
     echo "log_dir=$log_dir script_dir=$script_dir"
     while read -r -d $'\0'; do
       #echo "aurora run -l ${USER_BUILD_ID} -s $REPLY -o ${log_dir} -S"
-      if [[ $PIPELINE == "DEBUG-TEST" ]]; then
-        aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -S $OPT_RUN_ARGS > $REPLY.txt 2>&1 &
-      else
-        aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -S $OPT_RUN_ARGS > $REPLY.txt 2>&1 &
-      fi
-    done < <(find ${script_dir} -name "*.sh-*" -print0)
+      aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -S $OPT_RUN_ARGS > $REPLY.txt 2>&1 &
+    done < <(find ${script_dir} -regextype posix-extended  -regex '^.*.sh-[0-9]+$' -print0)
     sleep 30
     ;;
 
@@ -154,7 +150,7 @@ __HEREDOC
       failed_list=$(find ${untar_log_dir} -name "*FAILED.log")
       for test in ${failed_list[@]}; do
         test=$(basename "$test")
-        test=$(echo "$test" | sed 's/ctestout_inst*_//' | sed 's/.FAILED.log//' )
+        test=$(echo "$test" | sed 's/ctestout_inst.*_iter.*_//' | sed 's/.FAILED.log//' )
         echo "* $test" >> ${WORKSPACE}/status-message.log
       done
       echo >> "${WORKSPACE}/status-message.log"
