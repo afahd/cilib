@@ -60,8 +60,8 @@ while true ; do
   esac
 done
 #Check required Arguments
-if [[ -z "$BUILD_ID" || -z "$TEST_SCRIPT" ]]; then
-  echo "Required argument -l(--buildid) or -s(--script)"
+if [[ -z "$BUILD_ID" ]]; then
+  echo "Required argument -l(--buildid)"
   show_run_help
   exit 1
 fi
@@ -73,7 +73,13 @@ if [[ $KEEP_RUNNING == "1" ]]; then
       MINOR_STEPS_ED[$MAJOR_STEPS]=14
 fi
 #Validate Inputs
-check_run_inputs $BUILD_ID $TEST_SCRIPT
+check_run_inputs $BUILD_ID
+#Check test script file
+if [[ -n $TEST_SCRIPT ]]; then
+  check_file_existence $TEST_SCRIPT
+else
+  MINOR_STEPS_ED[$MAJOR_STEPS]=11
+fi
 #Check /home/$USER/.ssh/id_rsa.pub file
 check_file_existence "/home/$USER/.ssh/id_rsa.pub"
 

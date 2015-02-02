@@ -56,9 +56,9 @@ USAGE: aurora run -l <BUILD-ID> -s <Script Path> [OPTIONS]
 
 Required Arguments:
   -l, --buildid         Build on which you want to run test.
-  -s, --script          Test script which you want to run (please see sample_test1.sh to get further idea)
 
 Optional Arguments:
+  -s, --script          Test script which you want to run (please see sample_test1.sh to get further idea)
   -o, --log_dir         Directory where you want to keep test logs.
   -S, --skip-automaton  Skip running automaton-init.sh on the instance
   -K, --keep-running    Instance will be left running after aurora run ends.

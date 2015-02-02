@@ -950,12 +950,11 @@ function check_build_inputs() {
 # *****************************************************************************
 # Function: check_run_inputs
 # Purpose : Checks if the inputs provided to aurora run are correct.
-# Usage   : check_run_inputs <BUILDID> <TESTNAME>
+# Usage   : check_run_inputs <BUILDID>
 # Prereq  :
 # *****************************************************************************
 function check_run_inputs() {
   local BUILDID=$1
-  local TESTNAME=$2
   local RESULT
 
   gcloud compute snapshots list ${BUILDID}-ssd1 | grep "${BUILDID}-ssd1" || RESULT=$?
@@ -968,12 +967,6 @@ function check_run_inputs() {
   gcloud compute snapshots list ${BUILDID}-ssd2 | grep "${BUILDID}-ssd2" || RESULT=$?
   if [[ $RESULT -ne 0 ]];then
     echo "Snapshot ${BUILDID}-ssd2 does not exist, wrong Build-ID"
-    show_run_help
-    exit 1
-  fi
-
-  if [ ! -f "$TESTNAME" ]; then
-    echo "Test file \"$TESTNAME\" not found!"
     show_run_help
     exit 1
   fi
