@@ -78,7 +78,7 @@ BUILD_ID=${emailid}-${BUILD_ID}
 INSTANCE_NAME=`echo ${BUILD_ID}-${SUUID} | sed 's/bld/run/'`
 
 if [[ $KEEP_RUNNING == "1" ]]; then
-      MINOR_STEPS_ED[$MAJOR_STEPS]=15
+  MINOR_STEPS_ED[$MAJOR_STEPS]=15
 fi
 #Validate Inputs
 check_run_inputs $BUILD_ID
@@ -91,7 +91,6 @@ fi
 #Check /home/$USER/.ssh/id_rsa.pub file
 check_file_existence "/home/$USER/.ssh/id_rsa.pub"
 
-printf "\n\n********* RUNID= ${SUUID} *********\n\n"
 step_file=$LOG_DIR/${INSTANCE_NAME}-last-successful-step
 
 # If "continue" switch has been given then do following steps
@@ -116,6 +115,7 @@ if [[ $CONTINUE == "1" ]] ; then
 
   LAST_SUCCESSFULL_STEP=( $(<${step_file}) )
   MINOR_STEPS_ST[$MAJOR_STEPS]=$((LAST_SUCCESSFULL_STEP+1))
+  SUUID=$RUNID
 else
   check_instance_limit
 fi
@@ -126,6 +126,8 @@ touch $step_file
 
 DOCK_NAME="pg_dev_${BUILD_ID}:latest"
 INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
+
+printf "\n\n********* RUNID= ${SUUID} *********\n\n"
 
 function run_test() {
   local step=$1
@@ -146,15 +148,17 @@ function run_test() {
     ;;
 
   3)
-    echo ${USER}:$(cat /home/${USER}/.ssh/id_rsa.pub) > /tmp/keys
-    echo plumgrid:$(echo ${COMMON_KEY}) >> /tmp/keys
+    local key_file=$(mktemp $WORKSPACE/keys-XXXXX)
+    echo ${USER}:$(cat /home/${USER}/.ssh/id_rsa.pub) > $key_file
+    echo plumgrid:$(echo ${COMMON_KEY}) >> $key_file
     echo "Creating the instance[$INSTANCE_NAME] in the cloud"
     exec_gcloud_cmd instances create "${INSTANCE_NAME}" -q\
       --machine-type "$MACHINE_TYPE" --network "$NETWORK" --maintenance-policy \
       "MIGRATE" --scopes "$SCOPES" \
       --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
       --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip" \
-      --metadata-from-file sshKeys=/tmp/keys
+      --metadata-from-file sshKeys=$key_file
+    rm $key_file
     record_step $step $step_file
     ;;
 
@@ -210,7 +214,7 @@ function run_test() {
   10)
     # This is here only untill https://gerrit:8443/#/c/10751/ gets merged.
     echo "Execute the pre run-automaton on docker container"
-    local local_file=$(mktemp /tmp/container_preinit.sh-XXXXX)
+    local local_file=$(mktemp $WORKSPACE/container_preinit.sh-XXXXX)
     cat /dev/null > ${local_file}
     echo "#!/bin/bash" >> ${local_file}
     echo "sed -i '/restart_lxc lvm/a tryexec lxc-attach -n lvm -- /bin/bash -c \"echo 'NOZEROCONF=true' >> /etc/sysconfig/network\"' /opt/pg/systest/lxc/automaton/automaton-helpers.sh" >> ${local_file}
@@ -224,9 +228,10 @@ function run_test() {
       echo "sudo umount /etc/resolv.conf" >> ${local_file}
       echo "sudo mv /tmp/resolv.conf /etc/resolv.conf" >> ${local_file}
     fi
-    tryexec upload_to_docker ${INSTANCE_IP}  ${local_file} ${local_file}
+    file_name=/tmp/$(basename ${local_file})
+    tryexec upload_to_docker ${INSTANCE_IP}  ${local_file} ${file_name}
     rm ${local_file}
-    tryexec run_cmd_docker ${INSTANCE_IP} "/bin/bash ${local_file}"
+    tryexec run_cmd_docker ${INSTANCE_IP} "/bin/bash ${file_name}"
     record_step $step $step_file
     ;;
 

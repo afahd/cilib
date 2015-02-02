@@ -67,6 +67,7 @@ fi
 if [[ $KEEP_RUNNING == "1" ]]; then
   MINOR_STEPS_ED[build]=21
 fi
+
 #Generating Instance name piece by piece
 INSTANCE_NAME=${emailid}
 #Append tag if provided
@@ -102,7 +103,7 @@ if [[ $CONTINUE == "1" ]] ; then
     echo "No last successful step, cannot resume. Exiting"
     exit 1
   fi
-  # Get the last successfull step from /tmp/${INSTANCE_NAME}-last-successful-step
+  # Get the last successfull step from $WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
   LAST_SUCCESSFULL_STEP=( $(<${step_file}) )
   MINOR_STEPS_ST[build]=$((LAST_SUCCESSFULL_STEP+1))
 else
@@ -153,15 +154,17 @@ function build_image() {
     ;;
 
   3)
-    echo ${USER}:$(cat /home/${USER}/.ssh/id_rsa.pub) > /tmp/keys
-    echo plumgrid:$(echo ${COMMON_KEY}) >> /tmp/keys
+    local key_file=$(mktemp $WORKSPACE/keys-XXXXX)
+    echo ${USER}:$(cat /home/${USER}/.ssh/id_rsa.pub) > $key_file
+    echo plumgrid:$(echo ${COMMON_KEY}) >> $key_file
     echo "Creating the instance[$INSTANCE_NAME] in the cloud"
     exec_gcloud_cmd instances create "${INSTANCE_NAME}" \
       --machine-type "$MACHINE_TYPE" --network "$NETWORK" --maintenance-policy \
       "MIGRATE" --scopes "$SCOPES" -q \
       --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
       --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip" \
-      --metadata-from-file sshKeys=/tmp/keys
+      --metadata-from-file sshKeys=$key_file
+    rm $key_file
     record_step $step $step_file
     ;;
 
@@ -213,11 +216,12 @@ function build_image() {
     ;;
 
   10)
-    GIT_SYNC_SCRIPT=$(mktemp /tmp/gitsync.sh-XXXXX)
+    GIT_SYNC_SCRIPT=$(mktemp $WORKSPACE/gitsync.sh-XXXXX)
     echo "Generate script for syncing the gerrit repo"
     tryexec write_gitsync.sh "${GIT_SYNC_SCRIPT}" "${BRANCH}" "${PROJECT}" "${REFSPEC}"
     tryexec upload_to_docker ${INSTANCE_IP} ${GIT_SYNC_SCRIPT} /tmp/
-    tryexec run_cmd_docker ${INSTANCE_IP} "mv ${GIT_SYNC_SCRIPT} /tmp/gitsync.sh"
+    GIT_SYNC_BASE=$(basename ${GIT_SYNC_SCRIPT} )
+    tryexec run_cmd_docker ${INSTANCE_IP} "mv /tmp/${GIT_SYNC_BASE} /tmp/gitsync.sh"
     rm ${GIT_SYNC_SCRIPT}
     record_step $step $step_file
     ;;

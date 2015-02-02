@@ -170,7 +170,7 @@ function push_local_changes() {
   local BRANCH=$(git branch --contains $COMMIT_ID | cut -d ' ' -f 2)
   local DOCKER_IP=$(get_docker_ip ${INSTANCE_IP})
   run_cmd_docker ${INSTANCE_IP} "git config  -f /home/plumgrid/work/alps/.git/config receive.denyCurrentBranch ignore"
-  local local_file=$(mktemp /tmp/ssh-command-XXXXX)
+  local local_file=$(mktemp $WORKSPACE/ssh-command-XXXXX)
   #Proxy command to SSH directly into the docker container
   echo "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no  -o \"ProxyCommand ssh ${INSTANCE_IP} nc ${DOCKER_IP} 22\" \$*" > ${local_file}
   #Has to be executable
@@ -228,7 +228,7 @@ function run_dock_container() {
   local DOCK_ID_FILE=$3
   local DOCK_IP_FILE=$4
 
-  local local_file=$(mktemp /tmp/fix_docker_startup-XXXXX)
+  local local_file=$(mktemp $WORKSPACE/fix_docker_startup-XXXXX)
   cat /dev/null > ${local_file}
   echo "#!/bin/bash" >> ${local_file}
   echo "sudo ifconfig eth0 mtu 1400" >> ${local_file}
@@ -267,9 +267,10 @@ function run_dock_container() {
   echo "  sudo rmmod bonding" >> ${local_file}
   echo "fi" >> ${local_file}
   echo "sudo modprobe bonding mode=2" >> ${local_file}
-  scp -o StrictHostKeyChecking=no ${local_file} ${USER}@${INSTANCE_IP}:${local_file}
+  local file_name=/tmp/$(basename ${local_file})
+  scp -o StrictHostKeyChecking=no ${local_file} ${USER}@${INSTANCE_IP}:${file_name}
   rm ${local_file}
-  run_cmd_gci ${INSTANCE_IP} "bash ${local_file}"
+  run_cmd_gci ${INSTANCE_IP} "bash ${file_name}"
   run_cmd_gci ${INSTANCE_IP} "DID=\$(sudo docker run  --cap-add=all  --cap-add=SYS_ADMIN \
     --lxc-conf='lxc.aa_profile=unconfined' --privileged -d ${DOCK_NAME} /home/plumgrid/startup.sh) && \
     echo \$DID > ${DOCK_ID_FILE} && \
@@ -440,16 +441,17 @@ function get_latest_logs() {
   local instance_name=$2
   local log_dir=$3
 
-  local local_file=$(mktemp /tmp/collect_log-XXXXX)
+  local local_file=$(mktemp $WORKSPACE/collect_log-XXXXX)
   cat /dev/null > ${local_file}
   echo "#!/bin/bash" >> ${local_file}
   echo "ls -rtd /opt/pg/log/*/ | tail -1 > /tmp/latest_log_dir" >> ${local_file}
   echo "LOG_FNAME=\$(cat /tmp/latest_log_dir |cut -d '/' -f 5)" >> ${local_file}
   echo "tar -zcf /tmp/\${LOG_FNAME}.tar \`cat /tmp/latest_log_dir\`" >> ${local_file}
   echo "echo \${LOG_FNAME} > /tmp/latest_log_filename"  >> ${local_file}
-  upload_to_docker ${instance_ip} ${local_file} ${local_file}
+  local file_name=/tmp/$(basename ${local_file})
+  upload_to_docker ${instance_ip} ${local_file} ${file_name}
   rm ${local_file}
-  run_cmd_docker ${instance_ip} "bash ${local_file}"
+  run_cmd_docker ${instance_ip} "bash ${file_name}"
   download_from_docker ${instance_ip} /tmp/latest_log_filename ${log_dir}/latest_log_filename
   local log_tar=$(cat ${log_dir}/latest_log_filename)
   download_from_docker ${instance_ip} /tmp/${log_tar}.tar ${log_dir}/${instance_name}-logs.tar
@@ -468,7 +470,7 @@ function run_poll_cmd() {
   local process=$2
   local LOG_FILE=$3
   local ERROR_CHECK=$4
-  local local_file=$(mktemp /tmp/poll_gcloud_cmd-XXXXX)
+  local local_file=$(mktemp $WORKSPACE/poll_gcloud_cmd-XXXXX)
 
   # Create a script that will constantly poll for the running process and exit only when it has ended
   cat /dev/null > ${local_file}
@@ -492,10 +494,10 @@ function run_poll_cmd() {
     #Exit true if no error checking is enabled
     echo "echo \"$process completely successfully, exiting\"" >> ${local_file}
   fi
-
-  tryexec upload_to_docker ${INSTANCE_IP} ${local_file} ${local_file}
+  local docker_file=/tmp/$(basename ${local_file})
+  tryexec upload_to_docker ${INSTANCE_IP} ${local_file} ${docker_file}
   rm ${local_file}
-  retryexec run_cmd_docker ${INSTANCE_IP} "bash ${local_file}"
+  retryexec run_cmd_docker ${INSTANCE_IP} "bash ${docker_file}"
 }
 # ******************************************************************************
 # Function: run_bg_cmd
@@ -525,18 +527,18 @@ function run_bg_cmd() {
 function make_install_alps() {
   local INSTANCE_IP=$1
   local LOG_FILE=$2
-  local local_file=$(mktemp /tmp/make_install_alps-XXXXX)
+  local local_file=$(mktemp $WORKSPACE/make_install_alps-XXXXX)
   cat /dev/null > ${local_file}
   echo "cd /home/plumgrid/work/alps/build;" >> ${local_file}
   echo "cmake ..;" >> ${local_file}
   echo "make -j4 install" >> ${local_file}
   tryexec upload_to_docker ${INSTANCE_IP}  ${local_file} ${local_file}
   #File name needs to be constant for continue functionality, thus renaming.
-  local docker_file=$(dirname $local_file)
-  docker_file="${docker_file}/make_install_alps.sh"
-  tryexec run_cmd_docker ${INSTANCE_IP} "mv ${local_file} ${docker_file}"
+  local docker_file=/tmp/$(basename $local_file)
+  local renamed_file=/tmp/make_install_alps.sh
+  tryexec run_cmd_docker ${INSTANCE_IP} "mv ${docker_file} ${renamed_file}"
   rm ${local_file}
-  tryexec run_bg_cmd ${INSTANCE_IP} ${docker_file} "/bin/bash ${docker_file}" "$LOG_FILE"
+  tryexec run_bg_cmd ${INSTANCE_IP} "${renamed_file}" "/bin/bash ${renamed_file}" "$LOG_FILE"
 }
 # ******************************************************************************
 # Function: run_build_all
@@ -549,7 +551,7 @@ function run_build_all() {
   local INSTANCE_IP=$1
   local APT_COMPONENT=$2
   local LOG_FILE=$3
-  local local_file=$(mktemp /tmp/run_build_all-XXXXX)
+  local local_file=$(mktemp $WORKSPACE/run_build_all-XXXXX)
   cat /dev/null > ${local_file}
   echo "apt_component=$1" >> ${local_file}
   echo "export APT_COMPONENT=${apt_component}" >> ${local_file}
@@ -558,13 +560,13 @@ function run_build_all() {
   echo "sudo echo 'proxy=http://10.10.163.162:3128' >> /etc/yum/yum.conf" >> ${local_file}
   echo "../scripts/build-all.sh --useallcpus" >> ${local_file}
 
-  tryexec upload_to_docker ${INSTANCE_IP}  ${local_file} ${local_file}
   #File name needs to be constant for continue functionality, thus renaming.
-  local docker_file=$(dirname $local_file)
-  docker_file="${docker_file}/run_build_all.sh"
-  tryexec run_cmd_docker ${INSTANCE_IP} "mv ${local_file} ${docker_file}"
+  local docker_file=/tmp/$(basename ${local_file})
+  local renamed_file=/tmp/run_build_all.sh
+  tryexec upload_to_docker ${INSTANCE_IP}  ${local_file} ${docker_file}
+  tryexec run_cmd_docker ${INSTANCE_IP} "mv ${docker_file} ${renamed_file}"
   rm ${local_file}
-  tryexec run_bg_cmd ${INSTANCE_IP} ${docker_file} "/bin/bash ${docker_file} ${APT_COMPONENT}" "$LOG_FILE"
+  tryexec run_bg_cmd ${INSTANCE_IP} "${renamed_file}" "/bin/bash ${renamed_file} ${APT_COMPONENT}" "$LOG_FILE"
 
 }
 # ******************************************************************************
@@ -577,7 +579,7 @@ function run_build_all() {
 function run_automaton_init() {
   local INSTANCE_IP=$1
   local LOG_FILE=$2
-  local local_file=$(mktemp /tmp/run_automaton_init-XXXXX)
+  local local_file=$(mktemp $WORKSPACE/run_automaton_init-XXXXX)
   cat /dev/null > ${local_file}
   echo "sudo cp /etc/hosts /tmp;" >> ${local_file}
   echo "sudo umount /etc/hosts;" >> ${local_file}
@@ -587,14 +589,13 @@ function run_automaton_init() {
   echo "sudo mv /tmp/resolv.conf /etc/resolv.conf;" >> ${local_file}
   echo "cd /opt/pg/systest/lxc/automaton;" >> ${local_file}
   echo "sudo ./automaton-init.sh" >> ${local_file}
-
-  tryexec upload_to_docker ${INSTANCE_IP}  ${local_file} ${local_file}
   #File name needs to be constant for continue functionality, thus renaming.
-  local docker_file=$(dirname $local_file)
-  docker_file="${docker_file}/run_automaton_init.sh"
-  tryexec run_cmd_docker ${INSTANCE_IP} "mv ${local_file} ${docker_file}"
+  local docker_file=/tmp/$(basename ${local_file})
+  local renamed_file=/tmp/run_automaton_init.sh
+  tryexec upload_to_docker ${INSTANCE_IP}  ${local_file} ${docker_file}
+  tryexec run_cmd_docker ${INSTANCE_IP} "mv ${docker_file} ${renamed_file}"
   rm ${local_file}
-  tryexec run_bg_cmd ${INSTANCE_IP} ${docker_file} "/bin/bash ${docker_file}" "$LOG_FILE"
+  tryexec run_bg_cmd ${INSTANCE_IP} "${renamed_file}" "/bin/bash ${renamed_file}" "$LOG_FILE"
 }
 
 # *****************************************************************************

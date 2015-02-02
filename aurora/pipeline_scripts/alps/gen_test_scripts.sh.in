@@ -70,7 +70,7 @@ else
     TotalTestRuntime=$(sqlite3 $DB "select sum(RunTime) from tests;")
     MaxTestID=$(sqlite3 $DB "select max(id) from tests;")
     TestCount=$(sqlite3 $DB "select count(id) from tests;")
-    sqlite3 $DB "select id from tests order by id;" > /tmp/test_ids
+    sqlite3 $DB "select id from tests order by id;" > $WORKSPACE/test_ids
     echo "No of Tests : $TestCount"
     echo "Last Test ID: $MaxTestID"
     echo "TotalRunTime: $TotalTestRuntime"
