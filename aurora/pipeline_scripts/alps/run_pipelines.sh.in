@@ -80,7 +80,6 @@ untar_log_dir=${script_dir}/untar_logs
 if [[ $PIPELINE != "DEBUG-TEST" ]]; then
   db=$(get_db $PIPELINE)
 fi
-#echo "./run_pipelines.sh -l $USER_BUILD_ID -p $PIPELINE -i $TEST_ITERATIONS -f $FIRST_TEST -t $STEP_SIZE -n $NUM_INSTANCES -r $BASE_SCRIPT_DIR= -d $DEST_SCRIPT_DIR -I $INITIAL_RUN -F $FORCE_DB_UPDATE"
 
 function run_test() {
   local step=$1

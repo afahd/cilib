@@ -34,6 +34,7 @@ elif [[ $PIPELINE == "extended" ]]; then
   export BUILD_GUI=1
 elif [[ $PIPELINE == "DEBUG-TEST" ]]; then
   unset EXCLUDE_UNSTABLE
+  unset EXCLUDE_NON_NIGHTLY
   export BUILD_NIGHTLY=1
   export BUILD_GUI=1
 fi
