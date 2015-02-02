@@ -22,10 +22,15 @@ function init_id() {
   echo "Please enter your gerrit id: "
   read gerritid
   echo "gerritid=${gerritid}" > ${conf_file}
-  echo "gerritid_lower=${gerritid,,}" >> ${conf_file}
   echo "Please enter your plumgrid email: "
   read emailid
-  echo "emailid=${emailid}" >> ${conf_file}
+  if [[ $emailid =~ ^.*\@plumgrid\.com$ ]];then
+    emailid=$(echo "$emailid" | sed 's/@plumgrid.com//')
+    echo "emailid=${emailid,,}" >> ${conf_file}
+  else
+    echo "Wrong email format. Please enter your complete plumgrid.com email"
+    exit 1
+  fi
   echo "MAX_USER_INSTANCES=15" >> ${conf_file}
   gcloud config set project $GCLOUD_PROJECT
   gcloud config set compute/zone $ZONE
@@ -1049,12 +1054,12 @@ function download_from_docker() {
 # Prereq  : aurora init has been called
 # *****************************************************************************
  function check_instance_limit() {
-  local CURRENT_INSTANCES=$(gcloud compute instances list --regexp "${gerritid_lower}-.*" --zones $ZONE | grep "${gerritid_lower}-" | wc -l)
+  local CURRENT_INSTANCES=$(gcloud compute instances list --regexp "${emailid}-.*" --zones $ZONE | grep "${emailid}-" | wc -l)
   #Check against max instances allowed.
   if [[ $CURRENT_INSTANCES -lt $MAX_USER_INSTANCES ]]; then
     return 0
   else
-    echo "Currently running instances (${CURRENT_INSTANCES}) for user:${gerritid} exceeds maximum allowed (${MAX_USER_INSTANCES})"
+    echo "Currently running instances (${CURRENT_INSTANCES}) for user:${emailid} exceeds maximum allowed (${MAX_USER_INSTANCES})"
     echo "Please delete existing instances to continue."
     exit 1
   fi

@@ -74,7 +74,7 @@ mkdir -p $LOG_DIR
 echo "Logs will be stored in $LOG_DIR"
 echo "aurora_run.sh started with [aurora_run.sh  $ARGS]" > ${WORKSPACE}/logs/aurora_run_command_$SUUID
 
-BUILD_ID=${gerritid_lower}-${BUILD_ID}
+BUILD_ID=${emailid}-${BUILD_ID}
 INSTANCE_NAME=`echo ${BUILD_ID}-${SUUID} | sed 's/bld/run/'`
 
 if [[ $KEEP_RUNNING == "1" ]]; then
@@ -139,7 +139,7 @@ function run_test() {
       "MIGRATE" --scopes "$SCOPES" \
       --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
       --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip" \
-      --metadata-from-file sshKeys=/tmp/keys  --metadata email="$emailid"
+      --metadata-from-file sshKeys=/tmp/keys
     record_step $step $step_file
     ;;
 

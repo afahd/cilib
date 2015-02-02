@@ -4,8 +4,8 @@ source gc_helpers.sh
 source ~/.aurora.conf
 source help.sh
 
-if [ -z ${gerritid+x} ]; then
-  echo "ERROR: gerritid has not been defined. Please make sure to run aurora init. Exiting"
+if [[ -z ${gerritid+x} || -z ${emailid+x}  ]]; then
+  echo "ERROR: gerritid or emailid has not been defined. Please make sure to run aurora init. Exiting"
   exit
 fi
 
@@ -22,7 +22,7 @@ function upload_to_docker_name() {
     show_upload_help
     exit
   fi
-  local INSTANCE_NAME="${gerritid_lower}-$1"
+  local INSTANCE_NAME="${emailid}-$1"
   local FILE=$2
   local DESTINATION=$3
   local INSTANCE_IP=$(get_instance_ip $INSTANCE_NAME)
@@ -42,7 +42,7 @@ function download_from_docker_name() {
     show_download_help
     exit
   fi
-  local INSTANCE_NAME="${gerritid_lower}-$1"
+  local INSTANCE_NAME="${emailid}-$1"
   local FILE=$2
   local DESTINATION=$3
   local INSTANCE_IP=$(get_instance_ip $INSTANCE_NAME)
@@ -56,8 +56,8 @@ function download_from_docker_name() {
 # Prereq: Aurora init has been called.
 # *****************************************************************************
 function list_instances() {
-  echo "Listing instances for the user:$gerritid"
-  local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp  --regexp "${gerritid_lower}-.*" | sed -e "s/${gerritid_lower}-//g")
+  echo "Listing instances for the user:$emailid"
+  local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp  --regexp "${emailid}-.*" | sed -e "s/${emailid}-//g")
   local instance_names=($(echo "$instance_list" | grep '^name'))
   local instance_status=($(echo "$instance_list" | grep status))
   local instance_creationtime=($(echo "$instance_list" | grep creationTimestamp))
@@ -76,8 +76,8 @@ function list_instances() {
 # Prereq: Aurora init has been called.
 # *****************************************************************************
 function list_snapshots() {
-  echo "Listing snapshots for the user:$gerritid"
-  local snapshot_list=$(gcloud compute snapshots list --format=text --sort-by=creationTimestamp --regexp "${gerritid_lower}-.*" | sed -e "s/${gerritid_lower}-//g")
+  echo "Listing snapshots for the user:$emailid"
+  local snapshot_list=$(gcloud compute snapshots list --format=text --sort-by=creationTimestamp --regexp "${emailid}-.*" | sed -e "s/${emailid}-//g")
   local snapshot_names=($(echo "$snapshot_list" | grep name))
   local snapshot_status=($(echo "$snapshot_list" | grep status))
   local snapshot_size=($(echo "$snapshot_list" | grep diskSizeGb))
@@ -95,8 +95,8 @@ function list_snapshots() {
 # Prereq: Aurora init has been called.
 # *****************************************************************************
 function list_buildids() {
-  echo "Listing build-ids for the user:$gerritid"
-  local snapshot_list=$(gcloud compute snapshots list --format=text --sort-by=creationTimestamp --regexp "${gerritid_lower}-.*-ssd2" | sed -e "s/${gerritid_lower}-//" | sed -e "s/-ssd2//g" )
+  echo "Listing build-ids for the user:$emailid"
+  local snapshot_list=$(gcloud compute snapshots list --format=text --sort-by=creationTimestamp --regexp "${emailid}-.*-ssd2" | sed -e "s/${emailid}-//" | sed -e "s/-ssd2//g" )
   local snapshot_names=($(echo "$snapshot_list" | grep name))
   local snapshot_status=($(echo "$snapshot_list" | grep status))
   local snapshot_creationtime=($(echo "$snapshot_list" | grep creationTimestamp))
@@ -114,8 +114,8 @@ function list_buildids() {
 # Prereq: Aurora init has been called.
 # *****************************************************************************
 function list_runids() {
-  echo "Listing run-ids for the user:$gerritid"
-  local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp  --regexp "${gerritid_lower}-.*run-.*" | sed -e "s/${gerritid_lower}-//g")
+  echo "Listing run-ids for the user:$emailid"
+  local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp  --regexp "${emailid}-.*run-.*" | sed -e "s/${emailid}-//g")
   local instance_names=($(echo "$instance_list" | grep '^name'))
   local instance_status=($(echo "$instance_list" | grep status))
   printf "%-15s %-20s %-10s\n" "Run-id" "Build-id" "Status"
@@ -134,9 +134,9 @@ function list_runids() {
 # Prereq: Aurora init has been called.
 # *****************************************************************************
 function list_disks() {
-  echo "Listing disks for the user:$gerritid"
+  echo "Listing disks for the user:$emailid"
   # Instances
-  local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp --regexp ".*" | grep ${gerritid_lower} | sed -e "s/${gerritid_lower}-//g")
+  local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp --regexp ".*" | grep ${emailid} | sed -e "s/${emailid}-//g")
   local instance_names=($(echo "$instance_list" | grep '^name'))
   local instances_str=${instance_names[1]}
   for (( i = 3; i < ${#instance_names[@]} ; i=i+2 )) do
@@ -145,7 +145,7 @@ function list_disks() {
 
   # Disks without instances
   local REGEX=".*$1.*"
-  local disk_list=$(gcloud compute disks list --format=text --sort-by=creationTimestamp --regexp "${REGEX}" | grep ${gerritid_lower} | sed -e "s/${gerritid_lower}-//g" | grep -v $instances_str)
+  local disk_list=$(gcloud compute disks list --format=text --sort-by=creationTimestamp --regexp "${REGEX}" | grep ${emailid} | sed -e "s/${emailid}-//g" | grep -v $instances_str)
   local disk_names=($(echo "$disk_list" | grep name))
   printf "%-35s %-20s\n" "Name"
   for (( i = 1 ; i < ${#disk_names[@]} ; i=i+2 )) do
@@ -161,7 +161,7 @@ function list_disks() {
 # *****************************************************************************
 function delete_instances() {
   local REGEX=".*$1.*"
-  local user_instances=$(gcloud compute instances list --regexp "${REGEX}" | grep ${gerritid_lower} | cut -d ' ' -f 1)
+  local user_instances=$(gcloud compute instances list --regexp "${REGEX}" | grep ${emailid} | cut -d ' ' -f 1)
 
   # TODO: Print message if no instance matches with given criteria and exit
   echo "The following instances will be permanently deleted: "
@@ -191,7 +191,7 @@ function delete_instances() {
 # *****************************************************************************
 function delete_snapshots() {
   local REGEX=".*$1.*"
-  local user_snapshots=$(gcloud compute snapshots list --regexp "${REGEX}" | grep ${gerritid_lower} | cut -d ' ' -f 1)
+  local user_snapshots=$(gcloud compute snapshots list --regexp "${REGEX}" | grep ${emailid} | cut -d ' ' -f 1)
 
   echo "The following snapshots will be permanently deleted: "
   for snapshot in $user_snapshots; do
@@ -219,7 +219,7 @@ function delete_snapshots() {
 # *****************************************************************************
 function delete_disks() {
   local REGEX=".*$1.*"
-  local user_disks=$(gcloud compute disks list --regexp "${REGEX}" | grep ${gerritid_lower} | cut -d ' ' -f 1)
+  local user_disks=$(gcloud compute disks list --regexp "${REGEX}" | grep ${emailid} | cut -d ' ' -f 1)
 
   echo "The following disks will be permanently deleted: "
   for disk in $user_disks; do
@@ -251,7 +251,7 @@ function set_max_instances() {
     echo "Number of instances should be a number"
     exit 1
   fi
-  echo "Changing the maximum number of instances for user:${gerritid} to $MAX_INSTANCES"
+  echo "Changing the maximum number of instances for user:${emailid} to $MAX_INSTANCES"
   sed -i "s/MAX_USER_INSTANCES=.*/MAX_USER_INSTANCES=$MAX_INSTANCES/" /home/$USER/.aurora.conf
 }
 # *****************************************************************************
@@ -265,7 +265,7 @@ function login_instance() {
     show_login_help
     exit 1
   fi
-  local INSTANCE_NAME="${gerritid_lower}-$1"
+  local INSTANCE_NAME="${emailid}-$1"
   gcloud compute instances list ${INSTANCE_NAME} | grep "${INSTANCE_NAME}" || RESULT=$? &> /dev/null
   local INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
   if [[ $RESULT -ne 0 ]];then
@@ -288,8 +288,8 @@ function list_entities()
     exit 1
   fi
 
-  if [[ -z "${gerritid}" ]]; then
-    echo "gerrit id not set, please run aurora init"
+  if [[ -z "${gerritid}" || -z "${emailid}" ]]; then
+    echo "gerritid or email not set, please run aurora init"
     exit 1
   fi
 
@@ -323,8 +323,8 @@ function delete_entities()
     exit 1
   fi
 
-  if [[ -z "${gerritid}" ]]; then
-    echo "gerrit id not set, please run aurora init"
+  if [[ -z "${gerritid}" || -z "${emailid}"  ]]; then
+    echo "gerritid or email not set, please run aurora init"
     exit 1
   fi
 

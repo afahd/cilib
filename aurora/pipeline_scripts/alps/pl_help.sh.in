@@ -25,7 +25,7 @@ Optional Arguments:
   -n, --num_instances       [OPTIONAL} Number of cloud instances among which you want to distribute these tests
                             Default is '10'.
   -d, --script_dir          [OPTIONAL} Directory where you want to generate your scripts
-                            Default is /tmp/<gerrit-id>-run-<modified_refspec><timestamp>
+                            Default is /tmp/<email-id>-run-<modified_refspec><timestamp>
                             /tmp/trauf-run-81-11281-1-2015_01_17_14:34:59
   -I, --initial_run         [OPTIONAL} Set it, if you are running it first time.
 -------------------------------------------------------------------------------

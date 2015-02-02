@@ -10,7 +10,7 @@ declare -A instance_array
 declare -A disk_array
 declare -A snapshot_array
 
-#List the gerritid of the isntances/disks/snapshots
+#List the emailid of the isntances/disks/snapshots
 instance_users=$(gcloud compute instances list --regexp ".*(run|bld).*" | grep "run\|bld" | cut -d ' ' -f 1 | cut -d '-' -f 1 )
 disk_d1_sizes=$(gcloud compute disks list --regexp ".*(run|bld).*-d1" | grep 'run\|bld' | awk '{print $1 " " $3}' )
 disk_d1_users=$(gcloud compute disks list --regexp ".*(run|bld).*" | grep "run\|bld" | cut -d ' ' -f 1 | cut -d '-' -f 1)

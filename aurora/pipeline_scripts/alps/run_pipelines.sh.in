@@ -74,7 +74,7 @@ if [[ -z "$USER_BUILD_ID" ]]; then
   exit 1
 fi
 
-BUILD_ID=${gerritid_lower}-${USER_BUILD_ID}
+BUILD_ID=${emailid}-${USER_BUILD_ID}
 MOD_BUILD_ID=`echo ${BUILD_ID} | sed 's/bld/run/'`
 
 # TODO: log/untar_log directory is defined in two locations.
