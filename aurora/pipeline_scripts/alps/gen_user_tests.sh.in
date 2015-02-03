@@ -51,7 +51,7 @@ sed -i "s/USER_TEST=.*/USER_TEST=(${TestNames})/" ${DEST_SCRIPT_DIR}/$DScript
 #Replace test_name to iterate over USER_TEST array
 sed -i 's/test_name=.*/test_name=${USER_TEST[$testno]}/' ${DEST_SCRIPT_DIR}/$DScript
 #Export all tests
-sed -i 's/PIPELINE=.*/PIPELINE='all'/' ${DEST_SCRIPT_DIR}/$DScript
+sed -i 's/PIPELINE=.*/PIPELINE='DEBUG-TEST'/' ${DEST_SCRIPT_DIR}/$DScript
 sed -i 's/CTEST_ST=[0-9]*/CTEST_ST=0/' ${DEST_SCRIPT_DIR}/$DScript
 sed -i 's/CTEST_ED=[0-9]*/CTEST_ED='$i'/' ${DEST_SCRIPT_DIR}/${DScript}
 #Replace iteration
