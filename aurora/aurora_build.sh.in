@@ -30,7 +30,7 @@ MINOR_STEPS_ED[build]=20
 CONTINUE=0
 
 # read the options
-TEMP=`getopt -o Kr:t:Cb:p:Q:R:E:Oh --long keep-running,refspec:,tag:,\continue,branch:,proj:,stop,help,major:,minor_st:,minor_end: -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o Kr:t:Cb:p:W:Q:R:E:Oh --long keep-running,refspec:,WORKSPACE:,tag:,\continue,branch:,proj:,stop,help,major:,minor_st:,minor_end: -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 while true ; do
   case "$1" in
@@ -40,6 +40,7 @@ while true ; do
      -C| --continue) CONTINUE=1 ; shift ;;
      -b|--branch) BRANCH=$2; shift 2 ;;
      -p|--proj) PROJECT=$2; shift 2 ;;
+     -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
 
      -Q| --major ) MAJOR_STEPS="$2"; TMP_MAJOR="$2"; shift 2;;
      -R| --minor_st ) MINOR_STEPS_ST[$TMP_MAJOR]="$2"; shift 2 ;;
