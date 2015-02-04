@@ -6,6 +6,8 @@ source pl_help.sh
 source pl_settings.conf
 source gc_helpers.sh
 
+#Kill child processes at exit
+trap "pkill -P $$" EXIT
 #Show help
 if [[ $3 == "help" ]]; then
   show_run_tests_help
@@ -102,10 +104,13 @@ function run_test() {
     ;;
 
   2)
+    pids=()
     echo "log_dir=$log_dir script_dir=$script_dir"
     while read -r -d $'\0'; do
       #echo "aurora run -l ${USER_BUILD_ID} -s $REPLY -o ${log_dir} -S"
       aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -S $OPT_RUN_ARGS > $REPLY.txt 2>&1 &
+      #Get the pid of the last background command
+      pids+=("$!")
     done < <(find ${script_dir} -regextype posix-extended  -regex '^.*.sh-[0-9]+$' -print0)
     sleep 30
     ;;
@@ -113,14 +118,28 @@ function run_test() {
   3)
     start_time=$(date +%s)
     echo "Waiting for command to finish ..."
-    # TODO: replace following hard code value.
+    # Background loop to print the number of aurora_run processes
     while [[ ! -z `pgrep -f "run -l ${USER_BUILD_ID} -o ${log_dir}"` ]]; do
-      echo -n "[`pgrep -f \"run -l ${USER_BUILD_ID} -o ${log_dir}\" | wc -l`] "; # Replace with some usable thing
-      #echo -n ".. .. "; # Replace with some usable thing
-      sleep 60;
-    done;
-    echo "Run completed successfully"
+      echo -n "[`pgrep -f \"run -l ${USER_BUILD_ID} -o ${log_dir}\" | wc -l`] ";
+      sleep 60 ;
+    done &
+    echoer_pid=$!
+    FAIL=0
+    for pid in "${pids[@]}"; do
+      wait "$pid" || FAIL=$(($? + $FAIL))
+    done
     end_time=$(date +%s)
+    #Exit if any value is nonzero
+    if [[ $FAIL != 0 ]]; then
+      #Kill the echo while loop, suppress output
+      disown $echoer_pid && kill $echoer_pid
+      echo "Aurora run exited unsuccesfully, exiting."
+      exit 1
+    else
+      #Kill the echo while loop, suppress output
+      disown $echoer_pid && kill $echoer_pid
+      echo "Aurora run completed successfully."
+    fi
     ;;
 
   4)

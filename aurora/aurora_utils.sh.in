@@ -393,6 +393,13 @@ if [[ "$LOCAL_CHANGES_ENABLED" == "1" ]]; then
     echo "Use the -a(--alps-path) to specify the path to alps"
     exit 1
   fi
+  #Check if commit is correct
+  local commit_check=$(git --git-dir $ALPS_PATH/.git --work-tree $ALPS_PATH cat-file -t $COMMIT_HASH)
+  if [[ $commit_check != "commit" ]]; then
+    echo "Not a valid commit. Please enter a valid commit."
+    exit 1
+  fi
+
   if [[ -z "$COMMIT_HASH" ]]; then
     echo "Missing required argument for transferring local changes"
     show_debug_test_help
