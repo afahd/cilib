@@ -3,6 +3,7 @@ source help.sh
 
 export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
 echo "aurora_build.sh started with [aurora_build.sh  $@]"
+ARGS=$@
 . gc_helpers.sh
 . aurora_utils.sh
 source aurora_infra_settings.conf
@@ -51,6 +52,9 @@ while true ; do
      *) exit 1 ;;
   esac
 done
+
+mkdir -p ${WORKSPACE}/logs
+echo "aurora_build.sh started with [aurora_build.sh  $ARGS]" > ${WORKSPACE}/logs/aurora_build_command
 
 #Check required Arguments
 if [[ -z "$BRANCH" || -z "PROJECT" ]]; then

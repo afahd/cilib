@@ -21,8 +21,8 @@ DEST_SCRIPT_DIR=0
 
 #Options arguments to forward to run
 OPT_RUN_ARGS=""
-echo " ***** WORKSPACE=${WORKSPACE} ***** "
-echo "@CMAKE_CURRENT_BINARY_DIR@/run_pipelines.sh $@"
+echo "run_pipelines.sh $@"
+ARGS=$@
 # read the options
 TEMP=`getopt -o Q:R:E:l:W:s:a:i:Lc:f:P:t:n:\r:d:IFh --long major:,commit:,local-changes,WORKSPACE:,minor_start:,script:,minor_end:,buildid:,alps-path:,pipeline:,test_iterations:,first_test:,step_size:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update\help -n 'run_all_test.sh' -- "$@"`
 eval set -- "$TEMP"
@@ -61,6 +61,9 @@ while true ; do
        exit 1 ;;
   esac
 done
+
+echo "run_pipelines.sh $ARGS" > ${WORKSPACE}/logs/aurora_pipeline_command
+echo " ***** WORKSPACE=${WORKSPACE} ***** "
 
 echo "**** BASE_SCRIPT_DIR=$BASE_SCRIPT_DIR **** "
 
