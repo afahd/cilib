@@ -465,7 +465,7 @@ function run_poll_cmd() {
 
   tryexec upload_to_docker ${INSTANCE_IP} ${local_file} ${local_file}
   rm ${local_file}
-  tryexec run_cmd_docker ${INSTANCE_IP} "bash ${local_file}"
+  retryexec run_cmd_docker ${INSTANCE_IP} "bash ${local_file}"
 }
 # ******************************************************************************
 # Function: run_bg_cmd
@@ -860,7 +860,8 @@ function retryexec() {
   do
      echo "Try $retry for command "
      echo "  $@"
-     "$@"
+     local retval=0;
+     "$@" || retval=$?
      if [[ $? == "0" ]]; then
        break
      fi

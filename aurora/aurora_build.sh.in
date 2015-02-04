@@ -254,7 +254,7 @@ function build_image() {
     # Adding polling as a separate step, so that if the connection broke at the previous step,
     # this step can be run directly to see if the previous command is still running
     echo "Polling for build-all (tailing \"/tmp/build_all.log\" for complete logs)"
-    tryexec run_poll_cmd ${INSTANCE_IP} "run_build_all.sh" "/tmp/build_all.log" "1"
+    retryexec run_poll_cmd ${INSTANCE_IP} "run_build_all.sh" "/tmp/build_all.log" "1"
     download_from_docker ${INSTANCE_IP} "/tmp/build_all.log" "${WORKSPACE}/logs/"
     record_step $step $step_file
     ;;
