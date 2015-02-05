@@ -26,7 +26,7 @@ declare -A MINOR_STEPS_ST
 declare -A MINOR_STEPS_ED
 MAJOR_STEPS="build"
 MINOR_STEPS_ST[build]=1
-MINOR_STEPS_ED[build]=20
+MINOR_STEPS_ED[build]=22
 
 CONTINUE=0
 
@@ -65,7 +65,7 @@ fi
 
 #keep_running equalling 1 means -k was specified, end step should be 1 less.
 if [[ $KEEP_RUNNING == "1" ]]; then
-  MINOR_STEPS_ED[build]=19
+  MINOR_STEPS_ED[build]=21
 fi
 #Generating Instance name piece by piece
 INSTANCE_NAME=${emailid}
@@ -88,7 +88,7 @@ else
   INSTANCE_NAME=${INSTANCE_NAME}-bld-${MOD_REFSPEC}
 fi
 
-step_rec_file=$WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
+step_file=$WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
 #Validate Inputs
 check_build_inputs $INSTANCE_NAME $PROJECT $REFSPEC $BRANCH
 #Check /home/$USER/.ssh/id_rsa.pub file
@@ -97,8 +97,13 @@ check_file_existence "/home/$USER/.ssh/id_rsa.pub"
 #   a. Get the last successfully completed step.
 #   b. Start the build process from step next to last completed step.
 if [[ $CONTINUE == "1" ]] ; then
+  #Continue only if file exists
+  if [[ ! -f $step_file ]]; then
+    echo "No last successful step, cannot resume. Exiting"
+    exit 1
+  fi
   # Get the last successfull step from /tmp/${INSTANCE_NAME}-last-successful-step
-  LAST_SUCCESSFULL_STEP=( $(<${step_rec_file}) )
+  LAST_SUCCESSFULL_STEP=( $(<${step_file}) )
   MINOR_STEPS_ST[build]=$((LAST_SUCCESSFULL_STEP+1))
 else
   check_instance_limit
@@ -115,7 +120,7 @@ for key in ${!branch_to_component[@]}; do
     break
   fi
 done
-step_file=$WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
+
 #Get the IP address of the instances, needed incase continue is specified.
 INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
 
@@ -126,20 +131,28 @@ SNAP1=${PRIM_INST_NAME}-d1-${SN_ID}
 SNAP2=${PRIM_INST_NAME}-d2-${SN_ID}
 DOCK_NAME=pg-docker-repo:5000/pg_dev:${SN_ID}
 
+#Create file to ensure continue works if run/build is aborted before 1st step completes
+touch $step_file
+
 function build_image() {
   local step=$1
   case "$step" in
 
   1)
-    echo "Creating the disk[${INSTANCE_NAME}-d1] and [${INSTANCE_NAME}-d2] for the instance in the cloud"
+    echo "Creating the disk[${INSTANCE_NAME}-d1] for the instance in the cloud"
     exec_gcloud_cmd disks create "${INSTANCE_NAME}-d1" \
       --source-snapshot "${SNAP1}" --type "$DISK_TYPE" --size="$DISK1_SIZE" -q
+    record_step $step $step_file
+    ;;
+
+  2)
+    echo "Creating the disk[${INSTANCE_NAME}-d2] for the instance in the cloud"
     exec_gcloud_cmd disks create "${INSTANCE_NAME}-d2" \
       --source-snapshot "${SNAP2}" --type "$DISK_TYPE" --size="$DISK2_SIZE" -q
     record_step $step $step_file
     ;;
 
-  2)
+  3)
     echo ${USER}:$(cat /home/${USER}/.ssh/id_rsa.pub) > /tmp/keys
     echo plumgrid:$(echo ${COMMON_KEY}) >> /tmp/keys
     echo "Creating the instance[$INSTANCE_NAME] in the cloud"
@@ -152,27 +165,27 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  3)
+  4)
     INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
     echo "Waiting for the machine to boot up and allow ssh access"
     wait_for_instance ${INSTANCE_IP}
     record_step $step $step_file
     ;;
 
-  4)
+  5)
     echo "setting up forward on ${INSTANCE_NAME} Machine "
     tryexec run_cmd_gci ${INSTANCE_IP} "echo 'host *' > ~/.ssh/config; echo '    ForwardAgent yes'>>~/.ssh/config"
     record_step $step $step_file
     ;;
 
-  5)
+  6)
     echo "starting the pgdev container"
     tryexec run_dock_container ${INSTANCE_IP} ${DOCK_NAME} "./local_docker_id" "./local_docker_ip"
     tryexec verify_docker_running ${INSTANCE_IP} ${DOCK_NAME}
     record_step $step $step_file
     ;;
 
-  6)
+  7)
     echo "Copy build-instance key to pgdev container"
     tryexec run_cmd_gci ${INSTANCE_IP} "echo -e  'y\n'|ssh-keygen -t rsa -N \"\" -f ~/.ssh/id_rsa"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo su -c \"cat /home/${USER}/.ssh/id_rsa.pub >> \
@@ -180,7 +193,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  7)
+  8)
     echo "Copy local key to pgdev container"
     tryexec scp -o StrictHostKeyChecking=no ~/.ssh/id_rsa.pub ${USER}@${INSTANCE_IP}:./auth-key.pub
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo su -c \"cat /home/${USER}/auth-key.pub >> \
@@ -188,7 +201,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  8)
+  9)
     check_ssh_server_status ${INSTANCE_IP} || retval=$?
     if [[ $retval == 1 ]]; then
       run_cmd_gci ${INSTANCE_IP} "sudo docker ps"
@@ -199,7 +212,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  9)
+  10)
     GIT_SYNC_SCRIPT=$(mktemp /tmp/gitsync.sh-XXXXX)
     echo "Generate script for syncing the gerrit repo"
     tryexec write_gitsync.sh "${GIT_SYNC_SCRIPT}" "${BRANCH}" "${PROJECT}" "${REFSPEC}"
@@ -209,7 +222,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  10)
+  11)
     echo "Execute the gitsynch script on docker container in steps"
     # Run Step1: cleanup
     echo "gitsync Step1: Perform cleanup on the setup"
@@ -218,14 +231,14 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  11)
+  12)
     # Run Step2: Fetch tools
     echo "gitsync Step2: Fetching latest tools"
     retryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh tools"
     record_step $step $step_file
     ;;
 
-  12)
+  13)
     # Run Step3: Fetch all repos
     echo "gitsync Step3: Fetching all the repos (${PROJECT_LIST[@]})"
     for p in ${PROJECT_LIST[@]}; do
@@ -234,27 +247,27 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  13)
+  14)
     # Run Step4: Fetch iovisor
     echo "gitsync Step4: Fetching latest iovisor"
     retryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh iovisor"
     record_step $step $step_file
     ;;
 
-  14)
+  15)
     # Checkout the required changes for specified project and set apt_component
     echo "gitsync Step5: Checking out required code on ${PROJECT}"
     retryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh checkout"
     record_step $step $step_file
     ;;
 
-  15)
+  16)
     echo "Starting build-all.sh for ${APT_COMPONENT}==="
     tryexec run_build_all ${INSTANCE_IP} ${APT_COMPONENT} "/tmp/build_all.log"
     record_step $step $step_file
     ;;
 
-  16)
+  17)
     # Adding polling as a separate step, so that if the connection broke at the previous step,
     # this step can be run directly to see if the previous command is still running
     echo "Polling for build-all (tailing \"/tmp/build_all.log\" for complete logs)"
@@ -263,20 +276,20 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  17)
+  18)
     echo "Making a snapshot for the container"
     tryexec run_cmd_gci ${INSTANCE_IP} "echo \"pg_dev_${INSTANCE_NAME}\" > docker_build_id" "t"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo docker commit \`cat ./local_docker_id\` pg_dev_${INSTANCE_NAME}:latest"
     record_step $step $step_file
     ;;
 
-  18)
+  19)
     echo "Making sure docker(pg_dev_${INSTANCE_NAME}:latest) is commited successfully"
     tryexec verify_docker_commited ${INSTANCE_IP} "pg_dev_${INSTANCE_NAME}"
     record_step $step $step_file
     ;;
 
-  19)
+  20)
     BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${emailid}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
     tryexec run_cmd_gci ${INSTANCE_IP} "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
@@ -288,7 +301,11 @@ function build_image() {
     run_cmd_gci ${INSTANCE_IP} "sudo sync"
     run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f /opt || true"
     exec_gcloud_cmd disks snapshot ${INSTANCE_NAME}-d2 --snapshot-names ${INSTANCE_NAME}-ssd2
+    record_step $step $step_file
+    ;;
 
+
+  21)
     #Flushing the disk buffers
     run_cmd_gci ${INSTANCE_IP} "sudo sync"
     run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f / || true"
@@ -298,7 +315,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  20)
+  22)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     rm $step_file

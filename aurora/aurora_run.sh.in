@@ -20,7 +20,7 @@ declare -A MINOR_STEPS_ST
 declare -A MINOR_STEPS_ED
 MAJOR_STEPS="run"
 MINOR_STEPS_ST[$MAJOR_STEPS]=1
-MINOR_STEPS_ED[$MAJOR_STEPS]=15
+MINOR_STEPS_ED[$MAJOR_STEPS]=16
 
 UUID=`uuidgen`
 SUUID_="${UUID##*-}"
@@ -78,7 +78,7 @@ BUILD_ID=${emailid}-${BUILD_ID}
 INSTANCE_NAME=`echo ${BUILD_ID}-${SUUID} | sed 's/bld/run/'`
 
 if [[ $KEEP_RUNNING == "1" ]]; then
-      MINOR_STEPS_ED[$MAJOR_STEPS]=14
+      MINOR_STEPS_ED[$MAJOR_STEPS]=15
 fi
 #Validate Inputs
 check_run_inputs $BUILD_ID
@@ -86,12 +86,13 @@ check_run_inputs $BUILD_ID
 if [[ -n $TEST_SCRIPT ]]; then
   check_file_existence $TEST_SCRIPT
 else
-  MINOR_STEPS_ED[$MAJOR_STEPS]=11
+  MINOR_STEPS_ED[$MAJOR_STEPS]=12
 fi
 #Check /home/$USER/.ssh/id_rsa.pub file
 check_file_existence "/home/$USER/.ssh/id_rsa.pub"
 
 printf "\n\n********* RUNID= ${SUUID} *********\n\n"
+step_file=$LOG_DIR/${INSTANCE_NAME}-last-successful-step
 
 # If "continue" switch has been given then do following steps
 #   a. Get the RUN-ID provided by user.
@@ -106,14 +107,23 @@ if [[ $CONTINUE == "1" ]] ; then
     exit
   fi
   INSTANCE_NAME=`echo ${BUILD_ID}-${RUNID} | sed 's/bld/run/'`
-  step_rec_file=$LOG_DIR/${INSTANCE_NAME}-last-successful-step
-  LAST_SUCCESSFULL_STEP=( $(<${step_rec_file}) )
+  step_file=$LOG_DIR/${INSTANCE_NAME}-last-successful-step
+  #Continue only if file exists
+  if [[ -f $step_file ]]; then
+    echo "No last successful step, cannot resume. Exiting"
+    exit 1
+  fi
+
+  LAST_SUCCESSFULL_STEP=( $(<${step_file}) )
   MINOR_STEPS_ST[$MAJOR_STEPS]=$((LAST_SUCCESSFULL_STEP+1))
 else
   check_instance_limit
 fi
 
-step_file=$LOG_DIR/${INSTANCE_NAME}-last-successful-step
+
+#Create file to ensure continue works if run/build is aborted before 1st step completes
+touch $step_file
+
 DOCK_NAME="pg_dev_${BUILD_ID}:latest"
 INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
 
@@ -122,15 +132,20 @@ function run_test() {
 
   case "$step" in
   1)
-    echo "Creating the disk[${INSTANCE_NAME}-d1] and [${INSTANCE_NAME}-d2] for the instance in the cloud from ${BUILD_ID}"
+    echo "Creating the disk[${INSTANCE_NAME}-d1] for the instance in the cloud from ${BUILD_ID}"
     exec_gcloud_cmd disks create "${INSTANCE_NAME}-d1" -q \
       --source-snapshot "${BUILD_ID}-ssd1" --type "$DISK_TYPE" --size="$DISK1_SIZE"
+    record_step $step $step_file
+    ;;
+
+  2)
+    echo "Creating the disk[${INSTANCE_NAME}-d2] for the instance in the cloud from ${BUILD_ID}"
     exec_gcloud_cmd disks create "${INSTANCE_NAME}-d2" -q \
       --source-snapshot "${BUILD_ID}-ssd2" --type "$DISK_TYPE" --size="$DISK2_SIZE"
     record_step $step $step_file
     ;;
 
-  2)
+  3)
     echo ${USER}:$(cat /home/${USER}/.ssh/id_rsa.pub) > /tmp/keys
     echo plumgrid:$(echo ${COMMON_KEY}) >> /tmp/keys
     echo "Creating the instance[$INSTANCE_NAME] in the cloud"
@@ -143,20 +158,20 @@ function run_test() {
     record_step $step $step_file
     ;;
 
-  3)
+  4)
     INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
     echo "Waiting for the machine to boot up and allow ssh access"
     tryexec wait_for_instance ${INSTANCE_IP}
     record_step $step $step_file
     ;;
 
-  4)
+  5)
     echo "starting the pgdev container ${DOCK_NAME}"
     tryexec run_dock_container ${INSTANCE_IP} ${DOCK_NAME} "./local_docker_id" "./local_docker_ip"
     record_step $step $step_file
     ;;
 
-  5)
+  6)
     echo "Copy build-instance key to pgdev container"
     run_cmd_gci ${INSTANCE_IP} "rm -f ~/.ssh/id_rsa*"
     run_cmd_gci ${INSTANCE_IP} "ssh-keygen -t rsa -N \"\" -f ~/.ssh/id_rsa"
@@ -165,7 +180,7 @@ function run_test() {
     record_step $step $step_file
     ;;
 
-  6)
+  7)
     echo "Copy local key to pgdev container"
     tryexec scp -o StrictHostKeyChecking=no ~/.ssh/id_rsa.pub ${USER}@${INSTANCE_IP}:./auth-key.pub
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo su -c \"cat /home/${USER}/auth-key.pub >> \
@@ -173,7 +188,7 @@ function run_test() {
     record_step $step $step_file
     ;;
 
-  7)
+  8)
     check_ssh_server_status ${INSTANCE_IP}
     if [[ $retval == 1 ]]; then
       run_cmd_gci ${INSTANCE_IP} "sudo docker ps"
@@ -184,7 +199,7 @@ function run_test() {
 
     record_step $step $step_file
     ;;
-  8)
+  9)
     if [[ $LOCAL_CHANGES == 1 ]]; then
       tryexec push_local_changes ${INSTANCE_IP} ${COMMIT_ID} ${ALPS_PATH}
       tryexec make_install_alps ${INSTANCE_IP} "/tmp/make_install_alps.log"
@@ -192,7 +207,7 @@ function run_test() {
       record_step $step $step_file
     fi
     ;;
-  9)
+  10)
     # This is here only untill https://gerrit:8443/#/c/10751/ gets merged.
     echo "Execute the pre run-automaton on docker container"
     local local_file=$(mktemp /tmp/container_preinit.sh-XXXXX)
@@ -215,15 +230,14 @@ function run_test() {
     record_step $step $step_file
     ;;
 
-  10)
+  11)
     if [[ $AUTOMATON_INIT == 1 ]]; then
       echo "Execute the run-automaton script on docker container"
       tryexec run_automaton_init ${INSTANCE_IP} "/tmp/automaton_init.log"
       record_step $step $step_file
     fi
     ;;
-
-  11)
+  12)
     if [[ $AUTOMATON_INIT == 1 ]]; then
       echo "Poll the automaton-init cmd (tailing \"/tmp/automaton_init.log\" for complete logs)"
       retryexec run_poll_cmd ${INSTANCE_IP} "run_automaton_init.sh" "/tmp/automaton_init.log" "1"
@@ -232,27 +246,27 @@ function run_test() {
     fi
     ;;
 
-  12)
+  13)
     tryexec upload_to_docker ${INSTANCE_IP} ${TEST_SCRIPT} /tmp/user_test_script.sh
     # tryexec is not needed because test can fail as well
     run_cmd_docker_bg ${INSTANCE_IP} "/bin/bash /tmp/user_test_script.sh" "/tmp/test.logs"
     record_step $step $step_file
     ;;
 
-  13)
+  14)
     echo "Poll the test logs (tailing \"/tmp/test.log\")"
     tryexec run_poll_cmd ${INSTANCE_IP} "/tmp/user_test_script.sh" "/tmp/test.logs" "0"
     tryexec download_from_docker ${INSTANCE_IP} "/tmp/test.logs" "${LOG_DIR}/${INSTANCE_NAME}.log"
     record_step $step $step_file
     ;;
 
-  14)
+  15)
     echo "Downloading logs in ${LOG_DIR} directory"
     tryexec get_latest_logs ${INSTANCE_IP} ${INSTANCE_NAME} ${LOG_DIR}
     record_step $step $step_file
     ;;
 
-  15)
+  16)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     rm $step_file
