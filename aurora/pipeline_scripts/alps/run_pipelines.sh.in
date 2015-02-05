@@ -62,6 +62,7 @@ while true ; do
   esac
 done
 
+mkdir -p ${WORKSPACE}/logs
 echo "run_pipelines.sh $ARGS" > ${WORKSPACE}/logs/aurora_pipeline_command
 echo " ***** WORKSPACE=${WORKSPACE} ***** "
 
