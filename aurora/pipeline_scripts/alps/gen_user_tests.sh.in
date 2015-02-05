@@ -54,6 +54,7 @@ sed -i 's/test_name=.*/test_name=${USER_TEST[$testno]}/' ${DEST_SCRIPT_DIR}/$DSc
 sed -i 's/PIPELINE=.*/PIPELINE='DEBUG-TEST'/' ${DEST_SCRIPT_DIR}/$DScript
 sed -i 's/CTEST_ST=[0-9]*/CTEST_ST=0/' ${DEST_SCRIPT_DIR}/$DScript
 sed -i 's/CTEST_ED=[0-9]*/CTEST_ED='$i'/' ${DEST_SCRIPT_DIR}/${DScript}
+sed -i 's/total_tests=.*$/total_tests='$((i+1))'/' ${DEST_SCRIPT_DIR}/${DScript}
 #Replace iteration
 sed -i 's/itr=[0-9]*/itr='${TEST_ITERATIONS}'/' ${DEST_SCRIPT_DIR}/$DScript
 

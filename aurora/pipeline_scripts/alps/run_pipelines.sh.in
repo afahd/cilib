@@ -124,7 +124,7 @@ function run_test() {
 
   4)
     # Start collecting logs
-    echo "Copying all logs to ${untar_log_dir} directory"
+    echo "Copying all logs to ${WORKSPACE}/logs directory"
     find ${log_dir} -name "*${MOD_BUILD_ID}*.tar" -type f -exec tar xf {} -C ${untar_log_dir} \;
     ;;
 
