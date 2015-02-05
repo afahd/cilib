@@ -525,6 +525,7 @@ function run_build_all() {
   echo "export APT_COMPONENT=${apt_component}" >> ${local_file}
   echo "source /opt/pg/env/alps.bashrc" >> ${local_file}
   echo "cd /home/plumgrid/work/pkg/build" >> ${local_file}
+  echo "sudo echo 'proxy=http://10.10.163.162:3128' >> /etc/yum/yum.conf" >> ${local_file}
   echo "../scripts/build-all.sh --useallcpus" >> ${local_file}
 
   tryexec upload_to_docker ${INSTANCE_IP}  ${local_file} ${local_file}
