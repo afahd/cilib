@@ -294,7 +294,7 @@ function list_entities()
   fi
 
   case $1 in
-    instances)
+    instances|"")
       list_instances ;;
     snapshots)
       list_snapshots ;;
@@ -305,7 +305,8 @@ function list_entities()
     disks)
       list_disks ;;
     *)
-      list_instances ;;
+      echo "Invalid entity for aurora ls"
+      show_ls_help ;;
   esac
 }
 
@@ -328,13 +329,14 @@ function delete_entities()
   fi
 
   case $1 in
-    instances)
+    instances| run)
       delete_instances $2 $3 ;;
-    snapshots)
+    snapshots| build)
       delete_snapshots $2 $3 ;;
     disks)
       delete_disks $2 $3;;
     *)
+      echo "Invalid entity for aurora rm"
       show_rm_help;;
   esac
 }
