@@ -887,7 +887,7 @@ function retryexec() {
      echo "  $@"
      local retval=0;
      "$@" || retval=$?
-     if [[ $? == "0" ]]; then
+     if [[ $retval == "0" ]]; then
        break
      fi
      let retry++
