@@ -6,8 +6,6 @@ source pl_help.sh
 source pl_settings.conf
 source gc_helpers.sh
 
-#Kill child processes at exit
-trap "pkill -P $$" EXIT
 #Show help
 if [[ $3 == "help" ]]; then
   show_run_tests_help
