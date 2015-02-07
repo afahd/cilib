@@ -26,7 +26,7 @@ declare -A MINOR_STEPS_ST
 declare -A MINOR_STEPS_ED
 MAJOR_STEPS="build"
 MINOR_STEPS_ST[build]=1
-MINOR_STEPS_ED[build]=22
+MINOR_STEPS_ED[build]=17
 
 CONTINUE=0
 
@@ -65,7 +65,8 @@ fi
 
 #keep_running equalling 1 means -k was specified, end step should be 1 less.
 if [[ $KEEP_RUNNING == "1" ]]; then
-  MINOR_STEPS_ED[build]=21
+  # MINOR_STEPS_ED[build]=MINOR_STEPS_ED[build]-1
+  MINOR_STEPS_ED[build]=16
 fi
 
 #Generating Instance name piece by piece
@@ -130,7 +131,6 @@ INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
 SN_ID=$(get_latest_snapshot_id)
 SNAP1=${PRIM_INST_NAME}-d1-${SN_ID}
 SNAP2=${PRIM_INST_NAME}-d2-${SN_ID}
-DOCK_NAME=pg-docker-repo:5000/pg_dev:${SN_ID}
 
 #Create file to ensure continue works if run/build is aborted before 1st step completes
 touch $step_file
@@ -155,8 +155,8 @@ function build_image() {
 
   3)
     local key_file=$(mktemp $WORKSPACE/keys-XXXXX)
-    echo ${USER}:$(cat /home/${USER}/.ssh/id_rsa.pub) > $key_file
-    echo plumgrid:$(echo ${COMMON_KEY}) >> $key_file
+    echo plumgrid:$(cat /home/${USER}/.ssh/id_rsa.pub) > ${key_file}
+    echo plumgrid:$(echo ${COMMON_KEY}) >> ${key_file}
     echo "Creating the instance[$INSTANCE_NAME] in the cloud"
     tryexec exec_gcloud_cmd instances create "${INSTANCE_NAME}" \
       --machine-type "$MACHINE_TYPE" --network "$NETWORK" --maintenance-policy \
@@ -176,131 +176,102 @@ function build_image() {
     ;;
 
   5)
-    echo "setting up forward on ${INSTANCE_NAME} Machine "
+    echo "setting up forward on ${INSTANCE_IP} Machine "
     tryexec run_cmd_gci ${INSTANCE_IP} "echo 'host *' > ~/.ssh/config; echo '    ForwardAgent yes'>>~/.ssh/config"
     record_step $step $step_file
     ;;
 
   6)
-    echo "starting the pgdev container"
-    tryexec run_dock_container ${INSTANCE_IP} ${DOCK_NAME} "./local_docker_id" "./local_docker_ip"
-    tryexec verify_docker_running ${INSTANCE_IP} ${DOCK_NAME}
+    check_ssh_server_status ${INSTANCE_IP} || retval=$?
+    if [[ $retval == 1 ]]; then
+      echo "ssh server is not running."
+      exit $retval
+    fi
+    tryexec run_cmd_gci ${INSTANCE_IP} "sudo ifconfig eth0 mtu 1400"
+    tryexec run_cmd_gci ${INSTANCE_IP} "DT=\$(ifconfig eth0 | grep 'inet addr' | cut -d: -f2|cut -d' ' -f 1); sudo bash -c 'echo \"'\$DT'  \`hostname\`\" >> /etc/hosts'"
     record_step $step $step_file
     ;;
 
   7)
-    echo "Copy build-instance key to pgdev container"
-    tryexec run_cmd_gci ${INSTANCE_IP} "echo -e  'y\n'|ssh-keygen -t rsa -N \"\" -f ~/.ssh/id_rsa"
-    tryexec run_cmd_gci ${INSTANCE_IP} "sudo su -c \"cat /home/${USER}/.ssh/id_rsa.pub >> \
-      /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
-    record_step $step $step_file
-    ;;
-
-  8)
-    echo "Copy local key to pgdev container"
-    tryexec scp -o UserKnownHostsFile=/dev/null -o CheckHostIP=no -o StrictHostKeyChecking=no ~/.ssh/id_rsa.pub ${USER}@${INSTANCE_IP}:./auth-key.pub
-    tryexec run_cmd_gci ${INSTANCE_IP} "sudo su -c \"cat /home/${USER}/auth-key.pub >> \
-      /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
-    record_step $step $step_file
-    ;;
-
-  9)
-    tryexec check_ssh_server_status ${INSTANCE_IP} || retval=$?
-    if [[ $retval == 1 ]]; then
-      run_cmd_gci ${INSTANCE_IP} "sudo docker ps"
-      echo "Docker stopped.. Please run aurora build with --continue to retry!!"
-      record_step 4 $step_file
-      exit $retval
-    fi
-    record_step $step $step_file
-    ;;
-
-  10)
-    GIT_SYNC_SCRIPT=$(mktemp $WORKSPACE/gitsync.sh-XXXXX)
+    GIT_SYNC_SCRIPT=$(mktemp /tmp/gitsync.sh-XXXXX)
     echo "Generate script for syncing the gerrit repo"
     tryexec write_gitsync.sh "${GIT_SYNC_SCRIPT}" "${BRANCH}" "${PROJECT}" "${REFSPEC}"
-    tryexec upload_to_docker ${INSTANCE_IP} ${GIT_SYNC_SCRIPT} /tmp/
+    tryexec upload ${INSTANCE_IP} ${GIT_SYNC_SCRIPT} /tmp/
     GIT_SYNC_BASE=$(basename ${GIT_SYNC_SCRIPT} )
-    tryexec run_cmd_docker ${INSTANCE_IP} "mv /tmp/${GIT_SYNC_BASE} /tmp/gitsync.sh"
+    tryexec run_cmd_gci ${INSTANCE_IP} "mv /tmp/${GIT_SYNC_BASE} /tmp/gitsync.sh"
     rm ${GIT_SYNC_SCRIPT}
     record_step $step $step_file
     ;;
 
-  11)
-    echo "Execute the gitsynch script on docker container in steps"
-    # Run Step1: cleanup
+  8)
+    echo "Execute the gitsynch script"
     echo "gitsync Step1: Perform cleanup on the setup"
-    tryexec check_ssh_server_status ${INSTANCE_IP}
-    tryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh cleanup"
+    tryexec check_ssh_server_status ${INSTANCE_IP} || retval=$?
+    if [[ $retval == 1 ]]; then
+      echo "ssh server is not running."
+      exit $retval
+    fi
+    tryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh cleanup"
     record_step $step $step_file
     ;;
 
-  12)
+  9)
     # Run Step2: Fetch tools
     echo "gitsync Step2: Fetching latest tools"
-    retryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh tools"
+    retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh tools"
     record_step $step $step_file
     ;;
 
-  13)
+  10)
     # Run Step3: Fetch all repos
     echo "gitsync Step3: Fetching all the repos (${PROJECT_LIST[@]})"
     for p in ${PROJECT_LIST[@]}; do
-      retryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh all_repos $p"
+      retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh all_repos $p"
     done
     record_step $step $step_file
     ;;
 
-  14)
+  11)
     # Run Step4: Fetch iovisor
     echo "gitsync Step4: Fetching latest iovisor"
-    retryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh iovisor"
+    retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh iovisor"
     record_step $step $step_file
     ;;
 
-  15)
+  12)
     # Checkout the required changes for specified project and set apt_component
     echo "gitsync Step5: Checking out required code on ${PROJECT}"
-    retryexec run_cmd_docker_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh checkout"
+    retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh checkout"
     record_step $step $step_file
     ;;
 
-  16)
+  13)
     echo "Starting build-all.sh for ${APT_COMPONENT}==="
+    # Restart the lxc-net service
+    run_cmd_gci ${INSTANCE_IP} "sudo ifconfig lxcbr0 down"
+    run_cmd_gci ${INSTANCE_IP} "sudo brctl delbr lxcbr0"
+    run_cmd_gci ${INSTANCE_IP} "sudo pkill dnsmasq"
+    run_cmd_gci ${INSTANCE_IP} "sudo service lxc-net restart"
     tryexec run_build_all ${INSTANCE_IP} ${APT_COMPONENT} "/tmp/build_all.log"
     record_step $step $step_file
     ;;
 
-  17)
+  14)
     # Adding polling as a separate step, so that if the connection broke at the previous step,
     # this step can be run directly to see if the previous command is still running
     echo "Polling for build-all (tailing \"/tmp/build_all.log\" for complete logs)"
     retryexec run_poll_cmd ${INSTANCE_IP} "run_build_all.sh" "/tmp/build_all.log" "1"
-    tryexec download_from_docker ${INSTANCE_IP} "/tmp/build_all.log" "${WORKSPACE}/logs/"
+    download ${INSTANCE_IP} "/tmp/build_all.log" "${WORKSPACE}/logs/"
     record_step $step $step_file
     ;;
 
-  18)
-    echo "Making a snapshot for the container"
-    tryexec run_cmd_gci ${INSTANCE_IP} "echo \"pg_dev_${INSTANCE_NAME}\" > docker_build_id" "t"
-    tryexec run_cmd_gci ${INSTANCE_IP} "sudo docker commit \`cat ./local_docker_id\` pg_dev_${INSTANCE_NAME}:latest"
-    record_step $step $step_file
-    ;;
-
-  19)
-    echo "Making sure docker(pg_dev_${INSTANCE_NAME}:latest) is commited successfully"
-    tryexec verify_docker_commited ${INSTANCE_IP} "pg_dev_${INSTANCE_NAME}"
-    record_step $step $step_file
-    ;;
-
-  20)
+  15)
     BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${emailid}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
     tryexec run_cmd_gci ${INSTANCE_IP} "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
     tryexec run_cmd_gci ${INSTANCE_IP} "echo ${INSTANCE_NAME}-ssd2 > ~/build_d2_snapshot"
     tryexec run_cmd_gci ${INSTANCE_IP} "echo ${SN_ID} > ~/primary_snapshot"
 
-    #SSD-2 needs to be created 1st because using fsfreeze on / causes ssh timeout
     #Flushing the disk buffers
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo sync"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f /opt || true"
@@ -308,8 +279,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-
-  21)
+  16)
     #Flushing the disk buffers
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo sync"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f / || true"
@@ -319,7 +289,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  22)
+  17)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     rm $step_file

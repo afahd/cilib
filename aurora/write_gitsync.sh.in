@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-## This script prepares a 'gitsync.sh' script which is copied inside docker to prep the system
+## This script prepares a 'gitsync.sh' script which is copied inside cloud instance to prep the system
 ## for running build_all.sh script later.
 
 . gc_helpers.sh

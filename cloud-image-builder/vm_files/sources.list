@@ -1,0 +1,10 @@
+deb http://192.168.10.167/archive-ubuntu/ubuntu/ precise main restricted universe multiverse
+deb-src http://192.168.10.167/archive-ubuntu/ubuntu/ precise main restricted universe multiverse
+deb http://192.168.10.167/archive-ubuntu/ubuntu/ precise-security main restricted universe multiverse
+deb-src http://192.168.10.167/archive-ubuntu/ubuntu/ precise-security main restricted universe multiverse
+deb http://192.168.10.167/archive-ubuntu/ubuntu/ precise-updates main restricted universe multiverse
+deb-src http://192.168.10.167/archive-ubuntu/ubuntu/ precise-updates main restricted universe multiverse
+deb http://192.168.10.167/archive-ubuntu/ubuntu/ precise-backports main restricted universe multiverse
+deb-src http://192.168.10.167/archive-ubuntu/ubuntu/ precise-backports main restricted universe multiverse
+deb http://192.168.10.167/plumgrid plumgrid unstable
+deb http://192.168.10.167/plumgrid-images plumgrid unstable

@@ -8,7 +8,7 @@ NETWORK=net-10-10
 DISK_TYPE=pd-standard
 DISK1_SIZE=10GB
 DISK2_SIZE=75GB
-PRIM_INST_NAME=plumgrid-builder-v2
+PRIM_INST_NAME=plumgrid-vm-builder-v5
 
 VERBOSITY=error
 GERRIT_IP=192.168.10.77

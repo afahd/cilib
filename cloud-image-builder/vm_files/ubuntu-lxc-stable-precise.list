@@ -1,0 +1,3 @@
+deb http://192.168.10.167/ubuntu-lxc/stable/ubuntu precise main
+deb-src http://192.168.10.167/ubuntu-lxc/stable/ubuntu precise main
+

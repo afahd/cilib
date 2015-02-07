@@ -11,8 +11,8 @@ COMMAND:
   pipeline            Run smoke/extended/unstable pipeline for some particular commit.
   debug-test          Run multiple iterations of specified tests on several instances.
 
-  download            Download file from docker container to local machine.
-  upload              Upload file to docker container to local machine.
+  download            Download file cloud instance to local machine.
+  upload              Upload file to cloud instance from local machine.
   rm                  Deletes the ENTITY containing value in REGEX
   ls                  List all currently active cloud instances or snapshots
   login               Login to the specified INSTANCE
@@ -95,7 +95,7 @@ function show_upload_help() {
    cat << HELP
 
 USAGE: aurora upload <INSTANCE-NAME> <UPLOAD-FILE> <DESTINATION>
-       Download file from docker container to local machine.
+       Download file from cloud instance to local machine.
 
 <INSTANCE-NAME>       Name of the instance to upload to.
                       To see a list of available instances use "aurora ls instances"
@@ -107,7 +107,7 @@ HELP
 function show_download_help() {
    cat << HELP
 USAGE: aurora download <INSTANCE-NAME> <DOWNLOAD-FILE> <DESTINATION>
-       Download file from docker container to local machine.
+       Download file from cloud instance to local machine.
 
 <INSTANCE-NAME>       Name of the instance to download from.
                       To see a list of available instances use "aurora ls instances"

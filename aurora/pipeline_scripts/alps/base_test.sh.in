@@ -68,6 +68,7 @@ for run in $(seq 1 $itr); do
   # need to recreate the directory every time, because we move it away at the end of the loop
   for testno in $(seq $CTEST_ST $CTEST_ED); do
     sudo pkill rsyslogd
+    sleep 0.2
     pgrep rsyslogd >> /dev/null  || $(sudo rsyslogd &)
     # Dtermine the test name from the test index
     if [[ $PIPELINE == "unstable" ]]; then

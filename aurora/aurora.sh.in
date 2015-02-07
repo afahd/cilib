@@ -25,9 +25,9 @@ case $1 in
     debug-test)
       run_debug_test ${@:2} ;;
     upload)
-      upload_to_docker_name ${@:2} ;;
+      upload_using_instance_name ${@:2} ;;
     download)
-      download_from_docker_name ${@:2} ;;
+      download_using_instance_name ${@:2} ;;
     load)
       aurora_load.sh ${@:2} ;;
     set_max_instances)

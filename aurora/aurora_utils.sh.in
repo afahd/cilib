@@ -10,14 +10,13 @@ if [[ -z ${gerritid+x} || -z ${emailid+x}  ]]; then
 fi
 
 # ***********************************************************************************
-# Function: upload_to_docker_name
-# Purpose : wrapper for upload_to_docker to translate instance name to instance IP
-# Usage   : upload_to_docker_instance_name <Cloud instance name where docker container is running>
+# Function: upload_using_instance_name
+# Purpose : Upload a file to instance using his name.
+# Usage   : upload_using_instance_name <Cloud instance name>
 #                            <Local file which needs to be uploaded>
 #                            <path to destination directory>
-# Prereq: Your laptop's key must be already in docker container before this operation
 # ***********************************************************************************
-function upload_to_docker_name() {
+function upload_using_instance_name() {
   if [[ $# -ne 3 ]]; then
     show_upload_help
     exit
@@ -26,18 +25,17 @@ function upload_to_docker_name() {
   local FILE=$2
   local DESTINATION=$3
   local INSTANCE_IP=$(get_instance_ip $INSTANCE_NAME)
-  upload_to_docker "$INSTANCE_IP" "$FILE" "$DESTINATION"
+  upload "$INSTANCE_IP" "$FILE" "$DESTINATION"
 }
 
 # ***********************************************************************************
-# Function: download_from_docker_name
-# Purpose : wrapper for download_from_docker to translate instance name to instance IP
-# Usage   : download_from_instance_name <Cloud instance name where docker container is running>
+# Function: download_using_instance_name
+# Purpose : Download a file from cloud instance using his name.
+# Usage   : download_from_instance_name <Cloud instance name>
 #                            <Location of file which needs to be downloaded>
 #                            <Local machine's path where you need to download>
-# Prereq: Your laptop's key must be already in docker container before this operation
 # ***********************************************************************************
-function download_from_docker_name() {
+function download_using_instance_name() {
   if [[ $# -ne 3 ]]; then
     show_download_help
     exit
@@ -46,7 +44,7 @@ function download_from_docker_name() {
   local FILE=$2
   local DESTINATION=$3
   local INSTANCE_IP=$(get_instance_ip $INSTANCE_NAME)
-  download_from_docker "$INSTANCE_IP" "$FILE" "$DESTINATION"
+  download "$INSTANCE_IP" "$FILE" "$DESTINATION"
 }
 
 # *****************************************************************************
@@ -276,7 +274,7 @@ function login_instance() {
     show_login_help
     exit 1
   fi
-  run_cmd_docker_sshforwarding ${INSTANCE_IP} "/bin/bash"
+  run_cmd_gci_sshforwarding ${INSTANCE_IP} "/bin/bash"
 }
 # *****************************************************************************
 # Function: list_entities
