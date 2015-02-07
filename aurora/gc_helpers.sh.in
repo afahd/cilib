@@ -179,6 +179,8 @@ function push_local_changes() {
   cd $ALPS_PATH;GIT_SSH="${local_file}" git push plumgrid@${DOCKER_IP}:/home/plumgrid/work/alps $COMMIT_ID:$BRANCH
   #Checkout the branch
   run_cmd_docker ${INSTANCE_IP} "git --git-dir=/home/plumgrid/work/alps/.git --work-tree=/home/plumgrid/work/alps checkout $BRANCH"
+  #Need to reset to update the working-tree
+  run_cmd_docker ${INSTANCE_IP} "git --git-dir=/home/plumgrid/work/alps/.git --work-tree=/home/plumgrid/work/alps reset --hard HEAD"
   rm ${local_file}
 }
 
