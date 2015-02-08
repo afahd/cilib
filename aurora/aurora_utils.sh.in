@@ -145,7 +145,13 @@ function list_disks() {
 
   # Disks without instances
   local REGEX=".*$1.*"
-  local disk_list=$(gcloud compute disks list --format=text --sort-by=creationTimestamp --regexp "${REGEX}" | grep ${emailid} | sed -e "s/${emailid}-//g" | grep -v $instances_str)
+
+  if [[ -n $instances_str ]]; then
+    local disk_list=$(gcloud compute disks list --format=text --sort-by=creationTimestamp --regexp "${REGEX}" | grep ${emailid} | sed -e "s/${emailid}-//g" | grep -v "$instances_str")
+  else
+    local disk_list=$(gcloud compute disks list --format=text --sort-by=creationTimestamp --regexp "${REGEX}" | grep ${emailid} | sed -e "s/${emailid}-//g")
+  fi
+
   local disk_names=($(echo "$disk_list" | grep name))
   printf "%-35s %-20s\n" "Name"
   for (( i = 1 ; i < ${#disk_names[@]} ; i=i+2 )) do
