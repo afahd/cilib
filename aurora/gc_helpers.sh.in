@@ -268,7 +268,7 @@ function run_dock_container() {
   echo "fi" >> ${local_file}
   echo "sudo modprobe bonding mode=2" >> ${local_file}
   local file_name=/tmp/$(basename ${local_file})
-  scp -o StrictHostKeyChecking=no ${local_file} ${USER}@${INSTANCE_IP}:${file_name}
+  scp -o UserKnownHostsFile=/dev/null -o CheckHostIP=no -o StrictHostKeyChecking=no ${local_file} ${USER}@${INSTANCE_IP}:${file_name}
   rm ${local_file}
   run_cmd_gci ${INSTANCE_IP} "bash ${file_name}"
   run_cmd_gci ${INSTANCE_IP} "DID=\$(sudo docker run  --cap-add=all  --cap-add=SYS_ADMIN \
@@ -1028,7 +1028,7 @@ function upload_to_docker() {
 
   echo "** $INSTANCE_NAME $FILE $DESTINATION **"
   local FILE_NAME="${FILE##*/}"
-  scp -o StrictHostKeyChecking=no -r $FILE "${USER}@${INSTANCE_IP}:/tmp/"
+  scp -o UserKnownHostsFile=/dev/null -o CheckHostIP=no -o StrictHostKeyChecking=no -r $FILE "${USER}@${INSTANCE_IP}:/tmp/"
   run_cmd_gci ${INSTANCE_IP} "scp -r -o StrictHostKeyChecking=no /tmp/${FILE_NAME} plumgrid@\`cat local_docker_ip\`:$DESTINATION" "tA"
 }
 
@@ -1047,7 +1047,7 @@ function download_from_docker() {
 
   local FILE_NAME="${FILE##*/}"
   run_cmd_gci ${INSTANCE_IP} "scp -r -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\`:$FILE /tmp/$FILE_NAME" "tA"
-  scp -o StrictHostKeyChecking=no "${USER}@${INSTANCE_IP}:/tmp/$FILE_NAME" ${DESTINATION}
+  scp -o UserKnownHostsFile=/dev/null -o CheckHostIP=no -o StrictHostKeyChecking=no "${USER}@${INSTANCE_IP}:/tmp/$FILE_NAME" ${DESTINATION}
 }
 
 # *****************************************************************************

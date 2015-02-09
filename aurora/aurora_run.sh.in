@@ -186,7 +186,7 @@ function run_test() {
 
   7)
     echo "Copy local key to pgdev container"
-    tryexec scp -o StrictHostKeyChecking=no ~/.ssh/id_rsa.pub ${USER}@${INSTANCE_IP}:./auth-key.pub
+    tryexec scp -o UserKnownHostsFile=/dev/null -o CheckHostIP=no -o StrictHostKeyChecking=no ~/.ssh/id_rsa.pub ${USER}@${INSTANCE_IP}:./auth-key.pub
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo su -c \"cat /home/${USER}/auth-key.pub >> \
       /var/lib/docker/btrfs/subvolumes/\`cat local_docker_id\`/home/plumgrid/.ssh/authorized_keys\""
     record_step $step $step_file
