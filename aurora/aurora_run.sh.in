@@ -108,7 +108,7 @@ if [[ $CONTINUE == "1" ]] ; then
   INSTANCE_NAME=`echo ${BUILD_ID}-${RUNID} | sed 's/bld/run/'`
   step_file=$LOG_DIR/${INSTANCE_NAME}-last-successful-step
   #Continue only if file exists
-  if [[ -f $step_file ]]; then
+  if [[ ! -f $step_file ]]; then
     echo "No last successful step, cannot resume. Exiting"
     exit 1
   fi
