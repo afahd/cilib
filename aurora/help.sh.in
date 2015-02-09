@@ -165,7 +165,7 @@ Required Arguments:
 
 Optional Arguments:
 -P, --pipeline        [OPTIONAL] The pipeline which you want to run.
-                      Possible values are "smoke", "extended".
+                      Possible values are "smoke", "extended","automaton" and "automaton-longevity".
                       Default is 'smoke'.
 -i, --test_iterations [OPTIONAL] Run the pipeline for the specified number of iterations.
 HELP
