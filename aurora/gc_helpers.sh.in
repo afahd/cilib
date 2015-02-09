@@ -953,10 +953,10 @@ function check_build_inputs() {
 
   #Check instance name length
   #GCE allows a maximum of 62 characters for disks and instances.
-  #13 characters are appended when the instance a run instance is created.
-  #Leaving a room for 20 characters for run in case it  is changed later.
+  #16 characters are appended when the instance a run instance is created.
+  #Leaving a room for 20 characters for run in case it is changed later.
   if [ ${#INSTANCE_NAME} -gt "42" ]; then
-    echo "Instace name is too long, exiting."
+    echo "Instance name is too long, try a shorter TAG, exiting."
     exit 1
   fi
 

@@ -118,12 +118,12 @@ function list_runids() {
   local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp  --regexp "${emailid}-.*run-.*" | sed -e "s/${emailid}-//g")
   local instance_names=($(echo "$instance_list" | grep '^name'))
   local instance_status=($(echo "$instance_list" | grep status))
-  printf "%-15s %-20s %-10s\n" "Run-id" "Build-id" "Status"
+  printf "%-15s %-40s %-10s\n" "Run-id" "Build-id-[Run-TAG]" "Status"
   for (( i = 1 ; i < ${#instance_names[@]} ; i=i+2 )) do
     local runid=$(echo ${instance_names[$i]} | grep -o '[^-]*$')
     local buildid=$(echo ${instance_names[$i]} | sed -e "s/run-/bld-/")
     buildid=${buildid%-$runid}
-    printf "%-15s %-20s %-10s\n" ${runid} ${buildid} "${instance_status[$i]}"
+    printf "%-15s %-40s %-10s\n" ${runid} ${buildid} "${instance_status[$i]}"
   done
   echo "------------------------------------------------"
 }

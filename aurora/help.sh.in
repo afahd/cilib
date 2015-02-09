@@ -75,6 +75,7 @@ Optional Arguments:
                         It is being printed out on screen immediately after you kick off the "aurora run"
                         first time.
                         It is part of your run-instance name as well [aurora ls instances].
+  -t, --tag             Add a tag to the instance name.
 RUNHELP
 }
 

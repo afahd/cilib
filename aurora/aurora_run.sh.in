@@ -26,7 +26,7 @@ UUID=`uuidgen`
 SUUID_="${UUID##*-}"
 SUUID="${SUUID_,,}"
 
-
+TAG="none"
 AUTOMATON_INIT=0
 CONTINUE=0
 KEEP_RUNNING=0
@@ -34,7 +34,7 @@ LOCAL_CHANGES=0
 
 
 # read the options
-TEMP=`getopt -o l:s:o:n:W:CAKhLc:a:R:E: --long buildid:,script:,log_dir:,runid:,WORKSPACE:,\continue,automaton-init,keep-running,\help,\local-changes,commit:,alps-path:,minor_st:,minor_end: -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o l:s:o:n:t:W:CAKhLc:a:R:E: --long buildid:,tag:,script:,log_dir:,runid:,WORKSPACE:,\continue,automaton-init,keep-running,\help,\local-changes,commit:,alps-path:,minor_st:,minor_end: -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 while true ; do
   case "$1" in
@@ -44,6 +44,7 @@ while true ; do
     -o| --log_dir) LOG_DIR=$2; shift 2 ;;
     -n| --runid ) RUNID=$2 ; shift 2 ;;
     -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
+    -t| --tag) TAG=$2 ; shift 2 ;;
     -C| --continue ) CONTINUE=1; shift ;;
     -A| --automaton-init ) AUTOMATON_INIT=1; shift ;;
     -K| --keep-running ) KEEP_RUNNING=1; shift ;;
@@ -75,7 +76,24 @@ echo "Logs will be stored in $LOG_DIR"
 echo "aurora_run.sh started with [aurora_run.sh  $ARGS]" > ${WORKSPACE}/logs/aurora_run_command_$SUUID
 
 BUILD_ID=${emailid}-${BUILD_ID}
-INSTANCE_NAME=`echo ${BUILD_ID}-${SUUID} | sed 's/bld/run/'`
+MOD_BUILD_ID=$(echo ${BUILD_ID} | sed 's/bld/run/')
+INSTANCE_NAME=${MOD_BUILD_ID}
+#Append tag if provided
+if [[ $TAG != "none" ]]; then
+  #Only keeping alphanumeric characters
+  TAG=${TAG//[^[:alnum:]]/}
+  #Converting to lowercase since instance name cannot contain uppercase characters
+  TAG=${TAG,,}
+  INSTANCE_NAME=${INSTANCE_NAME}-${TAG}
+fi
+
+INSTANCE_NAME=${INSTANCE_NAME}-${SUUID}
+
+
+if [ ${#INSTANCE_NAME} -gt "58" ]; then
+    echo "Instance name is too long, try a shorter TAG, exiting."
+    exit 1
+fi
 
 if [[ $KEEP_RUNNING == "1" ]]; then
   MINOR_STEPS_ED[$MAJOR_STEPS]=15
@@ -105,7 +123,8 @@ if [[ $CONTINUE == "1" ]] ; then
     echo "Please provide the RUN-ID which you want to continue e.g. f82ba2b78256"
     exit
   fi
-  INSTANCE_NAME=`echo ${BUILD_ID}-${RUNID} | sed 's/bld/run/'`
+  INSTANCE_NAME=$(echo "${INSTANCE_NAME}" | sed "s/[^-]*$//")
+  INSTANCE_NAME=${INSTANCE_NAME}${RUNID}
   step_file=$LOG_DIR/${INSTANCE_NAME}-last-successful-step
   #Continue only if file exists
   if [[ ! -f $step_file ]]; then
