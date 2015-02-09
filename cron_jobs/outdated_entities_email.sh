@@ -24,7 +24,7 @@ for (( i = 1 ; i < ${#instance_names[@]} ; i=i+2 )) do
   time_difference=$(($current_date - $creation_date))
   #Modify time as needed
   if [[ $time_difference -gt $time_diff ]]; then
-    outdated_instances[$j]=${instance_names[$i]}
+    outdated_instances[$j]="${instance_names[$i]} ${instance_creationtime[$i]:0:10}"
     name=$(echo ${instance_names[$i]} | awk -F'-' '{print $1}' )
     #Add to the email array if not already present
     if [[ -z ${email_array[$name]} ]]; then
@@ -46,7 +46,7 @@ for (( i = 1 ; i < ${#snapshot_names[@]} ; i=i+2 )) do
   time_difference=$(($current_date - $creation_date))
   #Modify time as needed
   if [[ $time_difference -gt $time_diff ]]; then
-    outdated_snapshots[$j]=${snapshot_names[$i]}
+    outdated_snapshots[$j]="${snapshot_names[$i]} ${snapshot_creationtime[$i]:0:10}"
     name=$(echo ${snapshot_names[$i]} | awk -F'-' '{print $1}' )
     #Add to the email array if not already present
     if [[ -z ${email_array[$name]} ]]; then
@@ -71,7 +71,9 @@ for (( i = 1 ; i < ${#dangling_disks_names[@]} ; i=i+2 )) do
   time_difference=$(($current_date - $creation_date))
   #Modify time as needed
   if [[ $time_difference -gt $time_diff_disks ]]; then
-    outdated_disks[$j]=${dangling_disks_names[$i]}
+    outdated_disks[$j]="${dangling_disks_names[$i]} ${dangling_disks_creationtime[$i]:0:10}"
+    #Delete outdated dangling disks
+    gcloud compute disks delete ${dangling_disks_names[$i]} -q
     name=$(echo ${dangling_disks_names[$i]} | awk -F'-' '{print $1}' )
     #Add to the email array if not already present
     if [[ -z ${email_array[$name]} ]]; then
@@ -83,21 +85,42 @@ done
 
 #Send out the email for every unique email address
 for email in "${!email_array[@]}"; do
+  send_mail=0
   cat /dev/null > email_content
-  echo "Hi $email, The following instances are outdated consider deleting them:" >> email_content
-  for instance in "${outdated_instances[@]}"; do
-    echo "$instance" | grep "$email" >> email_content
-  done
+  echo "Hi $email," >> email_content
 
-  echo "The following disks are not attached to any instances:" >> email_content
-  for disk in "${outdated_disks[@]}"; do
-    echo "$disk" | grep "$email" >> email_content
-  done
+  user_instances=$(printf '%s\n' "${outdated_instances[@]}" | grep "$email")
+  if [[ -n $user_instances ]]; then
+    echo >> email_content
+    echo "The following instances are outdated consider deleting them:" >> email_content
+    echo -e "Name: CreationDate:\n $user_instances" | column -t >> email_content
+    echo >> email_content
+    echo "Use 'aurora rm instances <regex>' to delete the instances." >> email_content
+    send_mail=1
+  fi
 
-  echo "The following snapshots are outdated consider deleting them:" >> email_content
-  for snapshot in "${outdated_snapshots[@]}"; do
-    echo "$snapshot" | grep "$email" >> email_content
-  done
-  echo "$email@plumgrid.com"
-  cat email_content | mail -s "Gcloud Running Entities" $email@plumgrid.com
+  user_disks=$(printf '%s\n' "${outdated_disks[@]}" | grep "$email")
+  if [[ -n $user_disks ]]; then
+    echo >> email_content
+    echo "The following disks were not attached to any instance and have been deleted:" >> email_content
+    echo -e "Name: CreationDate:\n $user_disks" | column -t >> email_content
+    echo >> email_content
+    send_mail=1
+  fi
+
+  user_snapshots=$(printf '%s\n' "${outdated_snapshots[@]}" | grep "$email")
+  number_user_snapshots=$(printf '%s\n' "${outdated_snapshots[@]}" | grep "$email" | wc -l)
+  #Trigger email only if more than 2 sets of snapshots present
+  if [[ $number_user_snapshots -gt 4 ]]; then
+    echo >> email_content
+    echo "The following snapshots are outdated consider deleting them:" >> email_content
+    echo -e "Name: CreationDate:\n $user_snapshots" | column -t  >> email_content
+    echo >> email_content
+    echo "Use 'aurora rm snapshots <regex>' to delete the instances." >> email_content
+    send_mail=1
+  fi
+  if [[ $send_mail == 1 ]]; then
+    current_date=$(date +"%d %b %Y")
+    cat email_content | mail -s "Aurora Cloud Resources Usage Report ${current_date}" -c "aurora.internal@plumgrid.com" $email@plumgrid.com
+  fi
 done
