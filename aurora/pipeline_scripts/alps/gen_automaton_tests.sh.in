@@ -1,0 +1,55 @@
+#!/bin/bash
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/alps:$PATH
+source pl_help.sh
+source pl_settings.conf
+
+TEST_ITERATIONS=1
+# read the options
+TEMP=`getopt -o b:i:r:p:d:h --long base_script:,pipeline:,test_iterations:,base_script_dir:,dest_script_dir:,\help -n 'gen_test_script.sh' -- "$@"`
+eval set -- "$TEMP"
+
+# extract options and their arguments into variables.
+while true ; do
+  case "$1" in
+    -b|--base_script)
+      BASE_SCRIPT=$2 ; shift 2 ;;
+    -p|--pipeline)
+      PIPELINE=$2 ; shift 2 ;;
+    -i|--test_iterations)
+      TEST_ITERATIONS=$2 ; shift 2 ;;
+    -r|--base_script_dir)
+      BASE_SCRIPT_DIR=$2 ; shift 2;;
+    -d|--dest_script_dir)
+      DEST_SCRIPT_DIR=$2 ; shift 2 ;;
+    -h|--help)
+      #TODO
+      show_gen_test_scripts_help
+      exit 0 ;;
+    --) shift ; break ;;
+    *) exit 1 ;;
+  esac
+done
+echo "**** BASE_SCRIPT_DIR=$BASE_SCRIPT_DIR **** "
+
+if [[ $PIPELINE == "automaton-longevity" ]]; then
+  NUM_TESTS=3
+  TEST_TAG="lxc_automaton_longevity"
+elif [[ $PIPELINE == "automaton" ]]; then
+  NUM_TESTS=5
+  TEST_TAG="lxc_automaton"
+fi
+
+#Iterate over the number of tests
+for test in `seq 1 $NUM_TESTS`; do
+    #Create target script for base
+    cp ${BASE_SCRIPT_DIR}/$BASE_SCRIPT ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
+    #Only 1 test per instances so CTEST_ST=CTEST_ED=1
+    sed -i 's/CTEST_ST=[0-9]*/CTEST_ST=1/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
+    sed -i 's/CTEST_ED=[0-9]*/CTEST_ED=1/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
+    #Get the specific test number from list
+    sed -i 's/test_name=.*/test_name=$(ctest -N  -L ^type:'$TEST_TAG'$ | grep \"Test #\" | cut -d " " -f 5 | head -n '$test' | tail -n 1)/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
+    #Replace the iterations
+    sed -i 's/itr=[0-9]*/itr='${TEST_ITERATIONS}'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
+    #Replace test TAG accordingly
+    sed -i 's/\^type:[^type:]*\$ /\^type:'$TEST_TAG'\$ /' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
+done
