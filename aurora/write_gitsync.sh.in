@@ -11,6 +11,7 @@ git_script=$1
 branch=$2
 project=$3
 refspec=$4
+test_against=""
 
 APT_COMPONENT=""
 
@@ -29,6 +30,11 @@ done
 if [[ $APT_COMPONENT == "" ]]; then
   echo "Unable to find the branch -> component mapping for $branch"
   exit 1
+fi
+
+# Get the refspecs for the repos this commit need to be tested against
+if [[ "$refspec" =~ refs/changes/* ]]; then
+  test_against=$(commit_test_against)
 fi
 
 ###### Prepare to create and strt writing to the gitsync script ############
@@ -76,7 +82,7 @@ cat >> ${git_script} <<DELIM__
 DELIM__
 ## Checkout the requested branch on all the projects
 modify_git_config "\${repo}" "${gerritid}" "${git_script}"
-echo "echo \"Extracting and rebuilding \${repo} for branch ${branch}\""
+echo "echo \"Extracting and rebuilding \${repo} for branch ${branch}\"" >> "${git_script}"
 echo "cd /home/plumgrid/work/\${repo}" >> ${git_script}
 echo "git fetch" >> ${git_script}
 echo "git reset --hard origin/${branch}" >> ${git_script}
@@ -117,6 +123,15 @@ elif [[ "$refspec" != "none" ]]; then
   ##Checkout the requested branch
   echo "cd /home/plumgrid/work/${project}" >> $git_script
   echo "git checkout origin/$refspec" >> $git_script
+fi
+
+## Checkout the requested commit for test-against repository acc to commit message
+if [[ ! -z "${test_against}" ]] ; then
+  test_project=$(echo $test_against | cut -f1 -d':')
+  test_refspec=$(echo $test_against | cut -f2 -d':')
+  echo "cd /home/plumgrid/work/${test_project}" >> $git_script
+  echo "git fetch ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/${test_project} ${test_refspec}" >> $git_script
+  echo "git checkout FETCH_HEAD" >> $git_script
 fi
 
 echo "cd /home/plumgrid/work/tools/build" >> ${git_script}

@@ -1049,6 +1049,7 @@ function download_from_docker() {
   run_cmd_gci ${INSTANCE_IP} "scp -r -o StrictHostKeyChecking=no plumgrid@\`cat local_docker_ip\`:$FILE /tmp/$FILE_NAME" "tA"
   scp -o StrictHostKeyChecking=no "${USER}@${INSTANCE_IP}:/tmp/$FILE_NAME" ${DESTINATION}
 }
+
 # *****************************************************************************
 # Function: check_instance_limit
 # Purpose : Checks if the number of currently running is less than the MAX number of
@@ -1056,7 +1057,7 @@ function download_from_docker() {
 # Usage   : check_instance_limit
 # Prereq  : aurora init has been called
 # *****************************************************************************
- function check_instance_limit() {
+function check_instance_limit() {
   local CURRENT_INSTANCES=$(gcloud compute instances list --regexp "${emailid}-.*" --zones $ZONE | grep "${emailid}-" | wc -l)
   #Check against max instances allowed.
   if [[ $CURRENT_INSTANCES -lt $MAX_USER_INSTANCES ]]; then
@@ -1066,17 +1067,62 @@ function download_from_docker() {
     echo "Please delete existing instances to continue."
     exit 1
   fi
- }
+}
+
 # *****************************************************************************
 # Function: print_time_taken
 # Purpose : Prints the time duration between two intervals in HH:MM:SS format
 # Usage   : print_time_taken <start time> <end time> <step>
 # *****************************************************************************
- function print_time_taken() {
+function print_time_taken() {
   local start_time=$1
   local end_time=$2
   local step=$3
   local time_diff=$(( ${end_time}- ${start_time} ))
   printf "Total Time taken in ${step}: %02d:%02d:%02d\n" "$(( time_diff/3600 ))" "$(( (time_diff%3600)/60 ))" "$(( time_diff%60 ))"
 
-  }
+}
+
+# *****************************************************************************
+# Function: commit_test_against
+# Purpose : Use the Test-against feature in the gerrit commit to fetch code
+#           from another repository (the current code is dependent on)
+# Usage   : commit_test_against
+# *****************************************************************************
+function commit_test_against() {
+  # Try to parse the commit message, if any
+  # This environment variable is set automatically by Jenkins on a gerrit-based event
+  if [[ -n "${GERRIT_CHANGE_COMMIT_MESSAGE}" ]]; then
+    local commit_msg=$(echo "${GERRIT_CHANGE_COMMIT_MESSAGE}" | base64 -d -i)
+    # extract the last paragraph
+    local line_of_last_newline=$(echo "${commit_msg}" | awk '/^$/{line=NR;} END{if(line!="")print line}')
+    if [[ -n "${line_of_last_newline}" ]]; then
+      commit_msg=$(echo "${commit_msg}" | awk "{if(NR>${line_of_last_newline})print}")
+    fi
+
+    if [[ -n "${commit_msg}" ]]; then
+      # if something is left to parse, check whether we have branch translations
+      local matching_lines=$(echo "${commit_msg}" | grep "^Test-against: ")
+      local no_matching_lines=$(echo "${matching_lines}" | wc -l)
+      if [[ "${no_matching_lines}" -gt 1 ]]; then
+        # likely user error, fail loudly
+        echo "Too many lines (${no_matching_lines}) for pattern 'Test-against: ' inside the commit message"
+        echo "Too many lines (${no_matching_lines}) for pattern 'Test-against: ' inside the commit message. Not supported.." >> "${WORKSPACE}/status-message.log"
+        exit 1
+      fi
+
+      # actually grab the translation and print it
+      local matched_translation=$(echo "${matching_lines}" | sed "s/Test-against: //" | cut -f 1 -d' ')
+      if [[ -n "${matched_translation}" ]]; then
+        echo "${matched_translation}"
+        return 0
+      fi
+      # else just be silent in the usual case: that is, a commit
+      # message is present, but provides no branch translation
+    else
+      exit 1
+    fi
+  else
+    return 0
+  fi
+}
