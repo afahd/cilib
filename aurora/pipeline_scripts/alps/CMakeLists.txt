@@ -12,7 +12,7 @@ install_programs (/gcloud/aurora/pipeline_scripts/alps FILES "${CMAKE_CURRENT_BI
 install_programs (/gcloud/aurora/pipeline_scripts/alps FILES "${CMAKE_CURRENT_BINARY_DIR}/gen_test_scripts.sh")
 install_programs (/gcloud/aurora/pipeline_scripts/alps FILES "${CMAKE_CURRENT_BINARY_DIR}/run_pipelines.sh")
 install_programs (/gcloud/aurora/pipeline_scripts/alps FILES "${CMAKE_CURRENT_BINARY_DIR}/gen_user_tests.sh")
-install_programs (/gcloud/aurora/pipeline_scripts/alps FILES "${CMAKE_CURRENT_BINARY_DIR}/gen_automaton_tests.sh.sh")
+install_programs (/gcloud/aurora/pipeline_scripts/alps FILES "${CMAKE_CURRENT_BINARY_DIR}/gen_automaton_tests.sh")
 install_files (/gcloud/aurora/pipeline_scripts/alps FILES "${CMAKE_CURRENT_BINARY_DIR}/pl_help.sh")
 install_files (/gcloud/aurora/pipeline_scripts/alps FILES "${CMAKE_CURRENT_BINARY_DIR}/pl_settings.conf")
 install_files (/gcloud/aurora/pipeline_scripts/alps FILES "${CMAKE_CURRENT_BINARY_DIR}/base_test.sh")
