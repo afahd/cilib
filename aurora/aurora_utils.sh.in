@@ -184,9 +184,8 @@ function delete_instances() {
       exit
     fi
   fi
-  for instance in $user_instances; do
-    gcloud compute instances delete $instance -q --delete-disks all
-  done
+  user_instances=$(echo "${user_instances}" | tr '\n' ' ')
+  gcloud compute instances delete $user_instances -q --delete-disks all
 }
 
 # *****************************************************************************
@@ -213,9 +212,8 @@ function delete_snapshots() {
       exit
     fi
   fi
-  for snapshot in $user_snapshots; do
-    gcloud compute snapshots delete $snapshot -q
-  done
+  user_snapshots=$(echo "${user_snapshots}" | tr '\n' ' ')
+  gcloud compute snapshots delete $user_snapshots -q
 }
 # *****************************************************************************
 # Function: delete_disks
@@ -241,9 +239,8 @@ function delete_disks() {
       exit
     fi
   fi
-  for disk in $user_disks; do
-    gcloud compute disks delete $disk -q
-  done
+  user_disks=$(echo "${user_disks}" | tr '\n' ' ')
+  gcloud compute disks delete $user_disks -q
 }
 # *****************************************************************************
 # Function: set_max_instances

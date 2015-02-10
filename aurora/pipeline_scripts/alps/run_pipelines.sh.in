@@ -8,7 +8,7 @@ source gc_helpers.sh
 
 #Show help
 if [[ $3 == "help" ]]; then
-  show_run_tests_help
+  show_pl_help
   exit 1
 fi
 declare -A MINOR_STEPS_ST
