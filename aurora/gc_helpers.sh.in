@@ -614,7 +614,7 @@ function exec_gcloud_instances() {
       gcloud compute instances list ${name} --zones $ZONE | grep -q "${name}" || retval=$?
       if [ $retval -eq 0 ]; then
         echo "Instance:$name already exists."
-        exit 1
+        return 1
       fi
       ;;
     delete)
@@ -622,12 +622,12 @@ function exec_gcloud_instances() {
         gcloud compute instances list ${name} --zones $ZONE | grep -q "${name}" || retval=$?
         if [ $retval -ne 0 ]; then
           echo "Instance:$name does not exist."
-          exit 1
+          return 1
         fi
       ;;
     *)
       echo "Operation:$operation on Entity:Instances is invalid, Exiting"
-      exit 1
+      return 1
   esac
 
   for i in `seq 1 5`;
@@ -684,12 +684,12 @@ function exec_gcloud_snapshots() {
     gcloud compute snapshots list ${name} | grep -q "${name}" || retval=$?
     if [ $retval -ne 0 ]; then
       echo "Snapshot:$name does not exist."
-      exit 1
+      return 1
     fi
     ;;
   *)
     echo "Operation:$operation on Entity:snapshot is invalid, Exiting"
-    exit 1
+    return 1
   esac
 
   for i in `seq 1 5`;
@@ -737,7 +737,7 @@ function exec_gcloud_disks() {
       gcloud compute disks list ${name} --zones $ZONE | grep -q "${name}" || retval=$?
       if [ $retval -eq 0 ]; then
         echo "Disk:$name already exists."
-        exit 1
+        return 1
       fi
       ;;
     delete)
@@ -745,7 +745,7 @@ function exec_gcloud_disks() {
       gcloud compute disks list ${name} --zones $ZONE | grep -q "${name}" || retval=$?
       if [ $retval -ne 0 ]; then
         echo "Disk:$name does not exist."
-        exit 1
+        return 1
       fi
       ;;
     snapshot)
@@ -754,12 +754,12 @@ function exec_gcloud_disks() {
       gcloud compute snapshots list ${snapshot_name} | grep -q "${snapshot_name}" || retval=$?
       if [ $retval -eq 0 ]; then
         echo "Snapshot:$snapshot_name already exists."
-        exit 1
+        return 1
       fi
       ;;
     *)
       echo "Operation:$operation on Entity:disks is invalid, Exiting"
-      exit 1
+      return 1
   esac
 
   for i in `seq 1 5`;
@@ -835,19 +835,28 @@ function exec_gcloud_cmd {
       ;;
   *)
     echo "Entity:$entity is invalid. Exiting"
-    exit 1
+    return 1
   esac
 
 }
 
 # *****************************************************************************
 # Function: cleanup
-# Purpose : Cleans up the instances and disks in case of failure.
+# Purpose : Cleans up the instances/disks/snapshots in case of failure.
 # Usage   : cleanup
 # Prereq  :
 # *****************************************************************************
 function cleanup() {
-  gcloud compute instances delete $INSTANCE_NAME -q --delete-disks all
+  #Need to disable exit on error because some commands might fail.
+  set +e
+  #delete everything while ignoring errors.
+  gcloud compute instances delete ${INSTANCE_NAME} -q --delete-disks all
+  gcloud compute disks delete ${INSTANCE_NAME}-d1 -q
+  gcloud compute disks delete ${INSTANCE_NAME}-d2 -q
+  gcloud compute snapshots delete ${INSTANCE_NAME}-ssd1 -q
+  gcloud compute snapshots delete ${INSTANCE_NAME}-ssd2 -q
+  #Enable error checknig again.
+  set -e
 }
 
 # *****************************************************************************
