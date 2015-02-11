@@ -8,7 +8,7 @@ COMMAND:
   init                Setup aurora environment.
   build               Build a new image
   run                 Run test script on cloud instance with aurora BUILD-ID.
-  pipeline            Run smoke/extended pipeline for some particular commit.
+  pipeline            Run smoke/extended/unstable pipeline for some particular commit.
   debug-test          Run multiple iterations of specified tests on several instances.
 
   download            Download file from docker container to local machine.
@@ -158,7 +158,7 @@ HELP
 function show_pl_help() {
     cat << HELP
 USAGE: aurora pipeline -l <BUILD-ID> [OPTIONS]
-       Run smoke/extended pipeline for some particular commit
+       Run smoke/extended/unstable pipeline for some particular commit
 
 Required Arguments:
 -W, --WORKSPACE       Set the workspace where all the logs will be stored.
@@ -166,7 +166,7 @@ Required Arguments:
 
 Optional Arguments:
 -P, --pipeline        [OPTIONAL] The pipeline which you want to run.
-                      Possible values are "smoke", "extended","automaton" and "automaton-longevity".
+                      Possible values are "smoke", "extended", "unstable", "automaton" and "automaton-longevity".
                       Default is 'smoke'.
 -i, --test_iterations [OPTIONAL] Run the pipeline for the specified number of iterations.
 HELP

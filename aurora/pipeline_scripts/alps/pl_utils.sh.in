@@ -9,6 +9,8 @@ function get_db() {
     db=${SMOKE_DB}
   elif [[ $pipeline == "extended" ]]; then
     db=${EXTENDED_DB}
+  elif [[ $pipeline == "unstable" ]]; then
+    db=${UNSTABLE_DB}
   else
     echo "Unknown Pipeline"
     return 1

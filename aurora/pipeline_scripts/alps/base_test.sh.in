@@ -32,19 +32,35 @@ elif [[ $PIPELINE == "extended" ]]; then
   export EXCLUDE_UNSTABLE=1
   export EXCLUDE_UI_NON_PITA=1
   export BUILD_GUI=1
-elif [[ $PIPELINE == "DEBUG-TEST" ]]; then
+elif [[ $PIPELINE == "unstable" || $PIPELINE == "DEBUG-TEST" ]]; then
+  export BUILD_NIGHTLY=1
   unset EXCLUDE_UNSTABLE
   unset EXCLUDE_NON_NIGHTLY
-  export BUILD_NIGHTLY=1
-  export BUILD_GUI=1
 fi
+
+# Run cmake ..
 cmake ..
+# Disable ipv6
 echo 1 | sudo tee /proc/sys/net/ipv6/conf/all/disable_ipv6
+
+# If this is the last instance, determine the index of the last test that needs to be run
 if [[ "x$CTEST_ED" == "x" ]] ; then
- CTEST_ED=`ctest -N -L ^type:local$ | grep "Test " | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
+  if [[ $PIPELINE == "unstable" ]]; then
+    CTEST_ED=`ctest -N -L ^type:local$ | grep "UNSTABLE" | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
+  else
+    CTEST_ED=`ctest -N -L ^type:local$ | grep "Test " | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
+  fi
 fi
-total_tests=`ctest -N -L ^type:local$ | grep "Total Tests"`
+
+# Determine the total number of tests to be run in the given pipeline
+if [[ $PIPELINE == "unstable" ]]; then
+  unstable_test_cnt=`ctest -N -L ^type:local$ | grep "UNSTABLE" | wc -l`
+  total_tests="Total Tests: $unstable_test_cnt"
+else
+  total_tests=`ctest -N -L ^type:local$ | grep "Total Tests"`
+fi
 echo "$total_tests" > logs/total_tests
+
 # use a common, but hopefully unique prefix for the log destination
 formatted_date=$(date '+%Y%m%d-%H%M%S')
 for run in $(seq 1 $itr); do
@@ -53,7 +69,12 @@ for run in $(seq 1 $itr); do
   for testno in $(seq $CTEST_ST $CTEST_ED); do
     sudo pkill rsyslogd
     pgrep rsyslogd >> /dev/null  || $(sudo rsyslogd &)
-    test_name=$(ctest -N  -L ^type:local$ | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
+    # Dtermine the test name from the test index
+    if [[ $PIPELINE == "unstable" ]]; then
+      test_name=$(ctest -N  -L ^type:local$ | grep "UNSTABLE" | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
+    else
+      test_name=$(ctest -N  -L ^type:local$ | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
+    fi
     echo "Running $test_name"
     rm -rf /opt/pg/log/*
     touch /opt/pg/log/${test_name}

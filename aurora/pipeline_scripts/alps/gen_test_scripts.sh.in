@@ -73,6 +73,7 @@ else
     sqlite3 $DB "select id from tests order by id;" > $WORKSPACE/test_ids
     echo "No of Tests : $TestCount"
     echo "Last Test ID: $MaxTestID"
+    echo "Num of Instances: $NUM_INSTANCES"
     echo "TotalRunTime: $TotalTestRuntime"
 
     ITime=${TotalTestRuntime%.*}

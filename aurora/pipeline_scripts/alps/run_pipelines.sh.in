@@ -82,11 +82,11 @@ script_dir=$(get_script_dir $WORKSPACE $DEST_SCRIPT_DIR $PIPELINE $MOD_BUILD_ID)
 log_dir=${script_dir}/logs
 untar_log_dir=${script_dir}/untar_logs
 
-if [[ $PIPELINE == "smoke" || $PIPELINE == "extended" ]]; then
+if [[ $PIPELINE == "smoke" || $PIPELINE == "extended" || $PIPELINE == "unstable" ]]; then
   db=$(get_db $PIPELINE)
 fi
 
-#Make a decison about automaton-init.sh
+# Make a decision about automaton-init.sh
 if [[ $PIPELINE == "automaton-longevity" || $PIPELINE == "automaton" ]]; then
   OPT_RUN_ARGS="$OPT_RUN_ARGS -A"
 fi
@@ -98,11 +98,11 @@ function run_test() {
   1)
     # Generate scripts to be used by "aurora run"
     echo "Going to generate test scripts"
-    echo "gen_test_scripts.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -f ${FIRST_TEST} -t ${STEP_SIZE} -n ${NUM_INSTANCES} -d ${script_dir} -I ${INITIAL_RUN} -D ${db} -r ${BASE_SCRIPT_DIR}"
+    echo "gen_test_scripts.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -f ${FIRST_TEST} -t ${STEP_SIZE} -n ${NUM_INSTANCES} -d ${script_dir} -I ${INITIAL_RUN} -D ${db} --base_script_dir ${BASE_SCRIPT_DIR}"
     if [[ $PIPELINE == "DEBUG-TEST" ]]; then
       gen_user_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -n ${NUM_INSTANCES} -d ${script_dir} --base_script_dir $BASE_SCRIPT_DIR -s ${USER_SCRIPT}
     elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" ]]; then
-      gen_longevity_test.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -d ${script_dir} -r $BASE_SCRIPT_DIR -p $PIPELINE
+      gen_automaton_tests.sh.in -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -d ${script_dir} -r $BASE_SCRIPT_DIR -p $PIPELINE
     else
       gen_test_scripts.sh -p $PIPELINE -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -f ${FIRST_TEST} -t ${STEP_SIZE} -n ${NUM_INSTANCES} -d ${script_dir} -I ${INITIAL_RUN} -D ${db} --base_script_dir $BASE_SCRIPT_DIR
     fi

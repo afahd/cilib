@@ -1,6 +1,7 @@
 DB=@CMAKE_CURRENT_BINARY_DIR@/dbs/alps.smoke.db
 SMOKE_DB=@CMAKE_CURRENT_BINARY_DIR@/dbs/alps.smoke.db
 EXTENDED_DB=@CMAKE_CURRENT_BINARY_DIR@/dbs/alps.extended.db
+UNSTABLE_DB=@CMAKE_CURRENT_BINARY_DIR@/dbs/alps.unstable.db
 BASE_SCRIPT="base_test.sh"
 INITIAL_RUN="false"
 FORCE_DB_UPDATE="false"

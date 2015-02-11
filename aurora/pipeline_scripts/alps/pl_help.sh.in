@@ -3,19 +3,16 @@
 function show_run_tests_help() {
     cat << HELP
 -------------------------------------------------------------------------------
-USAGE: aurora pipeline -l <BUILD-ID> [OPTIONS]
-                      Run all test cases
+USAGE: aurora pipeline -l <BUILD-ID> -P <pipeline-name> [OPTIONS]
+       Run all test cases in the specified pipeline.
 
 Required Arguments:
   -l, --buildid             Build-ID against which you want to run test cases
+  -P, --pipeline            The pipeline which you want to run.
+                            Possible values are "smoke", "extended", "unstable", "automaton".
+                            (Default is 'smoke')
 
 Optional Arguments:
-  -Q, --major               [OPTIONAL] Jump to specific major step in the install process
-  -R, --minor_st            [OPTIONAL] Jump to specific minor step in the install process
-  -E, --minor_end           [OPTIONAL] Stop at this step when in debug
-  -p, --pipeline            [OPTIONAL] The pipeline which you want to run.
-                            Possible values are "smoke", "extended".
-                            Default is 'smoke'.
   -i, --test_iterations     [OPTIONAL] Number of iterations, script needs to run
                             Default is '1'.
   -f, --first_test          [OPTIONAL} Starting ctest number
