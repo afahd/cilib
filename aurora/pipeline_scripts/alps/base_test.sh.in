@@ -78,14 +78,20 @@ for run in $(seq 1 $itr); do
     echo "Running $test_name"
     rm -rf /opt/pg/log/*
     touch /opt/pg/log/${test_name}
-    ctest --output-on-failure  -L ^type:local$ -R "^${test_name}$" >& "logs/ctestout_inst${instance_no}_iter${run}_${test_name}.log"
+    #Don't append iteration/instance number in case of pipeline
+    if [[ $instance_no == 1 && $itr == 1 ]]; then
+      log_file_name="${test_name}"
+    else
+      log_file_name="ctestout_inst${instance_no}_iter${run}_${test_name}"
+    fi
+    ctest --output-on-failure  -L ^type:local$ -R "^${test_name}$" >& "logs/${log_file_name}.log"
     result="$?"
     if [[ "x$result" != "x0" ]] ; then
       echo "                 FAILED"
 
-      mv "logs/ctestout_inst${instance_no}_iter${run}_${test_name}.log" "logs/ctestout_inst${instance_no}_iter${run}_${test_name}.FAILED.log"
-      mkdir "logs/ctestout_inst${instance_no}_iter${run}_${test_name}"
-      cp -R /opt/pg/log/* "logs/ctestout_inst${instance_no}_iter${run}_${test_name}/"
+      mv "logs/${log_file_name}.log" "logs/${log_file_name}.FAILED.log"
+      mkdir "logs/${log_file_name}"
+      cp -R /opt/pg/log/* "logs/${log_file_name}/"
     fi
   done
   echo "Moving Logs to ${EXPORT_FAILURES_DIR_TMP}/logs.${formatted_date}.run${run}"

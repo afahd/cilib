@@ -139,6 +139,10 @@ function run_test() {
     if [[ $FAIL != 0 ]]; then
       #Kill the echo while loop, suppress output
       disown $echoer_pid && kill $echoer_pid
+      #Copy the aurora_run logs.
+      for file in `ls ${script_dir}/*.txt` ; do
+        grep "Run has been completed successfully" $file > /dev/null || cp $file "$WORKSPACE/logs/AURORA.RUN.FAILED.`basename ${file}`"
+      done
       echo "Aurora run exited unsuccesfully, exiting."
       exit 1
     else

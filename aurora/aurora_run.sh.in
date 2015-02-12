@@ -305,6 +305,7 @@ function run_test() {
 
 for MAJOR_STEP in $MAJOR_STEPS; do
   echo " ====== Starting STEP [$MAJOR_STEP] Number of Steps ::${MINOR_STEPS_ST[$MAJOR_STEP]} -> ${MINOR_STEPS_ED[$MAJOR_STEP]}  ======"
+  run_start_time=$(date +%s)
   for MINOR_STEP in `seq ${MINOR_STEPS_ST[$MAJOR_STEP]} ${MINOR_STEPS_ED[$MAJOR_STEP]}`; do
     echo "    === Starting STEP [$MAJOR_STEP][$MINOR_STEP] ==="
     case "$MAJOR_STEP" in
@@ -322,4 +323,6 @@ for MAJOR_STEP in $MAJOR_STEPS; do
       exit
     fi
   done
+  run_end_time=$(date +%s)
+  print_time_taken $run_start_time $run_end_time "[RUN]"
 done

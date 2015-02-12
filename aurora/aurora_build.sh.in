@@ -336,6 +336,7 @@ for MAJOR_STEP in $MAJOR_STEPS; do
   echo ""
   echo " ====== Starting STEP [$MAJOR_STEP] Number of Steps ::${MINOR_STEPS_ST[$MAJOR_STEP]} -> ${MINOR_STEPS_ED[$MAJOR_STEP]}  ======"
   echo ""
+  build_start_time=$(date +%s)
   for MINOR_STEP in `seq ${MINOR_STEPS_ST[$MAJOR_STEP]} ${MINOR_STEPS_ED[$MAJOR_STEP]}`; do
     echo ""
     echo "    === Starting STEP [$MAJOR_STEP][$MINOR_STEP] ==="
@@ -355,5 +356,7 @@ for MAJOR_STEP in $MAJOR_STEPS; do
       exit
     fi
   done
+  build_end_time=$(date +%s)
+  print_time_taken $build_start_time $build_end_time "[BUILD]"
 done
 
