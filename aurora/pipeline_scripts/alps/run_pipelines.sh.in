@@ -19,12 +19,10 @@ MINOR_STEPS_ST[run]=1
 MINOR_STEPS_ED[run]=6
 DEST_SCRIPT_DIR=0
 
-#Options arguments to forward to run
-OPT_RUN_ARGS=""
 echo "run_pipelines.sh $@"
 ARGS=$@
 # read the options
-TEMP=`getopt -o Q:R:E:l:W:s:a:i:Lc:f:P:t:n:\r:d:IFh --long major:,commit:,local-changes,WORKSPACE:,minor_start:,script:,minor_end:,buildid:,alps-path:,pipeline:,test_iterations:,first_test:,step_size:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update\help -n 'run_all_test.sh' -- "$@"`
+TEMP=`getopt -o Q:R:E:l:W:s:a:i:KLc:f:P:t:n:\r:d:IFh --long major:,keep-running,commit:,local-changes,WORKSPACE:,minor_start:,script:,minor_end:,buildid:,alps-path:,pipeline:,test_iterations:,first_test:,step_size:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update\help -n 'run_all_test.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # extract options and their arguments into variables.
@@ -47,10 +45,11 @@ while true ; do
     -d|--dest_script_dir) DEST_SCRIPT_DIR=$2 ; shift 2;;
     -I|--initial_run) INITIAL_RUN="true" ; shift ;;
     -F|--db_update) DB_UPDATE="true" ; shift ;;
+    -K|--keep-running) KEEP_RUNNING="-K"; shift ;;
 #Optional argments for local changes transfer
-    -L|--local-changes) OPT_RUN_ARGS="$OPT_RUN_ARGS -L"; shift ;;
-    -c|--commit) OPT_RUN_ARGS="$OPT_RUN_ARGS -c $2" ; shift 2 ;;
-    -a|--alps-path)   OPT_RUN_ARGS="$OPT_RUN_ARGS -a $2" ; shift 2 ;;
+    -L|--local-changes) LOCAL_CHANGES="-L"; shift ;;
+    -c|--commit) COMMIT_HASH="-c $2" ; shift 2 ;;
+    -a|--alps-path) ALPS_PATH="-a $2" ; shift 2 ;;
     -h|--help)
       show_run_tests_help
       exit 0
@@ -88,7 +87,7 @@ fi
 
 # Make a decision about automaton-init.sh
 if [[ $PIPELINE == "automaton-longevity" || $PIPELINE == "automaton" ]]; then
-  OPT_RUN_ARGS="$OPT_RUN_ARGS -A"
+  AUTOMATON_INIT="-A"
 fi
 
 function run_test() {
@@ -114,7 +113,7 @@ function run_test() {
     echo "log_dir=$log_dir script_dir=$script_dir"
     while read -r -d $'\0'; do
       #echo "aurora run -l ${USER_BUILD_ID} -s $REPLY -o ${log_dir} -S"
-      aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY $OPT_RUN_ARGS > $REPLY.txt 2>&1 &
+      aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY $KEEP_RUNNING $LOCAL_CHANGES $COMMIT_HASH $ALPS_PATH $AUTOMATON_INIT > $REPLY.txt 2>&1 &
       #Get the pid of the last background command
       pids+=("$!")
     done < <(find ${script_dir} -regextype posix-extended  -regex '^.*.sh-[0-9]+$' -print0)

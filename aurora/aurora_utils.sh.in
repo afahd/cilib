@@ -348,7 +348,7 @@ function delete_entities()
 # Prereq:   aurora init has been called.
 # *****************************************************************************
 function run_debug_test() {
-  local TEMP=`getopt -o W:l:i:n:s:La:c:h --long WORKSPACE:,buildid:,test_iterations:,num_instances:,script:,local-changes,commit:,alps-path,\help -n 'aurora.sh' -- "$@"`
+  local TEMP=`getopt -o W:l:i:n:s:KLa:c:h --long WORKSPACE:,keep-running,buildid:,test_iterations:,num_instances:,script:,local-changes,commit:,alps-path,\help -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 
 TEST_ITERATIONS=1
@@ -363,6 +363,7 @@ while true ; do
     -i|--test_iterations) TEST_ITERATIONS=$2 ; shift 2 ;;
     -s|--script) USER_SCRIPT=$2 ; shift 2 ;;
     -n|--num_instances) NUM_INSTANCES=$2 ; shift 2 ;;
+    -K|--keep-running) KEEP_RUNNING="-K" ; shift ;;
 #Optional argments for local changes transfer
     -L|--local-changes) LOCAL_CHANGES_ENABLED="1"; shift ;;
     -c|--commit) COMMIT_HASH=$2 ; shift 2 ;;
@@ -408,12 +409,12 @@ if [[ "$LOCAL_CHANGES_ENABLED" == "1" ]]; then
   else
     #Run with local changes
     run_pipelines.sh -P "DEBUG-TEST" --base_script_dir "@CMAKE_CURRENT_BINARY_DIR@/pipeline_scripts/alps/" -i $TEST_ITERATIONS -s $USER_SCRIPT\
- -n $NUM_INSTANCES -l $BUILD_ID -L -a $ALPS_PATH -c $COMMIT_HASH
+ -n $NUM_INSTANCES -l $BUILD_ID -L -a $ALPS_PATH -c $COMMIT_HASH $KEEP_RUNNING
   fi
 else
   #Run without local changes
   run_pipelines.sh -P "DEBUG-TEST" --base_script_dir "@CMAKE_CURRENT_BINARY_DIR@/pipeline_scripts/alps/" -i $TEST_ITERATIONS -s $USER_SCRIPT\
- -n $NUM_INSTANCES -l $BUILD_ID
+ -n $NUM_INSTANCES -l $BUILD_ID $KEEP_RUNNING
 fi
 
 }

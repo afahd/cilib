@@ -43,7 +43,7 @@ Optional Arguments:
                       It is also useful in case script hits some failures. Rather than running
                       whole script from scratch, --continue switch will make sure to run only those
                       steps which had hit failures or had not been run at all.
-  -k, --keep-running  Instance will be left running after aurora run ends.
+  -K, --keep-running  Instance will be left running after aurora run ends.
   -t, --tag           Add a tag to the instance name. Useful if multiple build instances for the
                       same refspec are required.
 BUILDHELP
@@ -168,6 +168,7 @@ Optional Arguments:
 -P, --pipeline        [OPTIONAL] The pipeline which you want to run.
                       Possible values are "smoke", "extended", "unstable", "automaton" and "automaton-longevity".
                       Default is 'smoke'.
+-K, --keep-running    [OPTIONAL] Instance will be left running after aurora run ends.
 -i, --test_iterations [OPTIONAL] Run the pipeline for the specified number of iterations.
 HELP
 }
@@ -203,6 +204,7 @@ Required Arguments:
 
 Optional Arguments:
   -W, --WORKSPACE         Set the workspace where all the logs will be stored.
+  -K, --keep-running      Instance will be left running after aurora run ends.
   -i, --test_iterations   Specify the number of iterations for the tests.
                           Default=1
   -n, --num_instances     Run concurrently on the specified number of instances.
