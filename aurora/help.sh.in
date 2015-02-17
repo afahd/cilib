@@ -209,16 +209,16 @@ Optional Arguments:
                           Default=1
   -n, --num_instances     Run concurrently on the specified number of instances.
                           Default=1
-  -L, --local changes     Flag to represent that you want to transfer local changes to the cloud instance.
+
+  -c, --commit            SHA-1 HASH of the commit to apply
+                          Supplying this arguments enables the transfer of local changes to the cloud instance.
                           The changes can be specified by the SHA-1 hash of a local commit.
                           All changes up to that commit are applied on the instance on the corresponding
                           branch.
-                          NOTE: You must supply --commit in conjunction with this flag (-a is optional).
-  -c, --commit            SHA-1 HASH of the commit to apply (supposed to be used with -L flag only)
-  -a, --alps-path         Path to the local alps repository (supposed to be used with -L flag only)
+  -a, --alps-path         Optionally specify the path to the local alps repository
                           Default is /home/${USER}/work/alps
 
 EXAMPLE:
-  aurora debug-test -l bld-stable-4-0 -s /home/plumgrid/test1.txt -L -c c4c2dd54897c4f2c090a794c567ead550e9ff2f1
+  aurora debug-test -l bld-stable-4-0 -s /home/plumgrid/test1.txt -c c4c2dd54897c4f2c090a794c567ead550e9ff2f1
 HELP
 }

@@ -32,7 +32,7 @@ KEEP_RUNNING=0
 LOCAL_CHANGES=0
 
 # read the options
-TEMP=`getopt -o l:s:o:n:t:W:CAKhLc:a:R:E: --long buildid:,tag:,script:,log_dir:,runid:,WORKSPACE:,\continue,automaton-init,keep-running,\help,\local-changes,commit:,alps-path:,minor_st:,minor_end: -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o l:s:o:n:t:W:CAKhc:a:R:E: --long buildid:,tag:,script:,log_dir:,runid:,WORKSPACE:,\continue,automaton-init,keep-running,\help,commit:,alps-path:,minor_st:,minor_end: -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 while true ; do
   case "$1" in
@@ -48,7 +48,6 @@ while true ; do
     -K| --keep-running ) KEEP_RUNNING=1; shift ;;
     -h| --help ) show_run_help;exit 0; shift ;;
 #Local changes flags
-    -L| --local-changes) LOCAL_CHANGES=1; shift ;;
     -c| --commit) COMMIT_ID=$2; shift 2;;
     -a| --alps-path) ALPS_PATH=$2; shift 2;;
 #Start-End steps
@@ -195,7 +194,7 @@ function run_test() {
     ;;
 
   6)
-    if [[ $LOCAL_CHANGES == 1 ]]; then
+    if [[ -n "$COMMIT_ID" ]]; then
       tryexec push_local_changes ${INSTANCE_IP} ${COMMIT_ID} ${ALPS_PATH}
       tryexec make_install_alps ${INSTANCE_IP} "/tmp/make_install_alps.log"
       retryexec run_poll_cmd ${INSTANCE_IP} "make_install_alps.sh" "/tmp/make_install_alps.log" "1"

@@ -348,12 +348,11 @@ function delete_entities()
 # Prereq:   aurora init has been called.
 # *****************************************************************************
 function run_debug_test() {
-  local TEMP=`getopt -o W:l:i:n:s:KLa:c:h --long WORKSPACE:,keep-running,buildid:,test_iterations:,num_instances:,script:,local-changes,commit:,alps-path,\help -n 'aurora.sh' -- "$@"`
+  local TEMP=`getopt -o W:l:i:n:s:Ka:c:h --long WORKSPACE:,keep-running,buildid:,test_iterations:,num_instances:,script:,commit:,alps-path,\help -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 
 TEST_ITERATIONS=1
 NUM_INSTANCES=1
-LOCAL_CHANGES_ENABLED=0
 ALPS_PATH=/home/${USER}/work/alps
 # extract options and their arguments into variables.
 while true ; do
@@ -365,7 +364,6 @@ while true ; do
     -n|--num_instances) NUM_INSTANCES=$2 ; shift 2 ;;
     -K|--keep-running) KEEP_RUNNING="-K" ; shift ;;
 #Optional argments for local changes transfer
-    -L|--local-changes) LOCAL_CHANGES_ENABLED="1"; shift ;;
     -c|--commit) COMMIT_HASH=$2 ; shift 2 ;;
     -a|--alps-path) ALPS_PATH=$2 ; shift 2 ;;
     -h|--help)
@@ -386,7 +384,7 @@ if [[ -z "$BUILD_ID" || -z "$USER_SCRIPT"  ]]; then
 fi
 check_file_existence "$USER_SCRIPT"
 
-if [[ "$LOCAL_CHANGES_ENABLED" == "1" ]]; then
+if [[ -n "$COMMIT_HASH" ]]; then
   #Check if ALPS_PATH is correct
   local retval=0
   git rev-parse --resolve-git-dir $ALPS_PATH/.git || retval=$?
@@ -401,16 +399,9 @@ if [[ "$LOCAL_CHANGES_ENABLED" == "1" ]]; then
     echo "Not a valid commit. Please enter a valid commit."
     exit 1
   fi
-
-  if [[ -z "$COMMIT_HASH" ]]; then
-    echo "Missing required argument for transferring local changes"
-    show_debug_test_help
-    exit 1
-  else
     #Run with local changes
     run_pipelines.sh -P "DEBUG-TEST" --base_script_dir "@CMAKE_CURRENT_BINARY_DIR@/pipeline_scripts/alps/" -i $TEST_ITERATIONS -s $USER_SCRIPT\
- -n $NUM_INSTANCES -l $BUILD_ID -L -a $ALPS_PATH -c $COMMIT_HASH $KEEP_RUNNING
-  fi
+ -n $NUM_INSTANCES -l $BUILD_ID -a $ALPS_PATH -c $COMMIT_HASH $KEEP_RUNNING
 else
   #Run without local changes
   run_pipelines.sh -P "DEBUG-TEST" --base_script_dir "@CMAKE_CURRENT_BINARY_DIR@/pipeline_scripts/alps/" -i $TEST_ITERATIONS -s $USER_SCRIPT\
