@@ -128,6 +128,7 @@ function push_local_changes() {
   local BRANCH=$(git branch --contains $COMMIT_ID | cut -d ' ' -f 2)
   run_cmd_gci ${INSTANCE_IP} "git config  -f /home/plumgrid/work/alps/.git/config receive.denyCurrentBranch ignore"
   local local_file=$(mktemp /tmp/ssh-command-XXXXX)
+  echo "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o CheckHostIP=no \$*" > ${local_file}
   #Has to be executable
   chmod +x $local_file
   #Push the changes
@@ -349,10 +350,10 @@ function make_install_alps() {
   echo "cd /home/plumgrid/work/alps/build;" >> ${local_file}
   echo "cmake ..;" >> ${local_file}
   echo "make -j4 install" >> ${local_file}
-  tryexec upload ${INSTANCE_IP}  ${local_file} ${local_file}
   #File name needs to be constant for continue functionality, thus renaming.
   local instance_file=/tmp/$(basename $local_file)
   local renamed_file=/tmp/make_install_alps.sh
+  tryexec upload ${INSTANCE_IP}  ${local_file} ${instance_file}
   tryexec run_cmd_gci ${INSTANCE_IP} "mv ${instance_file} ${renamed_file}"
   rm ${local_file}
   tryexec run_bg_cmd ${INSTANCE_IP} "${renamed_file}" "/bin/bash ${renamed_file}" "$LOG_FILE"
