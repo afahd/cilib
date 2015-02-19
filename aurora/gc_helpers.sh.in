@@ -8,7 +8,7 @@ if [[ -z "${WORKSPACE}" ]]; then
   if [[ ! -d /tmp/logs ]]; then
     mkdir /tmp/logs
   fi
-  WORKSPACE=/tmp
+  export WORKSPACE=/tmp
 fi
 if [[ ! -d "${WORKSPACE}/logs" ]] ; then
   mkdir -p ${WORKSPACE}/logs
