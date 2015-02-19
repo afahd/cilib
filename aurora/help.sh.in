@@ -13,8 +13,9 @@ COMMAND:
 
   download            Download file cloud instance to local machine.
   upload              Upload file to cloud instance from local machine.
-  rm                  Deletes the ENTITY containing value in REGEX
   ls                  List all currently active cloud instances or snapshots
+  cp                  Create a copy of other user's build.
+  rm                  Deletes the ENTITY containing value in REGEX
   login               Login to the specified INSTANCE
   load                Shows the resources used by all users.
 
@@ -125,6 +126,8 @@ USAGE: aurora ls <ENTITY>
                       instances: Lists all the instances running.
                       snapshots: Lists all the snapshots.
                       build: Lists the build-ids and their corresponding RefSpec.
+                             To see "builds" created by other user, give their
+                             email id as parameter. e.g. "aurora ls build alir"
                       run: Lists the run instances and the corresponding build-ids.
                       disks: Lists the disks not attached to instances.
                       Default is instances.
@@ -145,6 +148,23 @@ Options:
 HELP
 }
 
+function show_cp_help() {
+   cat << HELP
+
+USAGE: aurora cp <ENTITY> <SRC_USER_EMAIL> <ENTITIY-NAME>
+       Copy the entitiy created by another user
+
+  ENTITY              "build" is only supported value right now.
+  SRC_USER_EMAIL      PLUMgrid email-id of user whose entity you want to copy.
+                      "@plumgrid.com" part is NOT needed.
+  ENTITY_NAME         NAME of the entity which you want to copy.
+
+e.g "aurora cp build ahsanr bld-stable-4-0"
+NOTE: To see "builds" created by other user, give their email id as parameter.
+"aurora ls build alir"
+
+HELP
+}
 function show_login_help() {
    cat << HELP
 USAGE: aurora login <INSTANCE-NAME>

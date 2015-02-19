@@ -14,6 +14,8 @@ case $1 in
       list_entities ${@:2} ;;
     rm)
       delete_entities ${@:2} ;;
+    cp)
+      cp_entities ${@:2} ;;
     login)
       login_instance ${@:2} ;;
     build)

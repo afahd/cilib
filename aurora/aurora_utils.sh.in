@@ -60,11 +60,13 @@ function list_instances() {
   local instance_status=($(echo "$instance_list" | grep status))
   local instance_creationtime=($(echo "$instance_list" | grep creationTimestamp))
   local instance_internalip=($(echo "$instance_list" | grep "networkIP"))
-  printf "%-35s %-30s %-20s %-20s\n" "Name" "Creation Time" "Internal IP" "Status"
+  echo "-----------------------------------------------------------------------------------------"
+  printf "%-30s %-30s %-20s %-20s\n" "Name" "Creation Time" "Internal IP" "Status"
+  echo "-----------------------------------------------------------------------------------------"
   for (( i = 1 ; i < ${#instance_names[@]} ; i=i+2 )) do
-    printf "%-35s %-30s %-20s %-20s\n" ${instance_names[$i]} ${instance_creationtime[$i]} ${instance_internalip[$i]} ${instance_status[$i]}
+    printf "%-30s %-30s %-20s %-20s\n" ${instance_names[$i]} ${instance_creationtime[$i]} ${instance_internalip[$i]} ${instance_status[$i]}
   done
-  echo "------------------------------------------------"
+  printf "\n"
 }
 
 # *****************************************************************************
@@ -80,11 +82,13 @@ function list_snapshots() {
   local snapshot_status=($(echo "$snapshot_list" | grep status))
   local snapshot_size=($(echo "$snapshot_list" | grep diskSizeGb))
   local snapshot_creationtime=($(echo "$snapshot_list" | grep creationTimestamp))
+  echo "---------------------------------------------------------------------------"
   printf "%-25s %-10s %-30s %-20s\n" "Name" "Size(GB)" "CreationTime" "Status"
+  echo "---------------------------------------------------------------------------"
   for (( i = 1 ; i < ${#snapshot_names[@]} ; i=i+2 )) do
     printf "%-25s %-10s %-30s %-20s\n" ${snapshot_names[$i]} ${snapshot_size[$i]} ${snapshot_creationtime[$i]} ${snapshot_status[$i]}
   done
-  echo "------------------------------------------------"
+  printf "\n"
 }
 # *****************************************************************************
 # Function: list_buildids
@@ -93,17 +97,21 @@ function list_snapshots() {
 # Prereq: Aurora init has been called.
 # *****************************************************************************
 function list_buildids() {
-  echo "Listing build-ids for the user:$emailid"
-  local snapshot_list=$(gcloud compute snapshots list --format=text --sort-by=creationTimestamp --regexp "${emailid}-.*-ssd2" | sed -e "s/${emailid}-//" | sed -e "s/-ssd2//g" )
+  local EMAILID=$1
+
+  echo "Listing build-ids for the user:$EMAILID"
+  local snapshot_list=$(gcloud compute snapshots list --format=text --sort-by=creationTimestamp --regexp "${EMAILID}-.*-ssd2" | sed -e "s/${EMAILID}-//" | sed -e "s/-ssd2//g" )
   local snapshot_names=($(echo "$snapshot_list" | grep name))
   local snapshot_status=($(echo "$snapshot_list" | grep status))
   local snapshot_creationtime=($(echo "$snapshot_list" | grep creationTimestamp))
-  printf "%-20s %-30s %-30s %-10s\n" "Refspec/Branch" "Build-id" "CreationTime" "Status"
+  echo "-----------------------------------------------------------------------------------------"
+  printf "%-30s %-20s %-30s %-10s\n" "Build-id" "Refspec/Branch" "CreationTime" "Status"
+  echo "-----------------------------------------------------------------------------------------"
   for (( i = 1 ; i < ${#snapshot_names[@]} ; i=i+2 )) do
     local refspec=$(echo "${snapshot_names[$i]}" | sed -e "s/.*bld-//g" )
-    printf "%-20s %-30s %-30s %-10s\n" "$refspec" "${snapshot_names[$i]}" "${snapshot_creationtime[$i]}" "${snapshot_status[$i]}"
+    printf "%-30s %-20s %-30s %-10s\n" "${snapshot_names[$i]}" "$refspec" "${snapshot_creationtime[$i]}" "${snapshot_status[$i]}"
   done
-  echo "------------------------------------------------"
+  printf "\n"
 }
 # *****************************************************************************
 # Function: list_runids
@@ -123,7 +131,6 @@ function list_runids() {
     buildid=${buildid%-$runid}
     printf "%-15s %-40s %-10s\n" ${runid} ${buildid} "${instance_status[$i]}"
   done
-  echo "------------------------------------------------"
 }
 # *****************************************************************************
 # Function: list_disks
@@ -294,6 +301,7 @@ function list_entities()
     exit 1
   fi
 
+  local EMAILID=${2:-$emailid}
   case $1 in
     instances|"")
       list_instances ;;
@@ -302,7 +310,7 @@ function list_entities()
     run)
       list_runids ;;
     build)
-      list_buildids ;;
+      list_buildids $EMAILID;;
     disks)
       list_disks ;;
     *)
@@ -341,6 +349,33 @@ function delete_entities()
       show_rm_help;;
   esac
 }
+
+# *****************************************************************************
+# Function: cp_entities
+# Purpose : Copy an entity created by some other user
+# Usage   : cp_entities <entity type> <entitiy_name>
+# *****************************************************************************
+function cp_entities()
+{
+  if [[ $1 == "help" || $# -lt 2 ]]; then
+    show_cp_help
+    exit 1
+  fi
+
+  if [[ -z "${gerritid}" || -z "${emailid}"  ]]; then
+    echo "gerritid or email not set, please run aurora init"
+    exit 1
+  fi
+
+  case $1 in
+    build)
+      cp_build $2 $3 ;;
+    *)
+      echo "Invalid entity for aurora cp"
+      show_cp_help;;
+  esac
+}
+
 # *****************************************************************************
 # Function: run_debug_test
 # Purpose : Parses the options for debug-test for local and non-local changes
@@ -408,4 +443,50 @@ else
  -n $NUM_INSTANCES -l $BUILD_ID $KEEP_RUNNING
 fi
 
+}
+
+# *****************************************************************************
+# Function: cp_build
+# Purpose : Copy a particular build created by some other user.
+# Usage   : cp_build <SRC_USER_EMAIL> <SRC_BUILD_ID>
+# *****************************************************************************
+function cp_build() {
+  # SRC_BUILD_ID=bld-stable-4-0 and SRC_USER_EMAIL=ahsanr@plumgrid.com
+  # disk1=ahsanr-bld-stable-4-0-d1   and disk2=ahsanr-bld-stable-4-0-d2
+  # ssd1 =ahsanr-bld-stable-4-0-ssd1 and ssd2 =ahsanr-bld-stable-4-0-ssd2
+  local SRC_USER_EMAIL=$1
+  local SRC_BUILD_ID=$2
+
+  local mod_src_user_email=${SRC_USER_EMAIL%@*}   # ahsanr
+  local complete_src_build_id=${mod_src_user_email}-${SRC_BUILD_ID} # ahsanr-bld-stable-4-0
+  local mod_my_emailid=${emailid%@*}
+  local my_build_id=${mod_my_emailid}-${SRC_BUILD_ID} # tahir-bld-stable-4-0
+  local my_disk1=${my_build_id}-d1
+  local my_disk2=${my_build_id}-d2
+  local my_ssd1=${my_build_id}-ssd1
+  local my_ssd2=${my_build_id}-ssd2
+
+  # TODO: Return if src build-id does not exist
+  # *******************
+  # Create disk from source snapshot
+  # *******************
+  echo "Create disk from source snapshot"
+  exec_gcloud_cmd disks create "${my_disk1}" \
+      --source-snapshot "${complete_src_build_id}-ssd1" --type "$DISK_TYPE" --size="$DISK1_SIZE" -q
+  exec_gcloud_cmd disks create "${my_disk2}" \
+      --source-snapshot "${complete_src_build_id}-ssd2" --type "$DISK_TYPE" --size="$DISK2_SIZE" -q
+
+  # *******************
+  # Create destination snapshot from disk
+  # *******************
+  echo "Create destination snapshot from disk"
+  exec_gcloud_cmd disks snapshot ${my_disk2} --snapshot-names ${my_ssd2}
+  exec_gcloud_cmd disks snapshot ${my_disk1} --snapshot-names ${my_ssd1}
+
+  # *******************
+  # Delete my intermediate disks
+  # *******************
+  echo "Deleting intermediate disks"
+  exec_gcloud_cmd disks delete ${my_disk1} -q
+  exec_gcloud_cmd disks delete ${my_disk2} -q
 }
