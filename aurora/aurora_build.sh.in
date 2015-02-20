@@ -26,7 +26,7 @@ declare -A MINOR_STEPS_ST
 declare -A MINOR_STEPS_ED
 MAJOR_STEPS="build"
 MINOR_STEPS_ST[build]=1
-MINOR_STEPS_ED[build]=17
+MINOR_STEPS_ED[build]=19
 
 CONTINUE=0
 
@@ -65,7 +65,7 @@ fi
 #keep_running equalling 1 means -k was specified, end step should be 1 less.
 if [[ $KEEP_RUNNING == "1" ]]; then
   # MINOR_STEPS_ED[build]=MINOR_STEPS_ED[build]-1
-  MINOR_STEPS_ED[build]=16
+  MINOR_STEPS_ED[build]=18
 fi
 
 #Generating Instance name piece by piece
@@ -245,6 +245,25 @@ function build_image() {
     ;;
 
   13)
+    # Checks the elfsurgeon files
+    if [[ "$PROJECT" == "alps" ]];then
+      echo "make alps and check elfsurgeon files"
+      tryexec check_elfsurgeon ${INSTANCE_IP} "/tmp/check_elfsurgeon.log"
+      record_step $step $step_file
+    fi
+    ;;
+
+  14)
+    # Adding polling as a separate step, so that if the connection broke at the previous step.
+    if [[ "$PROJECT" == "alps" ]];then
+      echo "Polling make for alps and checking elfsurgeon files (tailing \"/tmp/check_elfsurgeon.log\" for complete logs)"
+      retryexec run_poll_cmd ${INSTANCE_IP} "check_elfsurgeon.sh" "/tmp/check_elfsurgeon.log" "1"
+      download ${INSTANCE_IP} "/tmp/check_elfsurgeon.log" "${WORKSPACE}/logs/"
+      record_step $step $step_file
+    fi
+    ;;
+
+  15)
     echo "Starting build-all.sh for ${APT_COMPONENT}==="
     # Restart the lxc-net service
     run_cmd_gci ${INSTANCE_IP} "sudo ifconfig lxcbr0 down"
@@ -255,7 +274,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  14)
+  16)
     # Adding polling as a separate step, so that if the connection broke at the previous step,
     # this step can be run directly to see if the previous command is still running
     echo "Polling for build-all (tailing \"/tmp/build_all.log\" for complete logs)"
@@ -264,7 +283,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  15)
+  17)
     BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${emailid}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
     tryexec run_cmd_gci ${INSTANCE_IP} "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
@@ -278,7 +297,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  16)
+  18)
     #Flushing the disk buffers
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo sync"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f / || true"
@@ -288,7 +307,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  17)
+  19)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     rm $step_file
