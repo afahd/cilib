@@ -711,7 +711,7 @@ function tryexec() {
 # *****************************************************************************
 function retryexec() {
   retry=1
-  until [[ $retry == "5" ]]
+  until [[ $retry == "10" ]]
   do
      echo "Try $retry for command "
      echo "  $@"
@@ -721,7 +721,7 @@ function retryexec() {
        break
      fi
      let retry++
-     if [[ $retry == "5" ]]; then
+     if [[ $retry == "10" ]]; then
        echo "Command $@ failed"
        echo "$(basename $0) Failed, do you want to cleanup the instances?"
        read -r -p "Are you sure you want to continue? (y/N)" response
@@ -734,7 +734,7 @@ function retryexec() {
          exit 1
        fi
      fi
-     echo "Command $@ Failed on try $retry : Will try again, restarting ssh-agent befor retrying"
+     echo "Command $@ Failed on try $retry : Will try again, restarting ssh-agent before retrying"
      pkill "ssh-agent" || true
   done
 }
