@@ -152,7 +152,7 @@ function wait_for_instance() {
   for i in `seq 1 60`;
     do
       echo "Trying to ssh to ${INSTANCE_NAME} Iteration [$i]"
-      run_cmd_gci ${INSTANCE_IP} "ls" >> ${WORKSPACE}/logs/build_image.2.log 2>&1  && RESULT=0 && break
+      run_cmd_gci ${INSTANCE_IP} "exit" 2>&1  && RESULT=0 && break
       sleep 1
     done
   return $RESULT
@@ -169,7 +169,7 @@ function check_ssh_server_status() {
 
   for i in `seq 1 60`;
     do
-      ssh -tA  -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o CheckHostIP=no ${_USER}@$INSTANCE_IP ls >> ${WORKSPACE}/logs/build_image.3.log  2>&1 && RESULT=0 && break
+      ssh -tA  -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o CheckHostIP=no ${_USER}@$INSTANCE_IP "exit" && RESULT=0 && break
       sleep 1
     done
   return $RESULT

@@ -54,7 +54,6 @@ while true ; do
 done
 
 mkdir -p ${WORKSPACE}/logs
-echo "aurora_build.sh started with [aurora_build.sh  $ARGS]" > ${WORKSPACE}/logs/aurora_build_command
 
 #Check required Arguments
 if [[ -z "$BRANCH" || -z "PROJECT" ]]; then

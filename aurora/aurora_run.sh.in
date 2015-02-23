@@ -70,7 +70,7 @@ fi
 
 mkdir -p $LOG_DIR
 echo "Logs will be stored in $LOG_DIR"
-echo "aurora_run.sh started with [aurora_run.sh  $ARGS]" > ${WORKSPACE}/logs/aurora_run_command_$SUUID
+echo "aurora_run.sh started with [aurora_run.sh  $ARGS]" > $LOG_DIR/aurora_run_command_$SUUID
 
 BUILD_ID=${emailid}-${BUILD_ID}
 MOD_BUILD_ID=$(echo ${BUILD_ID} | sed 's/bld/run/')
@@ -257,6 +257,7 @@ function run_test() {
   12)
     echo "Downloading logs in ${LOG_DIR} directory"
     tryexec get_latest_logs ${INSTANCE_IP} ${INSTANCE_NAME} ${LOG_DIR}
+    printf "\n\n********* Run has been completed successfully. Please see all logs in ${LOG_DIR} direcotry *********\n\n"
     record_step $step $step_file
     ;;
 
@@ -264,7 +265,6 @@ function run_test() {
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     rm $step_file
-    printf "\n\n********* Run has been completed successfully. Please see all logs in ${LOG_DIR} direcotry *********\n\n"
     ;;
 
   *)

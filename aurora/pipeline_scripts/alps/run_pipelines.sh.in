@@ -61,7 +61,6 @@ while true ; do
 done
 
 mkdir -p ${WORKSPACE}/logs
-echo "run_pipelines.sh $ARGS" > ${WORKSPACE}/logs/aurora_pipeline_command
 echo " ***** WORKSPACE=${WORKSPACE} ***** "
 
 echo "**** BASE_SCRIPT_DIR=$BASE_SCRIPT_DIR **** "
@@ -79,6 +78,8 @@ MOD_BUILD_ID=`echo ${BUILD_ID} | sed 's/bld/run/'`
 script_dir=$(get_script_dir $WORKSPACE $DEST_SCRIPT_DIR $PIPELINE $MOD_BUILD_ID)
 log_dir=${script_dir}/logs
 untar_log_dir=${script_dir}/untar_logs
+
+echo "run_pipelines.sh $ARGS" > $log_dir/aurora_pipeline_command
 
 if [[ $PIPELINE == "smoke" || $PIPELINE == "extended" || $PIPELINE == "unstable" ]]; then
   db=$(get_db $PIPELINE)
@@ -141,8 +142,8 @@ function run_test() {
       for file in `ls ${script_dir}/*.txt` ; do
         grep "Run has been completed successfully" $file > /dev/null || cp $file "$WORKSPACE/logs/AURORA.RUN.FAILED.`basename ${file}`"
       done
-      echo "Aurora run exited unsuccesfully, exiting."
-      exit 1
+      echo "Some aurora runs exited unsuccesfully."
+      status=1
     else
       #Kill the echo while loop, suppress output
       disown $echoer_pid && kill $echoer_pid
@@ -153,14 +154,18 @@ function run_test() {
   4)
     # Start collecting logs
     echo "Copying all logs to ${WORKSPACE}/logs directory"
-    find ${log_dir} -name "*${MOD_BUILD_ID}*.tar" -type f -exec tar xf {} -C ${untar_log_dir} \;
+    find ${log_dir} -name "*${MOD_BUILD_ID}*.tar" -type f -exec tar xf {} -C ${untar_log_dir} \; -exec rm {} \;
     ;;
 
   5)
     # Generate failed test case report.
     num_failures=$(find ${untar_log_dir} -name "*FAILED.log" | wc -l)
-    test_count=( $(find ${untar_log_dir} -name "total_tests" -type f))
-    num_total_tests=$(cat "${test_count}" | grep 'Total Tests: ' | cut -f 3 -d ' ')
+    test_count=$(find ${untar_log_dir} -name "total_tests" -type f)
+    #Get total tests ran
+    local num_total_tests=0
+    for file in ${test_count[@]}; do
+      num_total_tests=$((`cat $file`+$num_total_tests))
+    done
     time_taken=$(print_time_taken $start_time $end_time "running aurora-$PIPELINE tests")
     # Write to status file in case of failures
     if [[ ${num_failures} -gt 0 ]]; then
@@ -176,37 +181,22 @@ __HEREDOC
       for test_name in ${failed_list[@]}; do
         test_name=$(basename "$test_name")
         test_name=$(echo "$test_name" | sed 's/ctestout_inst.*_iter[0-9]\+_//' | sed 's/.FAILED.log//' )
+        test_name=$(echo "$test_name" | sed 's/UNSTABLE_//')
         echo "$test_name" >> "${WORKSPACE}/failing-list.log"
       done
     fi
     ;;
 
   6)
-    num_failures=$(find ${untar_log_dir} -name "*FAIL*" | wc -l)
+    num_failures=$(find ${untar_log_dir} -name "*FAILED.log" | wc -l)
     echo "num_failures=$num_failures"
     mkdir -p ${WORKSPACE}/test_logs
     # find all the failed files and copy them to the WORKSPACE
-    for file in `find ${untar_log_dir} -name "*FAIL*"`; do
+    for file in `find ${untar_log_dir} -name "*FAIL*" -o -name "*.tar.gz"`; do
         base_file=`basename $file`
-        base_dir=`dirname $file`
-        test_name=${base_file#ctestout_iter1_}
-        cp $file $WORKSPACE/test_logs/$test_name
-        log_dir=${file%.FAILED.log}
-        tar cfz "${WORKSPACE}/test_logs/${test_name}.tar.gz" -C $WORKSPACE/ ${log_dir#$WORKSPACE/}
-    done
-    for file in `ls ${script_dir}/*.txt` ; do
-        grep "Run has been completed successfully" $file > /dev/null || cp $file "$WORKSPACE/test_logs/AURORA.RUN.FAILED.`basename ${file}`"
+        mv $file $WORKSPACE/test_logs/$base_file
     done
 
-
-    mv ${WORKSPACE}/logs/* ${script_dir}/logs || true
-    rm -rf ${WORKSPACE}/logs
-    mv ${WORKSPACE}/test_logs  ${WORKSPACE}/logs
-
-    tar czf $script_dir.tar.gz -C $WORKSPACE/ ${script_dir#$WORKSPACE/}
-    mv $script_dir.tar.gz ${WORKSPACE}/logs
-
-    status=0
     if [[ $num_failures -eq 0 && $DB_UPDATE == "true" ]];then
       # Update database
       echo "Update database ${db} from ${untar_log_dir}"
@@ -215,7 +205,14 @@ __HEREDOC
       printf "\n\n******* Updation of database has been completed. Please see ${untar_log_dir}/DB_REPORT.txt ******\n\n"
     fi
 
-    if [[ $num_failures -eq 0 ]]; then
+    rm -rf ${untar_log_dir}
+
+    mv ${WORKSPACE}/test_logs  ${WORKSPACE}/logs
+
+    tar czf $script_dir.tar.gz -C $WORKSPACE/ ${script_dir#$WORKSPACE/}
+    mv $script_dir.tar.gz ${WORKSPACE}/logs/aurora_infra_logs.tar.gz
+
+    if [[ $num_failures -eq 0 && -z $status ]]; then
       status=0
     else
       status=1
