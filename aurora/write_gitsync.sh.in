@@ -42,71 +42,68 @@ fi
 ## Prepare the git script to write into
 echo "Writing to the $git_script script"
 cat /dev/null > ${git_script}
-echo "#!/bin/bash -e" >> ${git_script}
-echo "set -e" >> ${git_script}
-echo ". /opt/pg/env/alps.bashrc" >> ${git_script}
-echo "step=\$1" >> ${git_script}
-echo "repo=\$2" >> ${git_script}
-
 # STEP-1: cleanup
-cat >> ${git_script} <<DELIM__
-case \$step in
-  cleanup)
-DELIM__
 #GPG keys expire after ~10 days, after which /opt/pg/var/www needs to
 #be nuked for master as well and fresh build-all.sh needs to be run
-echo "echo 'Performing cleanup'" >> ${git_script}
-echo "sudo rm -rf /opt/pg/var/www/*" >> ${git_script}
+cat >> ${git_script} <<DELIM__
+#!/bin/bash -e
+set -e
+. /opt/pg/env/alps.bashrc
+step=\$1
+repo=\$2
+case \$step in
+  cleanup)
+echo 'Performing cleanup'
+sudo rm -rf /opt/pg/var/www/*
+DELIM__
 for p in ${PROJECT_LIST[@]}; do
-  echo "cd /home/plumgrid/work/${p}/build && sudo rm -rf *" >> ${git_script}
+  cat >> ${git_script} <<DELIM__
+cd /home/plumgrid/work/${p}/build && sudo rm -rf *
+DELIM__
 done
-echo "rm -rf /opt/pg/systest" >> ${git_script}
 
 # STEP-2: Fetch tools
 cat >> ${git_script} <<DELIM__
+rm -rf /opt/pg/systest
     ;;
   tools)
 DELIM__
 ## Update and install the tools in the snapshot in case some new packages were added.
 modify_git_config "tools" "${gerritid}" "${git_script}"
-echo "echo 'Extracting and rebuild tools'"  >> ${git_script}
-echo "cd /home/plumgrid/work/tools" >> ${git_script}
-echo "git fetch" >> ${git_script}
-echo "git checkout master"  >> ${git_script}
-echo "git reset --hard origin/master" >> ${git_script}
-
-# STEP-3: Fetch all repos
 cat >> ${git_script} <<DELIM__
+echo 'Extracting and rebuild tools'
+cd /home/plumgrid/work/tools
+git fetch
+git checkout master
+git reset --hard origin/master
     ;;
   all_repos)
 DELIM__
 ## Checkout the requested branch on all the projects
 modify_git_config "\${repo}" "${gerritid}" "${git_script}"
-echo "echo \"Extracting and rebuilding \${repo} for branch ${branch}\"" >> "${git_script}"
-echo "cd /home/plumgrid/work/\${repo}" >> ${git_script}
-echo "git fetch" >> ${git_script}
-echo "git reset --hard origin/${branch}" >> ${git_script}
-echo "git checkout ${branch}" >> ${git_script}
-echo "git reset --hard origin/${branch}" >> ${git_script}
-
-# Step-4: Fetch iovisor
 cat >> ${git_script} <<DELIM__
+echo "Extracting and rebuilding \${repo} for branch ${branch}"
+cd /home/plumgrid/work/\${repo}
+git fetch
+git reset --hard origin/${branch}
+git checkout ${branch}
+git reset --hard origin/${branch}
     ;;
   iovisor)
 DELIM__
 ## Update and install iovisor.
 modify_git_config "iovisor" "${gerritid}" "${git_script}"
-echo "echo 'Getting right version of iovisor'"  >> ${git_script}
-echo "cd /home/plumgrid/work/alps"  >> ${git_script}
-echo "source dependencies-versions.sh"  >> ${git_script}
-echo "echo \${git_dep_branch[iovisor]}" >> ${git_script}
-echo "cd /home/plumgrid/work/iovisor" >> ${git_script}
-echo "git fetch" >> ${git_script}
-echo "git reset --hard \${git_dep_branch[iovisor]}" >> ${git_script}
-
-echo "cd /home/plumgrid/work/pkg/scripts" >> $git_script
-echo "sed -i \"/export APT_REPO_HOST/ c\export APT_REPO_HOST=127.0.0.1 && export APT_COMPONENT=${APT_COMPONENT}\" build-all.sh" >> $git_script
-
+cat >> ${git_script} <<DELIM__
+echo 'Getting right version of iovisor'
+cd /home/plumgrid/work/alps
+source dependencies-versions.sh
+echo \${git_dep_branch[iovisor]}
+cd /home/plumgrid/work/iovisor
+git fetch
+git reset --hard \${git_dep_branch[iovisor]}
+cd /home/plumgrid/work/pkg/scripts
+sed -i "/export APT_REPO_HOST/ c\export APT_REPO_HOST=127.0.0.1 && export APT_COMPONENT=${APT_COMPONENT}" build-all.sh
+DELIM__
 # Step-5: -- Checkout the required changes for the defined porject
 #         -- Build tools and iovisor
 #         -- Set apt-component on the repos and run cmake .. again
@@ -116,46 +113,53 @@ cat >> ${git_script} <<DELIM__
 DELIM__
 if [[ "$refspec" =~ refs/changes/* ]]; then
   ## Checkout the request commit in the request project
-  echo "cd /home/plumgrid/work/${project}" >> $git_script
-  echo "git fetch ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/${project} ${refspec}" >> $git_script
-  echo "git checkout FETCH_HEAD" >> $git_script
+  cat >> ${git_script} <<DELIM__
+cd /home/plumgrid/work/${project}
+git fetch ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/${project} ${refspec}
+git checkout FETCH_HEAD
+DELIM__
 elif [[ "$refspec" != "none" ]]; then
   ##Checkout the requested branch
-  echo "cd /home/plumgrid/work/${project}" >> $git_script
-  echo "git checkout origin/$refspec" >> $git_script
+  cat >> ${git_script} <<DELIM__
+cd /home/plumgrid/work/${project}
+git checkout origin/$refspec
+DELIM__
 fi
 
 ## Checkout the requested commit for test-against repository acc to commit message
 if [[ ! -z "${test_against}" ]] ; then
   test_project=$(echo $test_against | cut -f1 -d':')
   test_refspec=$(echo $test_against | cut -f2 -d':')
-  echo "cd /home/plumgrid/work/${test_project}" >> $git_script
-  echo "git fetch ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/${test_project} ${test_refspec}" >> $git_script
-  echo "git checkout FETCH_HEAD" >> $git_script
+  cat >> ${git_script} <<DELIM__
+cd /home/plumgrid/work/${test_project}
+git fetch ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/${test_project} ${test_refspec}
+git checkout FETCH_HEAD
+DELIM__
 fi
 
-echo "cd /home/plumgrid/work/tools/build" >> ${git_script}
-echo "cmake .." >> ${git_script}
-echo "sudo make packages" >> ${git_script}
-echo "make -C packages install" >> ${git_script}
-echo "make -j4 install" >> ${git_script}
-
-echo "cd /home/plumgrid/work/iovisor/bld" >> ${git_script}
-echo "make -j4 -k" >> ${git_script}
-echo "sudo make install" >> ${git_script}
-
+cat >> ${git_script} <<DELIM__
+cd /home/plumgrid/work/tools/build
+cmake ..
+sudo make packages
+make -C packages install
+make -j4 install
+cd /home/plumgrid/work/iovisor/bld
+make -j4 -k
+sudo make install
+DELIM__
 ## Checkout the requested branch on all the projects
 for p in ${PROJECT_LIST[@]}; do
-  echo "cd /home/plumgrid/work/${p}/build" >> ${git_script}
-  echo "export APT_COMPONENT=${APT_COMPONENT}" >> ${git_script}
-  echo "cmake .." >> ${git_script}
+  cat >> ${git_script} <<DELIM__
+cd /home/plumgrid/work/${p}/build
+export APT_COMPONENT=${APT_COMPONENT}
+cmake ..
+DELIM__
 done
 
-
-echo "cd /home/plumgrid/work/${project}/build" >> ${git_script}
-echo "export APT_COMPONENT=${APT_COMPONENT}" >> ${git_script}
-echo "cmake .." >> ${git_script}
 cat >> ${git_script} <<DELIM__
+cd /home/plumgrid/work/${project}/build
+export APT_COMPONENT=${APT_COMPONENT}
+cmake ..
     ;;
   *)
     echo "Step \$step provided is invalid. Exiting!"
