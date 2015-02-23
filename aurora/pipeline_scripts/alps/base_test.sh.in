@@ -39,6 +39,10 @@ elif [[ $PIPELINE == "pgui-smoke" ]]; then
   export BUILD_GUI=1
   export EXCLUDE_NON_GUI=1
   export EXCLUDE_UNSTABLE=1
+elif [[ $PIPELINE == "automaton" ]]; then
+  test_tag=lxc_automaton
+elif [[ $PIPELINE == "automaton-longevity" ]]; then
+  test_tag=lxc_automaton_longevity
 elif [[ $PIPELINE == "unstable" || $PIPELINE == "DEBUG-TEST" ]]; then
   export BUILD_NIGHTLY=1
   unset EXCLUDE_UNSTABLE
@@ -54,6 +58,8 @@ echo 1 | sudo tee /proc/sys/net/ipv6/conf/all/disable_ipv6
 if [[ "x$CTEST_ED" == "x" ]] ; then
   if [[ $PIPELINE == "unstable" ]]; then
     CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "UNSTABLE" | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
+  elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" ]]; then
+    CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "Test #" | wc -l`
   else
     CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "Test " | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
   fi
@@ -75,6 +81,8 @@ for run in $(seq 1 $itr); do
     # Dtermine the test name from the test index
     if [[ $PIPELINE == "unstable" ]]; then
       test_name=$(ctest -N  -L ^type:$test_tag$ | grep "UNSTABLE" | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
+    elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" ]]; then
+      test_name=$(ctest -N  -L ^type:$test_tag$ | grep "Test #" | cut -d " " -f 5 | head -n "$testno" | tail -n 1)
     else
       test_name=$(ctest -N  -L ^type:$test_tag$ | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
     fi

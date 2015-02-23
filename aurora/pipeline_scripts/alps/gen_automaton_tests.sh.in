@@ -32,11 +32,9 @@ done
 echo "**** BASE_SCRIPT_DIR=$BASE_SCRIPT_DIR **** "
 
 if [[ $PIPELINE == "automaton-longevity" ]]; then
-  NUM_TESTS=3
-  TEST_TAG="lxc_automaton_longevity"
+  NUM_TESTS=$NUM_AUTOMATON_LONGEVITY_TESTS
 elif [[ $PIPELINE == "automaton" ]]; then
-  NUM_TESTS=5
-  TEST_TAG="lxc_automaton"
+  NUM_TESTS=$NUM_AUTOMATON_TESTS
 fi
 
 #Iterate over the number of tests
@@ -44,12 +42,14 @@ for test in `seq 1 $NUM_TESTS`; do
     #Create target script for base
     cp ${BASE_SCRIPT_DIR}/$BASE_SCRIPT ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
     #Only 1 test per instances so CTEST_ST=CTEST_ED=1
-    sed -i 's/CTEST_ST=[0-9]*/CTEST_ST=1/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
-    sed -i 's/CTEST_ED=[0-9]*/CTEST_ED=1/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
-    #Get the specific test number from list
-    sed -i 's/^\s*test_name=.*/test_name=$(ctest -N  -L ^type:'$TEST_TAG'$ | grep \"Test #\" | cut -d " " -f 5 | head -n '$test' | tail -n 1)/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
+    sed -i 's/CTEST_ST=[0-9]*/CTEST_ST='$test'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
+    if [[ $test -ne $NUM_TESTS ]]; then
+      sed -i 's/CTEST_ED=[0-9]*/CTEST_ED='$test'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
+    else
+      #Run all the remaining tests on the last instance
+      sed -i 's/CTEST_ED=[0-9]*/CTEST_ED=/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
+    fi
+    sed -i 's/PIPELINE=.*/PIPELINE='$PIPELINE'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
     #Replace the iterations
     sed -i 's/itr=[0-9]*/itr='${TEST_ITERATIONS}'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
-    #Replace test TAG accordingly
-    sed -i 's/\^type:[^type:]*\$ /\^type:'$TEST_TAG'\$ /' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
 done
