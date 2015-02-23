@@ -400,12 +400,6 @@ function run_automaton_init() {
   local LOG_FILE=$2
   local local_file=$(mktemp $WORKSPACE/run_automaton_init-XXXXX)
   cat /dev/null > ${local_file}
-  echo "sudo cp /etc/hosts /tmp;" >> ${local_file}
-  echo "sudo umount /etc/hosts;" >> ${local_file}
-  echo "sudo mv /tmp/hosts /etc/hosts;" >> ${local_file}
-  echo "sudo cp /etc/resolv.conf /tmp;" >> ${local_file}
-  echo "sudo umount /etc/resolv.conf;" >> ${local_file}
-  echo "sudo mv /tmp/resolv.conf /etc/resolv.conf;" >> ${local_file}
   echo "cd /opt/pg/systest/lxc/automaton;" >> ${local_file}
   echo "sudo ./automaton-init.sh" >> ${local_file}
   #File name needs to be constant for continue functionality, thus renaming.

@@ -211,14 +211,6 @@ function run_test() {
     echo "sed -i '/restart_lxc lvm/a tryexec lxc-attach -n lvm -- /bin/bash -c \"echo 'NOZEROCONF=true' >> /etc/sysconfig/network\"' /opt/pg/systest/lxc/automaton/automaton-helpers.sh" >> ${local_file}
     echo "rm -f /opt/pg/var/www/temp" >> ${local_file}
     echo "ln -s  /opt/pg/web/temp /opt/pg/var/www/" >> ${local_file}
-    if [[ $AUTOMATON_INIT != 1 ]]; then
-      echo "sudo cp /etc/hosts /tmp" >> ${local_file}
-      echo "sudo umount /etc/hosts" >> ${local_file}
-      echo "sudo mv /tmp/hosts /etc/hosts" >> ${local_file}
-      echo "sudo cp /etc/resolv.conf /tmp" >> ${local_file}
-      echo "sudo umount /etc/resolv.conf" >> ${local_file}
-      echo "sudo mv /tmp/resolv.conf /etc/resolv.conf" >> ${local_file}
-    fi
     file_name=/tmp/$(basename ${local_file})
     tryexec upload ${INSTANCE_IP}  ${local_file} ${file_name}
     rm ${local_file}
@@ -229,6 +221,11 @@ function run_test() {
   8)
     if [[ $AUTOMATON_INIT == 1 ]]; then
       echo "Execute the run-automaton script on cloud instance"
+      retryexec run_cmd_gci ${INSTANCE_IP} "sudo ifconfig lxcbr0 down"
+      retryexec run_cmd_gci ${INSTANCE_IP} "sudo brctl delbr lxcbr0"
+      retryexec run_cmd_gci ${INSTANCE_IP} "sudo pkill dnsmasq"
+      retryexec run_cmd_gci ${INSTANCE_IP} "sudo service lxc-net restart"
+
       tryexec run_automaton_init ${INSTANCE_IP} "/tmp/automaton_init.log"
       record_step $step $step_file
     fi
