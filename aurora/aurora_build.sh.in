@@ -106,6 +106,12 @@ if [[ $CONTINUE == "1" ]] ; then
   # Get the last successfull step from $WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
   LAST_SUCCESSFULL_STEP=( $(<${step_file}) )
   MINOR_STEPS_ST[build]=$((LAST_SUCCESSFULL_STEP+1))
+
+  #Only get the IP address if the instance has already been created.
+  if [[ $LAST_SUCCESSFULL_STEP -gt 2 ]]; then
+    #Get the IP address of the instances, needed incase continue is specified.
+    INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
+  fi
 else
   check_instance_limit
 fi
@@ -121,9 +127,6 @@ for key in ${!branch_to_component[@]}; do
     break
   fi
 done
-
-#Get the IP address of the instances, needed incase continue is specified.
-INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
 
 # TODO: SN_ID variable should hold the "v3-d1" part as well.
 # This way we will not need to change v3 manually.

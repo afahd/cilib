@@ -132,13 +132,17 @@ if [[ $CONTINUE == "1" ]] ; then
   LAST_SUCCESSFULL_STEP=( $(<${step_file}) )
   MINOR_STEPS_ST[$MAJOR_STEPS]=$((LAST_SUCCESSFULL_STEP+1))
   SUUID=$RUNID
+  #Only get the IP address if the instance has already been created.
+  if [[ $LAST_SUCCESSFULL_STEP -gt 2 ]]; then
+    #Get the IP address of the instances, needed incase continue is specified.
+    INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
+  fi
 else
   check_instance_limit
 fi
 
 #Create file to ensure continue works if run/build is aborted before 1st step completes
 touch $step_file
-INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
 
 printf "\n\n********* RUNID= ${SUUID} *********\n\n"
 

@@ -218,16 +218,22 @@ function get_latest_snapshot_id() {
 function get_instance_ip() {
   local INSTANCE_NAME=$1
   local internal_ip=""
-
+  local success=0
   #Retry to be safe
   for i in `seq 1 5`; do
     internal_ip=$(gcloud compute instances list ${INSTANCE_NAME} --zones=${ZONE} | grep ${INSTANCE_NAME})
     internal_ip=$(echo "$internal_ip" | cut -d ' ' -f 4)
     #Break if non-empty
     if [[ -n $internal_ip ]];then
+      success=1
       break
     fi
   done
+  #Exit if retries failed
+  if [[ $success -eq 0 ]]; then
+    echo "Instance IP not found. Please check if the instance $INSTANCE_NAME is running. Exiting."  >&2
+    exit 1
+  fi
 
   echo $internal_ip
 }
