@@ -12,7 +12,7 @@ source pl_settings.conf
 # run_tests.sh-1..10 with the splits to run the tests in 10 vm's for the specified number of iterations.
 
 # read the options
-TEMP=`getopt -o b:i:f:t:n:b:d:I:p:D:h --long base_script:,test_iterations:,first_test:,step_size:,num_instances:,pipeline:,base_script_dir:,dest_script_dir:,initial_run:,db:,\help -n 'gen_test_script.sh' -- "$@"`
+TEMP=`getopt -o :i:f:t:n:b:d:I:p:D:h:r --long base_script:,test_iterations:,first_test:,step_size:,num_instances:,pipeline:,base_script_dir:,dest_script_dir:,initial_run:,db:,\help -n 'gen_test_script.sh' -- "$@"`
 eval set -- "$TEMP"
 
 #Default value for iterations.
@@ -32,7 +32,7 @@ while true ; do
     -n|--num_instances)
       NUM_INSTANCES=$2 ; shift 2 ;;
     -r|--base_script_dir)
-      BASE_SCRIPT_DIR=$2 ; shift 2;;
+      BASE_SCRIPT_DIR=$2 ; shift 2 ;;
     -d|--dest_script_dir)
       DEST_SCRIPT_DIR=$2 ; shift 2 ;;
     -I|--initial_run)

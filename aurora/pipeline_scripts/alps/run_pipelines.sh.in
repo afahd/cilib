@@ -81,13 +81,16 @@ untar_log_dir=${script_dir}/untar_logs
 
 echo "run_pipelines.sh $ARGS" > $log_dir/aurora_pipeline_command
 
-if [[ $PIPELINE == "smoke" || $PIPELINE == "extended" || $PIPELINE == "unstable" ]]; then
+if [[ $PIPELINE == "smoke" || $PIPELINE == "extended" || $PIPELINE == "unstable" || $PIPELINE == "pgui-smoke" ]]; then
   db=$(get_db $PIPELINE)
-fi
 
 # Make a decision about automaton-init.sh
-if [[ $PIPELINE == "automaton-longevity" || $PIPELINE == "automaton" ]]; then
+elif [[ $PIPELINE == "automaton-longevity" || $PIPELINE == "automaton" ]]; then
   AUTOMATON_INIT="-A"
+
+elif [[ $PIPELINE != "DEBUG-TEST" ]]; then
+  echo "Invalid Pipeline Specified"
+  exit 1
 fi
 
 function run_test() {
@@ -103,7 +106,10 @@ function run_test() {
     elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" ]]; then
       gen_automaton_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -d ${script_dir} -r $BASE_SCRIPT_DIR -p $PIPELINE
     else
-      gen_test_scripts.sh -p $PIPELINE -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -f ${FIRST_TEST} -t ${STEP_SIZE} -n ${NUM_INSTANCES} -d ${script_dir} -I ${INITIAL_RUN} -D ${db} --base_script_dir $BASE_SCRIPT_DIR
+      if [[ $PIPELINE == "pgui-smoke" ]]; then
+        NUM_INSTANCES=5
+      fi
+      gen_test_scripts.sh -p $PIPELINE -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -f ${FIRST_TEST} -t ${STEP_SIZE} -n ${NUM_INSTANCES} -d ${script_dir} -I ${INITIAL_RUN} --base_script_dir $BASE_SCRIPT_DIR -D ${db}
     fi
 
     ;;
@@ -205,7 +211,7 @@ __HEREDOC
       printf "\n\n******* Updation of database has been completed. Please see ${untar_log_dir}/DB_REPORT.txt ******\n\n"
     fi
 
-    rm -rf ${untar_log_dir}
+    #rm -rf ${untar_log_dir}
 
     mv ${WORKSPACE}/test_logs  ${WORKSPACE}/logs
 

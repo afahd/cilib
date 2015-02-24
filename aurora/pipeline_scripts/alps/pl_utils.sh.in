@@ -11,6 +11,8 @@ function get_db() {
     db=${EXTENDED_DB}
   elif [[ $pipeline == "unstable" ]]; then
     db=${UNSTABLE_DB}
+  elif [[ $pipeline == "pgui-smoke" ]]; then
+    db=${PGUI_SMOKE_DB}
   else
     echo "Unknown Pipeline"
     return 1
