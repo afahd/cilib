@@ -9,6 +9,7 @@ DISK_TYPE=pd-standard
 DISK1_SIZE=10GB
 DISK2_SIZE=75GB
 PRIM_INST_NAME=plumgrid-vm-builder-v6
+INSTANCE_ALPS_PATH=/home/plumgrid/work/alps
 
 VERBOSITY=error
 GERRIT_IP=192.168.10.77

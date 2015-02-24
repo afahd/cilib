@@ -26,6 +26,8 @@ case $1 in
       run_pipelines.sh --base_script_dir "@CMAKE_CURRENT_BINARY_DIR@/pipeline_scripts/alps/" ${@:2} ;;
     debug-test)
       run_debug_test ${@:2} ;;
+    hunt)
+      hunt_culprit.sh ${@:2} ;;
     upload)
       upload_using_instance_name ${@:2} ;;
     download)

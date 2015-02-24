@@ -19,7 +19,7 @@ DEST_SCRIPT_DIR=0
 echo "run_pipelines.sh $@"
 ARGS=$@
 # read the options
-TEMP=`getopt -o Q:R:E:l:W:s:a:i:Kc:f:P:t:n:\r:d:IFh --long major:,keep-running,commit:,WORKSPACE:,minor_start:,script:,minor_end:,buildid:,alps-path:,pipeline:,test_iterations:,first_test:,step_size:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update\help -n 'run_all_test.sh' -- "$@"`
+TEMP=`getopt -o Q:R:E:W:l:P:i:f:t:s:n:\r:d:IFKc:e:a:h --long major:,minor_start:,minor_end:,WORKSPACE:,buildid:,pipeline:,test_iterations:,first_test:,step_size:,script:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update,keep-running,local_commit:,existing_commit_hash:,alps-path:,\help -n 'run_all_test.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # extract options and their arguments into variables.
@@ -29,9 +29,7 @@ while true ; do
     -R|--minor_start ) MINOR_STEPS_ST[$MAJOR_STEPS]="$2"; shift 2 ;;
     -E|--minor_end ) MINOR_STEPS_ED[$MAJOR_STEPS]="$2"; shift 2 ;;
     -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
-    -l|--buildid)
-      echo "-l = $2"
-      USER_BUILD_ID=$2 ; shift 2 ;;
+    -l|--buildid) USER_BUILD_ID=$2 ; shift 2 ;;
     -P|--pipeline) PIPELINE=$2 ; shift 2 ;;
     -i|--test_iterations) TEST_ITERATIONS=$2 ; shift 2 ;;
     -f|--first_test) FIRST_TEST=$2 ; shift 2 ;;
@@ -43,8 +41,9 @@ while true ; do
     -I|--initial_run) INITIAL_RUN="true" ; shift ;;
     -F|--db_update) DB_UPDATE="true" ; shift ;;
     -K|--keep-running) KEEP_RUNNING="-K"; shift ;;
-#Optional argments for local changes transfer
-    -c|--commit) COMMIT_HASH="-c $2" ; shift 2 ;;
+    #Optional argments for local changes transfer
+    -c|--local_commit) LOCAL_COMMIT_HASH="-c $2" ; shift 2 ;;
+    -e|--existing_commit_hash) EXISTING_COMMIT_HASH=$2 ; shift 2 ;;
     -a|--alps-path) ALPS_PATH="-a $2" ; shift 2 ;;
     -h|--help)
       show_run_tests_help
@@ -58,10 +57,6 @@ while true ; do
 done
 
 mkdir -p ${WORKSPACE}/logs
-echo " ***** WORKSPACE=${WORKSPACE} ***** "
-
-echo "**** BASE_SCRIPT_DIR=$BASE_SCRIPT_DIR **** "
-
 if [[ -z "$USER_BUILD_ID" ]]; then
   echo "Please supply required "--buildid" argument"
   show_run_tests_help
@@ -97,9 +92,9 @@ function run_test() {
   1)
     # Generate scripts to be used by "aurora run"
     echo "Going to generate test scripts"
-    echo "gen_test_scripts.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -f ${FIRST_TEST} -t ${STEP_SIZE} -n ${NUM_INSTANCES} -d ${script_dir} -I ${INITIAL_RUN} -D ${db} --base_script_dir ${BASE_SCRIPT_DIR}"
     if [[ $PIPELINE == "DEBUG-TEST" ]]; then
-      gen_user_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -n ${NUM_INSTANCES} -d ${script_dir} --base_script_dir $BASE_SCRIPT_DIR -s ${USER_SCRIPT}
+      echo "pipeline is debug-test"
+      gen_user_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -n ${NUM_INSTANCES} -d ${script_dir} --base_script_dir ${BASE_SCRIPT_DIR} -s ${USER_SCRIPT}
     elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" ]]; then
       gen_automaton_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -d ${script_dir} -r $BASE_SCRIPT_DIR -p $PIPELINE
     else
@@ -119,7 +114,7 @@ function run_test() {
     echo "log_dir=$log_dir script_dir=$script_dir"
     while read -r -d $'\0'; do
       #echo "aurora run -l ${USER_BUILD_ID} -s $REPLY -o ${log_dir} -S"
-      aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY $KEEP_RUNNING $COMMIT_HASH $ALPS_PATH $AUTOMATON_INIT > $REPLY.txt 2>&1 &
+      aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -e $EXISTING_COMMIT_HASH $KEEP_RUNNING $LOCAL_COMMIT_HASH $ALPS_PATH $AUTOMATON_INIT > $REPLY.txt 2>&1 &
       #Get the pid of the last background command
       pids+=("$!")
     done < <(find ${script_dir} -regextype posix-extended  -regex '^.*.sh-[0-9]+$' -print0)

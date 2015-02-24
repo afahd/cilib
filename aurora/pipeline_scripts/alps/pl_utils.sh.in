@@ -30,7 +30,6 @@ function get_script_dir() {
   local timestamp=$(date +%Y_%m_%d_%H_%M_%S)
 
   if [[ ${script_dir} == "0" ]]; then
-    #script_dir="$workspace/${pipeline}-${mod_build_id}-$timestamp"
     script_dir="$workspace/${pipeline}-${mod_build_id}"
     mkdir -p $script_dir/logs
     mkdir -p $script_dir/untar_logs

@@ -2,6 +2,7 @@
 source aurora_infra_settings.conf
 source gc_helpers.sh
 source ~/.aurora.conf
+source pl_utils.sh
 source help.sh
 
 if [[ -z ${gerritid+x} || -z ${emailid+x}  ]]; then
@@ -383,7 +384,8 @@ function cp_entities()
 # Prereq:   aurora init has been called.
 # *****************************************************************************
 function run_debug_test() {
-  local TEMP=`getopt -o W:l:i:n:s:Ka:c:h --long WORKSPACE:,keep-running,buildid:,test_iterations:,num_instances:,script:,commit:,alps-path,\help -n 'aurora.sh' -- "$@"`
+echo "*** run_debug_test $@ ***"
+  local TEMP=`getopt -o W:l:i:n:s:Ka:c:e:h --long WORKSPACE:,keep-running,buildid:,test_iterations:,num_instances:,script:,local_commit:,existing_commit_hash:,alps-path:,\help -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 
 TEST_ITERATIONS=1
@@ -399,7 +401,8 @@ while true ; do
     -n|--num_instances) NUM_INSTANCES=$2 ; shift 2 ;;
     -K|--keep-running) KEEP_RUNNING="-K" ; shift ;;
 #Optional argments for local changes transfer
-    -c|--commit) COMMIT_HASH=$2 ; shift 2 ;;
+    -c|--local_commit) LOCAL_COMMIT_HASH=$2 ; shift 2 ;;
+    -e|--existing_commit_hash) EXISTING_COMMIT_HASH=$2 ; shift 2 ;;
     -a|--alps-path) ALPS_PATH=$2 ; shift 2 ;;
     -h|--help)
       show_debug_test_help
@@ -419,7 +422,7 @@ if [[ -z "$BUILD_ID" || -z "$USER_SCRIPT"  ]]; then
 fi
 check_file_existence "$USER_SCRIPT"
 
-if [[ -n "$COMMIT_HASH" ]]; then
+if [[ -n "$LOCAL_COMMIT_HASH" ]]; then
   #Check if ALPS_PATH is correct
   local retval=0
   git rev-parse --resolve-git-dir $ALPS_PATH/.git || retval=$?
@@ -429,20 +432,21 @@ if [[ -n "$COMMIT_HASH" ]]; then
     exit 1
   fi
   #Check if commit is correct
-  local commit_check=$(git --git-dir $ALPS_PATH/.git --work-tree $ALPS_PATH cat-file -t $COMMIT_HASH)
+  local commit_check=$(git --git-dir $ALPS_PATH/.git --work-tree $ALPS_PATH cat-file -t $LOCAL_COMMIT_HASH)
   if [[ $commit_check != "commit" ]]; then
     echo "Not a valid commit. Please enter a valid commit."
     exit 1
   fi
     #Run with local changes
     run_pipelines.sh -P "DEBUG-TEST" --base_script_dir "@CMAKE_CURRENT_BINARY_DIR@/pipeline_scripts/alps/" -i $TEST_ITERATIONS -s $USER_SCRIPT\
- -n $NUM_INSTANCES -l $BUILD_ID -a $ALPS_PATH -c $COMMIT_HASH $KEEP_RUNNING
+ -n $NUM_INSTANCES -l $BUILD_ID -a $ALPS_PATH -c $LOCAL_COMMIT_HASH $KEEP_RUNNING
 else
-  #Run without local changes
-  run_pipelines.sh -P "DEBUG-TEST" --base_script_dir "@CMAKE_CURRENT_BINARY_DIR@/pipeline_scripts/alps/" -i $TEST_ITERATIONS -s $USER_SCRIPT\
- -n $NUM_INSTANCES -l $BUILD_ID $KEEP_RUNNING
+  #Run without local changes.
+  # TODO: Output should be redirected to some file.
+  echo "Running without local changes"
+  run_pipelines.sh -P "DEBUG-TEST" --base_script_dir "@CMAKE_CURRENT_BINARY_DIR@/pipeline_scripts/alps/" -i $TEST_ITERATIONS\
+  -s $USER_SCRIPT -n $NUM_INSTANCES -l $BUILD_ID -e ${EXISTING_COMMIT_HASH} $KEEP_RUNNING
 fi
-
 }
 
 # *****************************************************************************

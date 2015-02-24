@@ -60,3 +60,39 @@ function show_pl_help() {
   show_run_tests_help
   show_gen_test_scripts_help
 }
+
+function show_hunt_help() {
+    cat << HELP
+
+USAGE: aurora hunt -l <BUILD-ID> -s <TEST-SCRIPT> -c <commit-hash-file> [OPTIONS]
+
+       Get your changes mentioned in commit-hash and push it to the cloud instances.
+       Runs the tests specified in the test-script on cloud instances.
+       Repeat above steps for all commits given in commit-hash-files.
+
+Required Arguments:
+  -l, --build-id              Build on which to run the tests.
+  -s, --script                Path to a local file containing the names of tests to run.
+                              Currently only non-automaton tests are supported.
+
+  -c, --commit_hash_file      File containing SHA-1 hashs of the existing commits against which
+                              you want to run your test cases.
+                              ***** OR *****
+  -m, --num_last_commits      Define your area of search. Tell how many last commits you want
+                              to probe.
+Optional Arguments:
+  -W, --WORKSPACE             Set the workspace where all the logs will be stored.
+  -K, --keep-running          Instance will be left running after aurora run ends.
+  -i, --test_iterations       Specify the number of iterations for the tests.
+                              Default=1
+  -n, --num_instances         Run concurrently on the specified number of instances.
+                              Default=1
+
+  -a, --alps-path             Optionally specify the path to the local alps repository
+                              Default is /home/${USER}/work/alps
+
+EXAMPLE:
+  aurora hunt -l bld-stable-4-0 -s /home/plumgrid/test1.txt -c ~/Desktop/commit_hash_file
+HELP
+}
+

@@ -131,18 +131,46 @@ function push_local_changes() {
   cd $ALPS_PATH
   #Get branch name from commit
   local BRANCH=$(git branch --contains $COMMIT_ID | cut -d ' ' -f 2)
-  run_cmd_gci ${INSTANCE_IP} "git config  -f /home/plumgrid/work/alps/.git/config receive.denyCurrentBranch ignore"
+  run_cmd_gci ${INSTANCE_IP} "git config  -f ${INSTANCE_ALPS_PATH}/.git/config receive.denyCurrentBranch ignore"
   local local_file=$(mktemp /tmp/ssh-command-XXXXX)
   echo "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o CheckHostIP=no \$*" > ${local_file}
   #Has to be executable
   chmod +x $local_file
   #Push the changes
-  cd $ALPS_PATH;GIT_SSH="${local_file}" git push plumgrid@${INSTANCE_IP}:/home/plumgrid/work/alps $COMMIT_ID:$BRANCH
+  cd $ALPS_PATH;GIT_SSH="${local_file}" git push plumgrid@${INSTANCE_IP}:${INSTANCE_ALPS_PATH} $COMMIT_ID:$BRANCH
   #Checkout the branch
-  run_cmd_gci ${INSTANCE_IP} "git --git-dir=/home/plumgrid/work/alps/.git --work-tree=/home/plumgrid/work/alps checkout $BRANCH"
+  run_cmd_gci ${INSTANCE_IP} "git --git-dir=${INSTANCE_ALPS_PATH}/.git --work-tree=${INSTANCE_ALPS_PATH} checkout $BRANCH"
   #Need to reset to update the working-tree
-  run_cmd_gci ${INSTANCE_IP} "git --git-dir=/home/plumgrid/work/alps/.git --work-tree=/home/plumgrid/work/alps reset --hard HEAD"
+  run_cmd_gci ${INSTANCE_IP} "git --git-dir=${INSTANCE_ALPS_PATH}/.git --work-tree=${INSTANCE_ALPS_PATH} reset --hard HEAD"
   rm ${local_file}
+}
+
+# *****************************************************************************
+# Function: checkout_existing_commit
+# Purpose : Checkout specific existing commit.
+# Usage   : checkout_existing_commit existing_commit_hash
+# *****************************************************************************
+function checkout_existing_commit() {
+  local INSTANCE_IP=$1
+  local EXISTING_COMMIT_HASH=$2
+  local LOG_FILE=$3
+
+  local local_file=$(mktemp /$WORKSPACE/checkout_existing_commit_XXXXX)
+  local file_name=$(basename ${local_file})
+  local instance_file=/tmp/checkout_existing_commit.sh
+
+  cat >> ${local_file} <<DELIM__
+    #!/bin/bash -e
+    . /opt/pg/env/alps.bashrc
+    cd /home/plumgrid/work/alps/build
+    git checkout $EXISTING_COMMIT_HASH
+    cmake ..
+    make -j4 install
+DELIM__
+
+  tryexec upload ${INSTANCE_IP}  ${local_file} /tmp
+  tryexec run_cmd_gci ${INSTANCE_IP} "mv /tmp/$file_name ${instance_file}"
+  tryexec run_bg_cmd ${INSTANCE_IP} "${instance_file}" "/bin/bash ${instance_file}" "$LOG_FILE"
 }
 
 # *****************************************************************************
@@ -232,6 +260,26 @@ function get_instance_ip() {
   fi
 
   echo $internal_ip
+}
+
+# *****************************************************************************
+# Function: is_valid_commit_hash
+# Purpose : Check whether provided commit hash is valid or not.
+# Usage   : get_instance_ip <instance name>
+# Return  : Return 1 in case of valid commit hash. Retrun 0 otherwise.
+# *****************************************************************************
+is_valid_commit_hash() {
+  local ALPS_PATH=$1
+  local COMMIT_HASH=$2
+
+  local commit_check=$(git --git-dir $ALPS_PATH/.git --work-tree $ALPS_PATH cat-file -t $COMMIT_HASH)
+  if [[ $commit_check != "commit" ]]; then
+    echo "Not a valid commit. Please enter a valid commit."
+    local VALID_COMMIT_HASH="false"
+  else
+    local VALID_COMMIT_HASH="true"
+  fi
+  echo $VALID_COMMIT_HASH
 }
 
 # *****************************************************************************
@@ -915,7 +963,6 @@ function upload() {
   local DESTINATION=$3
 
   echo "** $INSTANCE_NAME $FILE $DESTINATION **"
-  local FILE_NAME="${FILE##*/}"
   scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o CheckHostIP=no -r $FILE "${_USER}@${INSTANCE_IP}:${DESTINATION}"
 }
 
@@ -931,8 +978,7 @@ function download() {
   local FILE=$2
   local DESTINATION=$3
 
-  local FILE_NAME="${FILE##*/}"
-  scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o CheckHostIP=no -r "plumgrid@${INSTANCE_IP}:$FILE" ${DESTINATION}
+  scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o CheckHostIP=no -r "${_USER}@${INSTANCE_IP}:$FILE" ${DESTINATION}
 }
 
 # *****************************************************************************

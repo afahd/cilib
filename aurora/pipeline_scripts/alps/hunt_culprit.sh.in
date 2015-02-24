@@ -1,0 +1,175 @@
+#!/bin/bash -e
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
+echo "hunt_culprit started with [hunt_culprit.sh $@]"
+ARGS=$@
+. gc_helpers.sh
+source pl_help.sh
+source pl_settings.conf
+
+TEMP=`getopt -o W:Kl:i:n:s:c:m:a:R:E:h --long WORKSPACE:,keep-running,buildid:,test_iterations:,num_instances:,script:,commit_hash_file:,num_last_commits:,alps-path:,step_st:,step_ed:,\help -n 'aurora.sh' -- "$@"`
+eval set -- "$TEMP"
+
+
+if [[ $COMMIT_HASH_FILE != "none" ]];then
+  STEP_ST=1
+  STEP_ED=3
+else
+  STEP_ST=1
+  STEP_ED=3
+fi
+TEST_ITERATIONS=1
+NUM_INSTANCES=1
+# extract options and their arguments into variables.
+while true ; do
+  case "$1" in
+    -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
+    -K|--keep-running) KEEP_RUNNING="-K" ; shift ;;
+    -l|--buildid) BUILD_ID=$2 ; shift 2 ;;
+    -i|--test_iterations) TEST_ITERATIONS=$2 ; shift 2 ;;
+    -n|--num_instances) NUM_INSTANCES=$2 ; shift 2 ;;
+    -s|--script) USER_SCRIPT=$2 ; shift 2 ;;
+    -c|--commit_hash_file) COMMIT_HASH_FILE=$2 ; shift 2 ;;
+    -m|--num_last_commits) NUM_LAST_COMMITS=$2 ; shift 2 ;;
+    -a|--alps-path) ALPS_PATH=$2 ; shift 2 ;;
+    -R| --step_st ) STEP_ST="$2"; shift 2 ;;
+    -E| --step_ed ) STEP_ED="$2"; shift 2 ;;
+    -h|--help)
+      show_hunt_help
+      exit 0
+      shift ;;
+    --) shift ; break ;;
+    *)
+      echo "Unrecognized option $1"
+       exit 1 ;;
+  esac
+done
+
+if [[ -z "$BUILD_ID" || -z "$USER_SCRIPT"  ]]; then
+  echo "Missing required arguments"
+  show_hunt_help
+  exit 1
+fi
+check_file_existence "$USER_SCRIPT"
+# TODO(ALI): Check for required arguments
+
+function hunt_culprit_using_file () {
+  local step=$1
+  check_file_existence "$COMMIT_HASH_FILE"
+  case "$step" in
+
+  1)
+    # Parse commit hash file.
+    i=1
+    mkdir -p ${WORKSPACE}
+    while IFS=, read commit_hash;do
+      mod_commit_hash=${commit_hash:0:5}
+
+      aurora debug-test ${KEEP_RUNNING} -l ${BUILD_ID} -i ${TEST_ITERATIONS} -n ${NUM_INSTANCES} -s ${USER_SCRIPT}\
+        -e ${commit_hash} -a ${ALPS_PATH}\
+         -W ${WORKSPACE}/debug_test_$mod_commit_hash > ${WORKSPACE}/debug_test_$mod_commit_hash.txt 2>&1 &
+      i=$((i+1))
+    done < $COMMIT_HASH_FILE
+    ;;
+
+  2)
+    echo "Waiting for command to finish ..."
+    # Background loop to print the number of aurora_run processes
+    while [[ ! -z `pgrep -f "aurora debug-test $KEEP_RUNNING -l $BUILD_ID -i $TEST_ITERATIONS -n $NUM_INSTANCES -s $USER_SCRIPT"` ]]; do
+      echo -n "[`pgrep -f \"aurora debug-test $KEEP_RUNNING -l $BUILD_ID -i $TEST_ITERATIONS -n $NUM_INSTANCES -s $USER_SCRIPT\" | wc -l`] ";
+      sleep 60 ;
+    done
+    ;;
+
+  3)
+    echo "Generating report"
+    hunt_report=${WORKSPACE}/hunt_report.log
+    cat /dev/null > ${hunt_report}
+    while IFS=, read commit_hash;do
+      mod_commit_hash=${commit_hash:0:5}
+      echo "**************** $commit_hash ******************" >> $hunt_report
+      cat  ${WORKSPACE}/debug_test_$mod_commit_hash/failing-list.log >> $hunt_report
+      printf "\n\n"
+    done < $COMMIT_HASH_FILE
+    printf "\n******* Please see the hunt report in ${hunt_report} *******\n"
+    ;;
+
+  esac
+}
+
+function hunt_culprit_using_bs () {
+  local step=$1
+  case "$step" in
+
+  1)
+    # Pick middle commit hash
+    echo "Start Hunting ..."
+    echo "git bisect start HEAD HEAD~${NUM_LAST_COMMITS}"
+    cd ${ALPS_PATH}
+    git bisect start HEAD HEAD~${NUM_LAST_COMMITS}
+    ;;
+
+  2)
+    # Run aurora debug-test with above commit.
+    mkdir -p ${WORKSPACE}
+    num_failures=0
+    while [[ ${git_bisect_msg} != *"is the first bad commit"* ]]; do
+      commit_hash=$(git rev-parse HEAD)
+      echo "Run aurora debug-test on commit $commit_hash"
+      mod_commit_hash=${commit_hash:0:5}
+      log_dir=${WORKSPACE}/debug_test_$mod_commit_hash/logs
+      untar_log_dir=${WORKSPACE}/debug_test_$mod_commit_hash/untar_logs
+      echo "aurora debug-test -l ${BUILD_ID} -i ${TEST_ITERATIONS} -n ${NUM_INSTANCES} -s ${USER_SCRIPT} -e ${commit_hash} -a ${ALPS_PATH} -W ${WORKSPACE}/debug_test_$mod_commit_hash ${KEEP_RUNNING} > ${WORKSPACE}/debug_test_$mod_commit_hash.txt 2>&1 &"
+      aurora debug-test -l ${BUILD_ID} -i ${TEST_ITERATIONS} -n ${NUM_INSTANCES} -s ${USER_SCRIPT} -e ${commit_hash} -a ${ALPS_PATH} -W ${WORKSPACE}/debug_test_$mod_commit_hash \
+           ${KEEP_RUNNING} > ${WORKSPACE}/debug_test_$mod_commit_hash.txt 2>&1 &
+
+      echo "Waiting for debug-test to finish ..."
+      while [[ ! -z `pgrep -f "aurora debug-test -l $BUILD_ID -i $TEST_ITERATIONS -n $NUM_INSTANCES -s $USER_SCRIPT -e ${commit_hash} -a ${ALPS_PATH}"` ]]; do
+        echo -n "[`pgrep -f \"aurora debug-test -l $BUILD_ID -i $TEST_ITERATIONS -n $NUM_INSTANCES -s $USER_SCRIPT -e ${commit_hash} -a ${ALPS_PATH}\" | wc -l`] ";
+        sleep 60 ;
+      done
+      # Get toatal number of failures of aurora debug-test
+      # TODO: Something is wrong with following log directories. Nothing is getting extracted in untar_log_dir.
+      mkdir -p ${untar_log_dir}
+      echo "find ${log_dir} -name "aurora_infra_logs.tar.gz" -type f -exec tar xf {} -C ${untar_log_dir} \;"
+      find ${log_dir} -name "aurora_infra_logs.tar.gz" -type f -exec tar xf {} -C ${untar_log_dir} \;
+      num_failures=$(find ${untar_log_dir} -name "*FAILED.log" | wc -l)
+
+      if [[ ${num_failures} -eq "0" ]];then
+        printf "\n num_failures=$num_failures, Going to call git bisect good \n"
+        git_bisect_msg=$(git bisect good)
+      else
+        printf "\n num_failures=$num_failures, Going to call git bisect bad \n"
+        git_bisect_msg=$(git bisect bad)
+      fi
+      echo "$git_bisect_msg"
+    done
+    if [[ $num_failures -eq "0" ]];then
+      echo "I can't kill innocents. All of them are free from bugs."
+    else
+      printf "==================================\n $git_bisect_msg \n==============================="
+    fi
+    ;;
+
+  3)
+    git bisect reset
+    ;;
+  esac
+}
+
+script_start_time=$(date +%s)
+for STEP in `seq ${STEP_ST} ${STEP_ED}`; do
+  printf "\n    === Starting STEP $STEP === \n"
+  start_time=$(date +%s)
+  if [[ $COMMIT_HASH_FILE -eq "none" ]];then
+    echo "Going to use binary search for hunting. $COMMIT_HASH_FILE"
+    hunt_culprit_using_bs $STEP
+  else
+    echo "Going to use file for hunting"
+    hunt_culprit_using_file $STEP
+  fi
+  end_time=$(date +%s)
+  print_time_taken $start_time $end_time "[$STEP]"
+done
+script_end_time=$(date +%s)
+print_time_taken $script_start_time $script_end_time "HUNT_CULPRIT"
+

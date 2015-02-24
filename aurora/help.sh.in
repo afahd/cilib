@@ -10,6 +10,7 @@ COMMAND:
   run                 Run test script on cloud instance with aurora BUILD-ID.
   pipeline            Run smoke/extended/unstable/pgui-smoke/omni pipeline for some particular commit.
   debug-test          Run multiple iterations of specified tests on several instances.
+  hunt                Search for commit which destabilize test cases.
 
   download            Download file cloud instance to local machine.
   upload              Upload file to cloud instance from local machine.
@@ -225,27 +226,28 @@ USAGE: aurora debug-test -l <BUILD-ID> -s <TEST-SCRIPT> [OPTIONS]
        to the cloud instance.
 
 Required Arguments:
-  -l, --build-id          Build on which to run the tests.
-  -s, --script            Path to a local file containing the names of tests to run.
-                          Currently only non-automaton tests are supported.
+  -l, --build-id              Build on which to run the tests.
+  -s, --script                Path to a local file containing the names of tests to run.
+                              Currently only non-automaton tests are supported.
 
 Optional Arguments:
-  -W, --WORKSPACE         Set the workspace where all the logs will be stored.
-  -K, --keep-running      Instance will be left running after aurora run ends.
-  -i, --test_iterations   Specify the number of iterations for the tests.
-                          Default=1
-  -n, --num_instances     Run concurrently on the specified number of instances.
-                          Default=1
-
-  -c, --commit            SHA-1 HASH of the commit to apply
-                          Supplying this arguments enables the transfer of local changes to the cloud instance.
-                          The changes can be specified by the SHA-1 hash of a local commit.
-                          All changes up to that commit are applied on the instance on the corresponding
-                          branch.
-  -a, --alps-path         Optionally specify the path to the local alps repository
-                          Default is /home/${USER}/work/alps
+  -W, --WORKSPACE             Set the workspace where all the logs will be stored.
+  -K, --keep-running          Instance will be left running after aurora run ends.
+  -i, --test_iterations       Specify the number of iterations for the tests.
+                              Default=1
+  -n, --num_instances         Run concurrently on the specified number of instances.
+                              Default=1
+  -c, --local_commit          SHA-1 HASH of the local commit to apply
+                              Supplying this arguments enables the transfer of local changes to the cloud instance.
+                              The changes can be specified by the SHA-1 hash of a local commit.
+                              All changes up to that commit are applied on the instance on the corresponding
+                              branch.
+  -e, --existing_commit_hash  SHA-1 HASH of some already existing gerrit commit.
+  -a, --alps-path             Optionally specify the path to the local alps repository
+                              Default is /home/${USER}/work/alps
 
 EXAMPLE:
   aurora debug-test -l bld-stable-4-0 -s /home/plumgrid/test1.txt -c c4c2dd54897c4f2c090a794c567ead550e9ff2f1
 HELP
 }
+

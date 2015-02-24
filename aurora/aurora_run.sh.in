@@ -29,11 +29,11 @@ KEEP_RUNNING=0
 LOCAL_CHANGES=0
 
 # read the options
-TEMP=`getopt -o l:s:o:n:t:W:CAKhc:a:R:E: --long buildid:,tag:,script:,log_dir:,runid:,WORKSPACE:,\continue,automaton-init,keep-running,\help,commit:,alps-path:,minor_st:,minor_end: -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o l:s:o:n:W:t:CAKc:e:a:R:E:h --long buildid:,script:,log_dir:,runid:,WORKSPACE:,tag:,\continue,automaton-init,keep-running,local_commit:,existing_commit_hash:,alps-path:,minor_st:,minor_end:,\help -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 while true ; do
   case "$1" in
-#Basic Funtionality
+    #Basic Funtionality
     -l| --buildid ) BUILD_ID=$2; shift 2 ;;
     -s| --script ) TEST_SCRIPT=$2; shift 2 ;;
     -o| --log_dir) LOG_DIR=$2; shift 2 ;;
@@ -43,13 +43,14 @@ while true ; do
     -C| --continue ) CONTINUE=1; shift ;;
     -A| --automaton-init ) AUTOMATON_INIT=1; shift ;;
     -K| --keep-running ) KEEP_RUNNING=1; shift ;;
-    -h| --help ) show_run_help;exit 0; shift ;;
     #Local changes flags
-    -c| --commit) COMMIT_ID=$2; shift 2;;
+    -c| --local_commit) COMMIT_ID=$2; shift 2;;
+    -e|--existing_commit_hash) EXISTING_COMMIT_HASH=$2 ; shift 2 ;;
     -a| --alps-path) ALPS_PATH=$2; shift 2;;
     #Start-End steps
     -R| --minor_st ) MINOR_STEPS_ST[$MAJOR_STEPS]="$2"; shift 2 ;;
     -E| --minor_end ) MINOR_STEPS_ED[$MAJOR_STEPS]="$2"; shift 2 ;;
+    -h| --help ) show_run_help;exit 0; shift ;;
     --) shift ; break ;;
     *) exit 1 ;;
   esac
@@ -82,8 +83,6 @@ if [[ $TAG != "none" ]]; then
 fi
 
 INSTANCE_NAME=${INSTANCE_NAME}-${SUUID}
-
-
 if [ ${#INSTANCE_NAME} -gt "58" ]; then
     echo "Instance name is too long, try a shorter TAG, exiting."
     exit 1
@@ -125,7 +124,6 @@ if [[ $CONTINUE == "1" ]] ; then
     echo "No last successful step file ${step_file}, cannot resume. Exiting"
     exit 1
   fi
-
   LAST_SUCCESSFULL_STEP=( $(<${step_file}) )
   STEP_ST=$((LAST_SUCCESSFULL_STEP+1))
   SUUID=$RUNID
@@ -142,6 +140,14 @@ fi
 touch $step_file
 
 printf "\n\n********* RUNID= ${SUUID} *********\n\n"
+
+if [[ $EXISTING_COMMIT_HASH != "null" ]]; then
+  VALID_COMMIT_HASH="true"
+  #VALID_COMMIT_HASH=$(valid_commit_hash $ALPS_PATH $EXISTING_COMMIT_HASH)
+  #if [[ $VALID_COMMIT_HASH == "false" ]];then
+  #  exit 1
+  #fi
+fi
 
 function run_test() {
   local step=$1
@@ -204,6 +210,13 @@ function run_test() {
     ;;
 
   7)
+    if [[ $VALID_COMMIT_HASH == "true" ]];then
+      tryexec checkout_existing_commit ${INSTANCE_IP} ${EXISTING_COMMIT_HASH} /tmp/checkout_existing_commit.log
+      retryexec run_poll_cmd ${INSTANCE_IP} "checkout_existing_commit.sh" "/tmp/checkout_existing_commit.log" "1"
+    fi
+    ;;
+
+  8)
     # This is here only untill https://gerrit:8443/#/c/10751/ gets merged.
     echo "Execute the pre run-automaton"
     local local_file=$(mktemp $WORKSPACE/container_preinit.sh-XXXXX)
@@ -219,7 +232,7 @@ function run_test() {
     record_step $step $step_file
     ;;
 
-  8)
+  9)
     if [[ $AUTOMATON_INIT == 1 ]]; then
       echo "Execute the run-automaton script on cloud instance"
       tryexec run_cmd_gci ${INSTANCE_IP} "sudo ifconfig lxcbr0 down"
@@ -232,7 +245,7 @@ function run_test() {
     fi
     ;;
 
-  9)
+  10)
     if [[ $AUTOMATON_INIT == 1 ]]; then
       echo "Poll the automaton-init cmd (tailing \"/tmp/automaton_init.log\" for complete logs)"
       retryexec run_poll_cmd ${INSTANCE_IP} "run_automaton_init.sh" "/tmp/automaton_init.log" "1"
@@ -241,28 +254,28 @@ function run_test() {
     fi
     ;;
 
-  10)
+  11)
     tryexec upload ${INSTANCE_IP} ${TEST_SCRIPT} /tmp/user_test_script.sh
     # tryexec is not needed because test can fail as well
     tryexec run_cmd_gci_bg ${INSTANCE_IP} "/bin/bash /tmp/user_test_script.sh" "/tmp/test.logs"
     record_step $step $step_file
     ;;
 
-  11)
+  12)
     echo "Poll the test logs (tailing \"/tmp/test.log\")"
     tryexec run_poll_cmd ${INSTANCE_IP} "/tmp/user_test_script.sh" "/tmp/test.logs" "0"
     tryexec download ${INSTANCE_IP} "/tmp/test.logs" "${LOG_DIR}/${INSTANCE_NAME}.log"
     record_step $step $step_file
     ;;
 
-  12)
+  13)
     echo "Downloading logs in ${LOG_DIR} directory"
     tryexec get_latest_logs ${INSTANCE_IP} ${INSTANCE_NAME} ${LOG_DIR}
     printf "\n\n********* Run has been completed successfully. Please see all logs in ${LOG_DIR} direcotry *********\n\n"
     record_step $step $step_file
     ;;
 
-  13)
+  14)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     rm $step_file
