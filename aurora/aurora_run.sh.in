@@ -221,10 +221,10 @@ function run_test() {
   8)
     if [[ $AUTOMATON_INIT == 1 ]]; then
       echo "Execute the run-automaton script on cloud instance"
-      retryexec run_cmd_gci ${INSTANCE_IP} "sudo ifconfig lxcbr0 down"
-      retryexec run_cmd_gci ${INSTANCE_IP} "sudo brctl delbr lxcbr0"
-      retryexec run_cmd_gci ${INSTANCE_IP} "sudo pkill dnsmasq"
-      retryexec run_cmd_gci ${INSTANCE_IP} "sudo service lxc-net restart"
+      tryexec run_cmd_gci ${INSTANCE_IP} "sudo ifconfig lxcbr0 down"
+      tryexec run_cmd_gci ${INSTANCE_IP} "sudo brctl delbr lxcbr0"
+      tryexec run_cmd_gci ${INSTANCE_IP} "sudo pkill dnsmasq || true"
+      tryexec run_cmd_gci ${INSTANCE_IP} "sudo service lxc-net restart"
 
       tryexec run_automaton_init ${INSTANCE_IP} "/tmp/automaton_init.log"
       record_step $step $step_file
