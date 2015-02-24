@@ -86,9 +86,8 @@ for run in $(seq 1 $itr); do
     if [[ "x$result" != "x0" ]] ; then
       echo "                 FAILED"
       mv "$EXPORT_FAILURES_DIR/${log_file_name}.log" "$EXPORT_FAILURES_DIR_TMP/${log_file_name}.FAILED.log"
-      mod_test_name=$(echo "$test_name" | sed "s/UNSTABLE_//")
-      failing_test_name=$(find "$EXPORT_FAILURES_DIR" -name "*.tar.gz")
-      mv ${failing_test_name} ${EXPORT_FAILURES_DIR_TMP}/$log_file_name.tar.gz
+      test_failing_name=$(find "$EXPORT_FAILURES_DIR" -name "*.tar.gz")
+      mv ${test_failing_name} ${EXPORT_FAILURES_DIR_TMP}/$log_file_name.tar.gz
     fi
     rm -rf $EXPORT_FAILURES_DIR/*
   done

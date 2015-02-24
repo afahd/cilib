@@ -47,7 +47,7 @@ for test in `seq 1 $NUM_TESTS`; do
     sed -i 's/CTEST_ST=[0-9]*/CTEST_ST=1/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
     sed -i 's/CTEST_ED=[0-9]*/CTEST_ED=1/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
     #Get the specific test number from list
-    sed -i 's/test_name=.*/test_name=$(ctest -N  -L ^type:'$TEST_TAG'$ | grep \"Test #\" | cut -d " " -f 5 | head -n '$test' | tail -n 1)/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
+    sed -i 's/^\s*test_name=.*/test_name=$(ctest -N  -L ^type:'$TEST_TAG'$ | grep \"Test #\" | cut -d " " -f 5 | head -n '$test' | tail -n 1)/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
     #Replace the iterations
     sed -i 's/itr=[0-9]*/itr='${TEST_ITERATIONS}'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
     #Replace test TAG accordingly
