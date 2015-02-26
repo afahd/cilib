@@ -47,10 +47,10 @@ while true ; do
     -A| --automaton-init ) AUTOMATON_INIT=1; shift ;;
     -K| --keep-running ) KEEP_RUNNING=1; shift ;;
     -h| --help ) show_run_help;exit 0; shift ;;
-#Local changes flags
+    #Local changes flags
     -c| --commit) COMMIT_ID=$2; shift 2;;
     -a| --alps-path) ALPS_PATH=$2; shift 2;;
-#Start-End steps
+    #Start-End steps
     -R| --minor_st ) MINOR_STEPS_ST[$MAJOR_STEPS]="$2"; shift 2 ;;
     -E| --minor_end ) MINOR_STEPS_ED[$MAJOR_STEPS]="$2"; shift 2 ;;
     --) shift ; break ;;

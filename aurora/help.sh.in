@@ -77,6 +77,13 @@ Optional Arguments:
                         first time.
                         It is part of your run-instance name as well [aurora ls instances].
   -t, --tag             Add a tag to the instance name.
+  -c, --commit          SHA-1 HASH of the commit to apply
+                        Supplying this arguments enables the transfer of local changes to the cloud instance.
+                        The changes can be specified by the SHA-1 hash of a local commit.
+                        All changes up to that commit are applied on the instance on the corresponding
+                        branch.
+  -a, --alps-path       Specify the path to the local alps repository
+                        Default is /home/${USER}/work/alps
 RUNHELP
 }
 
