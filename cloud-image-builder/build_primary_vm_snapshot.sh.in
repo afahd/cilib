@@ -12,7 +12,7 @@ BUILD_ENV_USER=${USER}
 
 MAJOR_STEPS="build"
 MINOR_STEPS_ST[build]=1
-MINOR_STEPS_ED[build]=14
+MINOR_STEPS_ED[build]=19
 
 # forward to subshells
 trap "kill 0" SIGINT
@@ -30,7 +30,6 @@ usage: $0
 EOF
 exit 0
 }
-INSTANCE_IP=$(get_instance_ip ${PRIM_INST_NAME})
 
 # Parsing arguments
 while [[ $# -gt 0 ]]; do
@@ -55,22 +54,22 @@ function build_image() {
 
   case "$step" in
       1)
-        echo "Creating the disk[${PRIM_INST_NAME}-d1] for the instance in the cloud"
-        exec_gcloud_cmd disks create "${PRIM_INST_NAME}-d1" \
+          echo "Creating the disk[${PRIM_INST_NAME}-d1] for the instance in the cloud"
+          exec_gcloud_cmd disks create "${PRIM_INST_NAME}-d1" \
             --source-snapshot  "$BASE_LINUX" --type "$DISK_TYPE" --size="$DISK1_SIZE" -q
-        exec_gcloud_cmd disks create "${PRIM_INST_NAME}-d2" \
+          exec_gcloud_cmd disks create "${PRIM_INST_NAME}-d2" \
             --type "$DISK_TYPE" --size="$DISK2_SIZE" -q
         ;;
       2)
-        echo "Creating the instance[$PRIM_INST_NAME] in the cloud"
-        echo plumgrid:$(cat /home/${USER}/.ssh/id_rsa.pub) > /tmp/keys
-        echo plumgrid:$(echo ${COMMON_KEY}) >> /tmp/keys
-        exec_gcloud_cmd instances create "${PRIM_INST_NAME}"  \
+          echo "Creating the instance[$PRIM_INST_NAME] in the cloud"
+          echo plumgrid:$(cat /home/${USER}/.ssh/id_rsa.pub) > /tmp/keys
+          echo plumgrid:$(echo ${COMMON_KEY}) >> /tmp/keys
+          exec_gcloud_cmd instances create "${PRIM_INST_NAME}"  \
             --machine-type "$MACHINE_TYPE" --network "$NETWORK" --maintenance-policy \
             "MIGRATE" --scopes "$SCOPES" -q \
             --disk "name=${PRIM_INST_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
             --disk "name=${PRIM_INST_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" \
-            --metadata-from-file sshKeys=/tmp/keys --metadata email="$emailid"
+            --metadata-from-file sshKeys=/tmp/keys
         ;;
       3)
           echo "Waiting for the machine to boot up and allow ssh access"
@@ -84,19 +83,25 @@ function build_image() {
           tryexec scp -o StrictHostKeyChecking=no @CMAKE_CURRENT_BINARY_DIR@/vm_files/* ${_USER}@${INSTANCE_IP}:.
           tryexec scp -o StrictHostKeyChecking=no ~/.ssh/id_rsa.pub ${_USER}@${INSTANCE_IP}:authorized_keys
           ;;
+
       5)
+          echo "Setting up ccache"
+          tryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x vm_setup_ccache.sh'"
+          ;;
+
+      6)
           echo "Running base init script on the Instance"
           tryexec run_cmd_gci ${INSTANCE_IP} "sudo bash -x vm_setup_preinit.sh"
           ;;
-      6)
+      7)
           echo "Running base setup script on the Instance"
           tryexec run_cmd_gci ${INSTANCE_IP} "sudo bash -x ./vm_setup_base.sh"
           ;;
-      7)
+      8)
           echo "git clone of tools"
           tryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "git clone ssh://${gerritid}@gerrit:29418/tools.git ~/work/tools" 
           ;;
-      8)
+      9)
           projs="pg_ui iovisor sal pkg pg_cli python-plumgridlib alps"
           echo "git clone of $projs"
           for pr in $projs ; do
@@ -104,16 +109,37 @@ function build_image() {
               tryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "git clone ssh://${gerritid}@gerrit:29418/${pr}.git ~/work/${pr}" 
           done
           ;;
-      9)
+
+      10)
           echo "Building tools"
           retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_setup_tools.sh'"
           ;;
-      10)
-          echo "Building the rest"
+
+      11)
+          echo "Checking out stable_4_0 for the projects"
+          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_checkout_branch.sh stable_4_0'"
+          ;;
+
+      12)
+          echo "Building the rest for stable_4_0"
           retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_setup_all.sh'"
           ;;
 
-      11)
+      13)
+          echo "Cleaning up stuff"
+          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash /home/plumgrid/work/alps/scripts/system_cleanup.sh'"
+          ;;
+
+      14)
+          echo "Checking out master for the projects"
+          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_checkout_branch.sh master'"
+          ;;
+
+      15)
+          echo "Building the rest for master"
+          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_setup_all.sh'"
+          ;;
+      16)
           #TODO: During aurora-build, we remove all contents of build directories of all projects.
           #      We also nuke /opt/pg/var/www directory. We need to think about that whether
           #      we really need following during primary snapshot build?
@@ -121,12 +147,13 @@ function build_image() {
           retryexec run_cmd_gci ${INSTANCE_IP} "sudo chown plumgrid.plumgrid /home/plumgrid/run_build_all.sh"
           tryexec run_build_all ${INSTANCE_IP} "unstable" "/tmp/build_all.log"
           ;;
-      12)
+      17)
           echo "Polling for build-all (tailing \"/tmp/build_all.log\" for complete logs)"
           tryexec run_poll_cmd ${INSTANCE_IP} "run_build_all.sh" "/tmp/build_all.log" "1"
           download ${INSTANCE_IP} "/tmp/build_all.log" "${WORKSPACE}/logs/"
           ;;
-      13)
+
+      18)
           echo "Making a snapshot of the VM"
           SN_ID=`date +%s`
           SNAP_D1="$PRIM_INST_NAME-d1-${SN_ID}"
@@ -136,7 +163,7 @@ function build_image() {
           gcloud compute disks snapshot $PRIM_INST_NAME-d1 --snapshot-names "$SNAP_D1"
           gcloud compute disks snapshot $PRIM_INST_NAME-d2 --snapshot-names "$SNAP_D2"
           ;;
-      14)
+      19)
           echo "Shutting down the Instance $PRIM_INST_NAME"
           gcloud compute instances delete $PRIM_INST_NAME --delete-disks all  -q
           ;;

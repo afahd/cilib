@@ -59,6 +59,8 @@ DELIM__
 for p in ${PROJECT_LIST[@]}; do
   cat >> ${git_script} <<DELIM__
 cd /home/plumgrid/work/${p}/build && sudo rm -rf *
+cd /home/plumgrid/work/${p}/ && git clean -fdx
+mkdir -p /home/plumgrid/work/${p}/build
 DELIM__
 done
 
@@ -152,6 +154,7 @@ for p in ${PROJECT_LIST[@]}; do
   cat >> ${git_script} <<DELIM__
 cd /home/plumgrid/work/${p}/build
 export APT_COMPONENT=${APT_COMPONENT}
+export PATH="/usr/lib/ccache/:\${PATH}"
 cmake ..
 DELIM__
 done
@@ -159,6 +162,7 @@ done
 cat >> ${git_script} <<DELIM__
 cd /home/plumgrid/work/${project}/build
 export APT_COMPONENT=${APT_COMPONENT}
+export PATH="/usr/lib/ccache/:\${PATH}"
 cmake ..
     ;;
   *)

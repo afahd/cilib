@@ -1,5 +1,6 @@
 #!/bin/bash -e
 set -e
+export PATH="/usr/lib/ccache/:${PATH}"
 cd ~/work/iovisor/bld && make
 cd ~/work/iovisor/bld && sudo make install
 mkdir -p ~/work/pg_ui/build && mkdir -p ~/work/sal/build && mkdir -p ~/work/pkg/build && mkdir -p ~/work/pg_cli/build
