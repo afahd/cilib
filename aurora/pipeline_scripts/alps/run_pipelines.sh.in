@@ -11,12 +11,9 @@ if [[ $3 == "help" ]]; then
   show_pl_help
   exit 1
 fi
-declare -A MINOR_STEPS_ST
-declare -A MINOR_STEPS_ED
 BUILD_ENV_USER=${USER}
-MAJOR_STEPS="run"
-MINOR_STEPS_ST[run]=1
-MINOR_STEPS_ED[run]=6
+STEP_ST=1
+STEP_ED=6
 DEST_SCRIPT_DIR=0
 
 echo "run_pipelines.sh $@"
@@ -234,26 +231,13 @@ __HEREDOC
   esac
 }
 
-for MAJOR_STEP in $MAJOR_STEPS; do
-  echo " ====== Starting STEP [$MAJOR_STEP] Number of Steps ::${MINOR_STEPS_ST[$MAJOR_STEP]} -> ${MINOR_STEPS_ED[$MAJOR_STEP]}  ======"
-  for MINOR_STEP in `seq ${MINOR_STEPS_ST[$MAJOR_STEP]} ${MINOR_STEPS_ED[$MAJOR_STEP]}`; do
-    echo "    === Starting STEP [$MAJOR_STEP][$MINOR_STEP] ==="
-    case "$MAJOR_STEP" in
-      # init)
-      # build_image $MINOR_STEP
-      # ;;
-      run)
-        run_test $MINOR_STEP
-        ret_status=$?
-      ;;
-      *)
-        echo "UNKNOWN STEP $MAJOR_STEP.$MINOR_STEP"
-      ;;
-    esac
-    if [ -n "$STOP" ] ; then
-      exit
-    fi
-  done
+script_start_time=$(date +%s)
+for STEP in `seq ${STEP_ST} ${STEP_ED}`; do
+  printf "\n    === Starting STEP $STEP === \n"
+  start_time=$(date +%s)
+  run_test $STEP
+  end_time=$(date +%s)
+  print_time_taken $start_time $end_time "[$STEP]"
 done
-
-exit ${ret_status}
+script_end_time=$(date +%s)
+print_time_taken $script_start_time $script_end_time "[RUN]"

@@ -22,11 +22,9 @@ REFSPEC="none"
 TAG="none"
 PROJECT=""
 
-declare -A MINOR_STEPS_ST
-declare -A MINOR_STEPS_ED
 MAJOR_STEPS="build"
-MINOR_STEPS_ST[build]=1
-MINOR_STEPS_ED[build]=19
+STEP_ST=1
+STEP_ED=19
 
 CONTINUE=0
 
@@ -64,8 +62,8 @@ fi
 
 #keep_running equalling 1 means -k was specified, end step should be 1 less.
 if [[ $KEEP_RUNNING == "1" ]]; then
-  # MINOR_STEPS_ED[build]=MINOR_STEPS_ED[build]-1
-  MINOR_STEPS_ED[build]=18
+  # STEPS_ED=STEP_ED-1
+  STEP_ED=`expr $STEP_ED - 1`
 fi
 
 #Generating Instance name piece by piece
@@ -105,7 +103,7 @@ if [[ $CONTINUE == "1" ]] ; then
   fi
   # Get the last successfull step from $WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
   LAST_SUCCESSFULL_STEP=( $(<${step_file}) )
-  MINOR_STEPS_ST[build]=$((LAST_SUCCESSFULL_STEP+1))
+  STEP_ST=$((LAST_SUCCESSFULL_STEP+1))
 
   #Only get the IP address if the instance has already been created.
   if [[ $LAST_SUCCESSFULL_STEP -gt 2 ]]; then
@@ -323,31 +321,14 @@ function build_image() {
   esac
 }
 
-for MAJOR_STEP in $MAJOR_STEPS; do
-  echo ""
-  echo " ====== Starting STEP [$MAJOR_STEP] Number of Steps ::${MINOR_STEPS_ST[$MAJOR_STEP]} -> ${MINOR_STEPS_ED[$MAJOR_STEP]}  ======"
-  echo ""
-  build_start_time=$(date +%s)
-  for MINOR_STEP in `seq ${MINOR_STEPS_ST[$MAJOR_STEP]} ${MINOR_STEPS_ED[$MAJOR_STEP]}`; do
-    echo ""
-    echo "    === Starting STEP [$MAJOR_STEP][$MINOR_STEP] ==="
-    echo ""
-    case "$MAJOR_STEP" in
-      build)
-        start_time=$(date +%s)
-        build_image $MINOR_STEP
-        end_time=$(date +%s)
-        print_time_taken $start_time $end_time "[$MAJOR_STEP][$MINOR_STEP]"
-      ;;
-      *)
-        echo "UNKNOWN STEP $MAJOR_STEP.$MINOR_STEP"
-      ;;
-    esac
-    if [ -n "$STOP" ] ; then
-      exit
-    fi
-  done
-  build_end_time=$(date +%s)
-  print_time_taken $build_start_time $build_end_time "[BUILD]"
+script_start_time=$(date +%s)
+for STEP in `seq ${STEP_ST} ${STEP_ED}`; do
+  printf "\n    === Starting STEP $STEP === \n"
+  start_time=$(date +%s)
+  build_image $STEP
+  end_time=$(date +%s)
+  print_time_taken $start_time $end_time "[$STEP]"
 done
+script_end_time=$(date +%s)
+print_time_taken $script_start_time $script_end_time "[BUILD]"
 

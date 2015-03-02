@@ -16,11 +16,8 @@ if [[ $1 == "help" ]]; then
   exit 1
 fi
 #Starting and ending steps
-declare -A MINOR_STEPS_ST
-declare -A MINOR_STEPS_ED
-MAJOR_STEPS="run"
-MINOR_STEPS_ST[$MAJOR_STEPS]=1
-MINOR_STEPS_ED[$MAJOR_STEPS]=13
+STEP_ST=1
+STEP_ED=13
 
 UUID=`uuidgen`
 SUUID_="${UUID##*-}"
@@ -93,7 +90,7 @@ if [ ${#INSTANCE_NAME} -gt "58" ]; then
 fi
 
 if [[ $KEEP_RUNNING == "1" ]]; then
-  MINOR_STEPS_ED[$MAJOR_STEPS]=12
+  STEP_ED=`expr $STEP_ED - 1`
 fi
 #Validate Inputs
 check_run_inputs $BUILD_ID
@@ -101,7 +98,7 @@ check_run_inputs $BUILD_ID
 if [[ -n $TEST_SCRIPT ]]; then
   check_file_existence $TEST_SCRIPT
 else
-  MINOR_STEPS_ED[$MAJOR_STEPS]=9
+  STEP_ED=9
 fi
 #Check /home/$USER/.ssh/id_rsa.pub file
 check_file_existence "/home/$USER/.ssh/id_rsa.pub"
@@ -130,7 +127,7 @@ if [[ $CONTINUE == "1" ]] ; then
   fi
 
   LAST_SUCCESSFULL_STEP=( $(<${step_file}) )
-  MINOR_STEPS_ST[$MAJOR_STEPS]=$((LAST_SUCCESSFULL_STEP+1))
+  STEP_ST=$((LAST_SUCCESSFULL_STEP+1))
   SUUID=$RUNID
   #Only get the IP address if the instance has already been created.
   if [[ $LAST_SUCCESSFULL_STEP -gt 2 ]]; then
@@ -277,26 +274,13 @@ function run_test() {
   esac
 }
 
-for MAJOR_STEP in $MAJOR_STEPS; do
-  echo " ====== Starting STEP [$MAJOR_STEP] Number of Steps ::${MINOR_STEPS_ST[$MAJOR_STEP]} -> ${MINOR_STEPS_ED[$MAJOR_STEP]}  ======"
-  run_start_time=$(date +%s)
-  for MINOR_STEP in `seq ${MINOR_STEPS_ST[$MAJOR_STEP]} ${MINOR_STEPS_ED[$MAJOR_STEP]}`; do
-    printf "\n  === Starting STEP [$MAJOR_STEP][$MINOR_STEP] === \n"
-    case "$MAJOR_STEP" in
-      run)
-        start_time=$(date +%s)
-        run_test $MINOR_STEP
-        end_time=$(date +%s)
-        print_time_taken $start_time $end_time "[$MAJOR_STEP][$MINOR_STEP]"
-      ;;
-      *)
-        echo "UNKNOWN STEP $MAJOR_STEP.$MINOR_STEP"
-      ;;
-    esac
-    if [ -n "$STOP" ] ; then
-      exit
-    fi
-  done
-  run_end_time=$(date +%s)
-  print_time_taken $run_start_time $run_end_time "[RUN]"
+script_start_time=$(date +%s)
+for STEP in `seq ${STEP_ST} ${STEP_ED}`; do
+  printf "\n    === Starting STEP $STEP === \n"
+  start_time=$(date +%s)
+  run_test $STEP
+  end_time=$(date +%s)
+  print_time_taken $start_time $end_time "[$STEP]"
 done
+script_end_time=$(date +%s)
+print_time_taken $script_start_time $script_end_time "[run]"
