@@ -175,8 +175,13 @@ function run_test() {
     time_taken=$(print_time_taken $start_time $end_time "running aurora-$PIPELINE tests")
     # Write to status file in case of failures
     if [[ ${num_failures} -gt 0 ]]; then
-      #Write status for builder script
-      echo "$PIPELINE,$time_taken,${num_failures},$num_total_tests" > ${WORKSPACE}/aurora-pipeline-status
+    #Write status for builder script
+      cat > "${WORKSPACE}/aurora-pipeline-status.log" <<__HEREDOC
+PIPELINE="$PIPELINE"
+num_total_tests="$num_total_tests"
+time_taken="$time_taken"
+num_failures="${num_failures}"
+__HEREDOC
 
       failed_list=$(find ${untar_log_dir} -name "*FAILED.log")
       for test_name in ${failed_list[@]}; do
