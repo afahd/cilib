@@ -194,10 +194,17 @@ __HEREDOC
     num_failures=$(find ${untar_log_dir} -name "*FAILED.log" | wc -l)
     echo "num_failures=$num_failures"
     mkdir -p ${WORKSPACE}/test_logs
+
+    #Concatenate all the log files into one file
+    for log_file in `find ${untar_log_dir} -name "*.log"` ; do
+      cat $log_file >>  ${WORKSPACE}/logs/ctest_output.log
+      echo "--------------------------------------" >> ${WORKSPACE}/logs/ctest_output.log
+    done
+
     # find all the failed files and copy them to the WORKSPACE
     for file in `find ${untar_log_dir} -name "*FAIL*" -o -name "*.tar.gz"`; do
-        base_file=`basename $file`
-        mv $file $WORKSPACE/test_logs/$base_file
+      base_file=`basename $file`
+      mv $file $WORKSPACE/test_logs/$base_file
     done
 
     if [[ $num_failures -eq 0 && $DB_UPDATE == "true" ]];then
