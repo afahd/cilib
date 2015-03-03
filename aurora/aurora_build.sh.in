@@ -24,7 +24,7 @@ PROJECT=""
 
 MAJOR_STEPS="build"
 STEP_ST=1
-STEP_ED=19
+STEP_ED=22
 
 CONTINUE=0
 
@@ -246,6 +246,29 @@ function build_image() {
     ;;
 
   13)
+    #Install tools and iovisor in the background
+    echo "Installing tools and iovisor"
+    tryexec make_tools_iovisor ${INSTANCE_IP} "/tmp/make_tools_iovisor.log"
+    record_step $step $step_file
+    ;;
+
+  14)
+    # Adding polling as a separate step, so that if the connection broke at the previous step,
+    # this step can be run directly to see if the previous command is still running
+    echo "Polling for tools install"
+    retryexec run_poll_cmd ${INSTANCE_IP} "make_tools_iovisor.sh" "/tmp/make_tools_iovisor.log" "1"
+    download ${INSTANCE_IP} "/tmp/make_tools_iovisor.log" "${WORKSPACE}/logs/"
+    record_step $step $step_file
+    ;;
+
+
+  15)
+    #run cmake on the repos
+    echo "running cmake on the repos"
+    retryexec run_cmd_gci ${INSTANCE_IP} "bash /tmp/gitsync.sh cmake_repos"
+    ;;
+
+  16)
     # Checks the elfsurgeon files
     if [[ "$PROJECT" == "alps" ]];then
       echo "make alps and check elfsurgeon files"
@@ -254,7 +277,7 @@ function build_image() {
     fi
     ;;
 
-  14)
+  17)
     # Adding polling as a separate step, so that if the connection broke at the previous step.
     if [[ "$PROJECT" == "alps" ]];then
       echo "Polling make for alps and checking elfsurgeon files (tailing \"/tmp/check_elfsurgeon.log\" for complete logs)"
@@ -264,7 +287,7 @@ function build_image() {
     fi
     ;;
 
-  15)
+  18)
     echo "Starting build-all.sh for ${APT_COMPONENT}==="
     # Restart the lxc-net service
     run_cmd_gci ${INSTANCE_IP} "sudo ifconfig lxcbr0 down"
@@ -275,7 +298,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  16)
+  19)
     # Adding polling as a separate step, so that if the connection broke at the previous step,
     # this step can be run directly to see if the previous command is still running
     echo "Polling for build-all (tailing \"/tmp/build_all.log\" for complete logs)"
@@ -284,7 +307,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  17)
+  20)
     BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${emailid}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
     tryexec run_cmd_gci ${INSTANCE_IP} "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
@@ -298,7 +321,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  18)
+  21)
     #Flushing the disk buffers
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo sync"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f / || true"
@@ -308,7 +331,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  19)
+  22)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     rm $step_file

@@ -48,7 +48,8 @@ function run_cmd_gci() {
   local CMD=$2
   local SSH_FLAGS=${3:-t}
 
-  ssh -${SSH_FLAGS} -o UserKnownHostsFile=/dev/null -o CheckHostIP=no -o StrictHostKeyChecking=no -o ServerAliveInterval=5 ${_USER}@${INSTANCE_IP} "$CMD"
+  ssh -${SSH_FLAGS} -o UserKnownHostsFile=/dev/null -o CheckHostIP=no -o StrictHostKeyChecking=no -o ServerAliveInterval=50 \
+  -o ConnectionAttempts=3 -o ServerAliveCountMax=5 ${_USER}@${INSTANCE_IP} "$CMD"
 }
 
 # *****************************************************************************
@@ -112,7 +113,8 @@ function run_cmd_gci_bg() {
   local CMD=$2
   local LOG_FILE=$3
 
-  ssh -t  -o UserKnownHostsFile=/dev/null -o CheckHostIP=no -o StrictHostKeyChecking=no -o ServerAliveInterval=5 ${_USER}@${INSTANCE_IP}  "nohup bash -c '${CMD} > ${LOG_FILE} 2>&1 &'"
+  ssh -t  -o UserKnownHostsFile=/dev/null -o CheckHostIP=no -o StrictHostKeyChecking=no -o ServerAliveInterval=50 \
+  -o ConnectionAttempts=3 -o ServerAliveCountMax=5 ${_USER}@${INSTANCE_IP}  "nohup bash -c '${CMD} > ${LOG_FILE} 2>&1 &'"
 }
 
 # *****************************************************************************
@@ -175,12 +177,6 @@ function check_ssh_server_status() {
       sleep 1
     done
   return $RESULT
-}
-
-function setup_forwarding() {
-  local INSTANCE_IP=$1
-
-  run_cmd_gci ${INSTANCE_IP} "echo 'host *' > ~/.ssh/config; echo '    ForwardAgent yes'>>~/.ssh/config"
 }
 
 # *****************************************************************************
@@ -393,6 +389,38 @@ function run_build_all() {
   #File name needs to be constant for continue functionality, thus renaming.
   local instance_file=/tmp/$(basename ${local_file})
   local renamed_file=/tmp/run_build_all.sh
+  tryexec upload ${INSTANCE_IP}  ${local_file} ${instance_file}
+  tryexec run_cmd_gci ${INSTANCE_IP} "mv ${instance_file} ${renamed_file}"
+  rm ${local_file}
+  tryexec run_bg_cmd ${INSTANCE_IP} "${renamed_file}" "/bin/bash ${renamed_file}" "$LOG_FILE"
+}
+
+# ******************************************************************************
+# Function: make_tools_iovisor
+# Purpose : Creates a script which makes and installs tools and iovisor, uploads
+#           and runs the script.The return value for the script is echoed to
+#           check for failure.
+# Usage   : make_tools_iovisor <cloud_instance_ip> <log file>
+# ******************************************************************************
+function make_tools_iovisor() {
+  local INSTANCE_IP=$1
+  local LOG_FILE=$2
+  local local_file=$(mktemp $WORKSPACE/make_tools_iovisor.sh-XXXXX)
+  cat /dev/null > ${local_file}
+  cat >> ${local_file} <<DELIM__
+cd /home/plumgrid/work/tools/build
+export PATH="/usr/lib/ccache/:\${PATH}"
+cmake ..
+sudo make packages
+make -C packages install
+make -j4 install
+cd /home/plumgrid/work/iovisor/bld
+make -j4 -k
+sudo make install
+DELIM__
+  #File name needs to be constant for continue functionality, thus renaming.
+  local instance_file=/tmp/$(basename ${local_file})
+  local renamed_file=/tmp/make_tools_iovisor.sh
   tryexec upload ${INSTANCE_IP}  ${local_file} ${instance_file}
   tryexec run_cmd_gci ${INSTANCE_IP} "mv ${instance_file} ${renamed_file}"
   rm ${local_file}

@@ -140,14 +140,8 @@ DELIM__
 fi
 
 cat >> ${git_script} <<DELIM__
-cd /home/plumgrid/work/tools/build
-cmake ..
-sudo make packages
-make -C packages install
-make -j4 install
-cd /home/plumgrid/work/iovisor/bld
-make -j4 -k
-sudo make install
+    ;;
+  cmake_repos)
 DELIM__
 ## Checkout the requested branch on all the projects
 for p in ${PROJECT_LIST[@]}; do
@@ -160,10 +154,6 @@ DELIM__
 done
 
 cat >> ${git_script} <<DELIM__
-cd /home/plumgrid/work/${project}/build
-export APT_COMPONENT=${APT_COMPONENT}
-export PATH="/usr/lib/ccache/:\${PATH}"
-cmake ..
     ;;
   *)
     echo "Step \$step provided is invalid. Exiting!"
