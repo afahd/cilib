@@ -179,7 +179,7 @@ function build_image() {
 
   5)
     echo "setting up forward on ${INSTANCE_IP} Machine "
-    eval `ssh-agent -s`
+    tryexec run_cmd_gci ${INSTANCE_IP} "echo 'host *' > ~/.ssh/config; echo '    ForwardAgent yes'>>~/.ssh/config"
     record_step $step $step_file
     ;;
 
