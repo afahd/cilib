@@ -76,7 +76,7 @@ function check_and_start_ssh_agent() {
   if [[ "$PFOUND" == "0" ]] ; then
       # if ssh add failed
       # Re star the ssh agent and re-add the keys
-      pkill ssh-agent
+      eval `ssh-agent -k`
       echo "Restarting ssh-add"
       eval `ssh-agent -s`
       if [[ -f ${HOME}/.ssh/jenkins-slave-gerrit ]]; then
@@ -85,6 +85,8 @@ function check_and_start_ssh_agent() {
         ssh-add
       fi
   fi
+  echo "Currently represented identities:"
+  ssh-add -l
 }
 
 # *****************************************************************************
@@ -770,7 +772,7 @@ function retryexec() {
        fi
      fi
      echo "Command $@ Failed on try $retry : Will try again, restarting ssh-agent before retrying"
-     pkill "ssh-agent" || true
+     eval `ssh-agent -k`
   done
 }
 
