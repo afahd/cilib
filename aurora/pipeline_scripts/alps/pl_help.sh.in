@@ -9,7 +9,7 @@ USAGE: aurora pipeline -l <BUILD-ID> -P <pipeline-name> [OPTIONS]
 Required Arguments:
   -l, --buildid             Build-ID against which you want to run test cases
   -P, --pipeline            The pipeline which you want to run.
-                            Possible values are "smoke", "extended", "unstable", "automaton", "pgui-smoke".
+                            Possible values are "smoke", "extended", "unstable", "automaton", "pgui-smoke", "omni".
                             (Default is 'smoke')
 
 Optional Arguments:

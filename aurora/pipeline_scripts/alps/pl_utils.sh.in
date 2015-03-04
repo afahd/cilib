@@ -13,6 +13,8 @@ function get_db() {
     db=${UNSTABLE_DB}
   elif [[ $pipeline == "pgui-smoke" ]]; then
     db=${PGUI_SMOKE_DB}
+  elif [[ $pipeline == "omni" ]]; then
+    db=${OMNI_DB}
   else
     echo "Unknown Pipeline"
     return 1

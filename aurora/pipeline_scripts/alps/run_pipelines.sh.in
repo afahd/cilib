@@ -78,7 +78,7 @@ untar_log_dir=${script_dir}/untar_logs
 
 echo "run_pipelines.sh $ARGS" > $log_dir/aurora_pipeline_command
 
-if [[ $PIPELINE == "smoke" || $PIPELINE == "extended" || $PIPELINE == "unstable" || $PIPELINE == "pgui-smoke" ]]; then
+if [[ $PIPELINE == "smoke" || $PIPELINE == "extended" || $PIPELINE == "unstable" || $PIPELINE == "pgui-smoke" || $PIPELINE == "omni" ]]; then
   db=$(get_db $PIPELINE)
 
 # Make a decision about automaton-init.sh
@@ -104,7 +104,10 @@ function run_test() {
       gen_automaton_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -d ${script_dir} -r $BASE_SCRIPT_DIR -p $PIPELINE
     else
       if [[ $PIPELINE == "pgui-smoke" ]]; then
-        NUM_INSTANCES=5
+        NUM_INSTANCES=${PGUI_NUM_INSTANCES}
+      elif [[ $PIPELINE == "omni" ]]; then
+        NUM_INSTANCES=${OMNI_NUM_INSTANCES}
+        TEST_ITERATIONS=${OMNI_TEST_ITERATIONS}
       fi
       gen_test_scripts.sh -p $PIPELINE -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -f ${FIRST_TEST} -t ${STEP_SIZE} -n ${NUM_INSTANCES} -d ${script_dir} -I ${INITIAL_RUN} --base_script_dir $BASE_SCRIPT_DIR -D ${db}
     fi
