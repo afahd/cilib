@@ -36,6 +36,30 @@ Optional Arguments:
 HELP
 }
 
+function show_flag_help() {
+    cat << HELP
+-------------------------------------------------------------------------------
+USAGE: aurora flag -l <BUILD-ID> -p <pl_failing_test_list> [OPTIONS]
+
+Required Arguments:
+  -l, --buildid                 Build-ID against which you want to run test cases
+  -p, --pl_failing_test_list    List of test cases which failed in current run of pipeline.
+  -b, --branch                  Branch to mark the test cases unstable.
+
+
+Optional Arguments:
+  -W, --WORKSPACE           Set the workspace where all the logs will be stored.
+  -K, --keep-running        Instance will be left running after aurora run ends.
+  -i, --test_iterations     Number of iterations, script needs to run
+                            Default is '10'.
+  -n, --num_instances       Number of cloud instances on which you want to run these tests
+                            Default is '10'.
+  -D, --db                  Database holding all the failing test cases.
+  -a, --alps-path           Path to the local alps repository.
+-------------------------------------------------------------------------------
+HELP
+}
+
 function show_gen_test_scripts_help() {
     cat << HELP
 build

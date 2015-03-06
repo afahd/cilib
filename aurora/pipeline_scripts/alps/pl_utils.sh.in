@@ -1,5 +1,7 @@
 #!/bin/bash -e
 source pl_settings.conf
+source ~/.aurora.conf
+. gc_helpers.sh
 
 function get_db() {
   local pipeline=$1
@@ -37,4 +39,151 @@ function get_script_dir() {
     script_dir=$script_dir
   fi
   echo $script_dir
+}
+
+# *****************************************************************************
+# Function: remove_test_from_db
+# Purpose : Removes a test case from the database
+# Usage   : remove_test_from_db <DB Path> <test name>
+# *****************************************************************************
+function remove_test_from_db() {
+  local FAILING_TESTS_DB=$1
+  local test_name=$2
+
+  sqlite3 $FAILING_TESTS_DB "DELETE FROM $FAILING_TESTS_TABLE WHERE name='$test_name';"
+}
+
+# *****************************************************************************
+# Function: add_new_failing_tests_to_db
+# Purpose : Adds a test case to the database if it does not exist already.
+# Usage   : add_new_failing_tests_to_db <DB Path> <test name>
+# *****************************************************************************
+function add_new_failing_tests_to_db() {
+  local FAILING_TESTS_DB=$1
+  local test_name=$2
+  local time=$(date +%s)
+
+  local exists=$(sqlite3 $FAILING_TESTS_DB "SELECT EXISTS(SELECT 1 FROM $FAILING_TESTS_TABLE WHERE name='$test_name' LIMIT 1);")
+  if [[ $exists != "1" ]]; then
+    echo "New failure"
+    sqlite3 $FAILING_TESTS_DB "insert into $FAILING_TESTS_TABLE (Name, FailureProb, FirstOccurence) values ('$test_name', '0', '$time')"
+  fi
+}
+
+# *****************************************************************************
+# Function: update_failing_tests_prob
+# Purpose : Updates the database with the new failure probablity for a given test.
+# Usage   : update_failing_tests_prob <DB Path> <test name> <failure probability>
+# *****************************************************************************
+function update_failing_tests_prob() {
+  local FAILING_TESTS_DB=$1
+  local test_name=$2
+  local failure_prob=$3
+  local curr_time=$(date +%s)
+
+  #Remove from DB if the test passed
+  if [[ failure_prob -eq 0 ]]; then
+    echo "Removing $test_name from DB"
+    remove_test_from_db $FAILING_TESTS_DB $test_name
+  else
+    #If the probability of failure was less than 10 previously, First
+    #occurance should be updated when the test started failing.
+    old_failure_prob=$(sqlite3 $FAILING_TESTS_DB "SELECT FailureProb from $FAILING_TESTS_TABLE WHERE name='$test_name';")
+    sqlite3 $FAILING_TESTS_DB "UPDATE $FAILING_TESTS_TABLE SET FailureProb='$failure_prob' WHERE name='$test_name';"
+    #exists=$(sqlite3 $FAILING_TESTS_DB "SELECT EXISTS(SELECT 1 FROM $FAILING_TESTS_TABLE WHERE name='$test_name' LIMIT 1);")
+    if [[ $old_failure_prob -lt 10 && $failure_prob -ge 10 ]]; then
+      #Update the failing since field
+      sqlite3 $FAILING_TESTS_DB "UPDATE $FAILING_TESTS_TABLE SET FirstOccurence='$time' WHERE name='$test_name';"
+    fi
+  fi
+}
+
+# *****************************************************************************
+# Function: mark_test_unstable
+# Purpose : Marks a test as unstable on a given branch. Creates and pushes a commit.
+# Usage   : mark_test_unstable <test_name> <probability of failure> <CMakeLists.txt file path>
+#           <branch> <path to alps>
+# *****************************************************************************
+function mark_test_unstable() {
+  local test_name=$1
+  local failure_prob=$2
+  local file_name=$3
+  local branch=$4
+  local alps_path=$5
+  #Checkout Branch
+  git --git-dir=${alps_path}/.git --work-tree=${alps_path} reset --hard origin/$branch
+  git --git-dir=${alps_path}/.git --work-tree=${alps_path} checkout $branch
+  #Reset and update
+  git --git-dir=${alps_path}/.git --work-tree=${alps_path} reset --hard origin/$branch
+  git --git-dir=${alps_path}/.git --work-tree=${alps_path} pull --rebase
+  #Get CMakeLists.txt file name
+  echo "Test:$test_name found in: $file_name"
+  #Mark as unstable
+  sed -i "s/NAME\ \+$test_name/NAME $test_name UNSTABLE/" $file_name
+  #Create the commit message
+  local commit_message=$(mktemp /tmp/commit-message-XXXXX.txt)
+  #TODO: Need a better commit message.
+  echo "Marking Test:$test_name as UNSTABLE" >> $commit_message
+  echo "$test_name is failing at:${BUILD_URL} with $failure_prob% probability." >> $commit_message
+
+  #Add the file to patch and commit
+  git --git-dir=${alps_path}/.git --work-tree=${alps_path} commit -s -o -F $commit_message $file_name
+  #push the commit for review
+  git --git-dir=${alps_path}/.git --work-tree=${alps_path} push origin HEAD:refs/for/$branch
+  #use this if we want to bypass code review
+  #git push origin HEAD:refs/heads/$branch
+  #Delete the commit message
+  rm ${commit_message}
+}
+
+# *****************************************************************************
+# Function: check_flag_inputs
+# Purpose : Checks the inputs given to aurora flag.
+# Usage   : check_flag_inputs <build-id> <test-list> <test iterations> <num instances>
+#                              <branch> <alps path>
+# *****************************************************************************
+function check_flag_inputs() {
+  local build_id=$1
+  local test_list=$2
+  local test_iterations=$3
+  local num_instances=$4
+  local branch=$5
+  local alps_path=$6
+
+  #Check build-id exists
+  check_run_inputs ${emailid}-$build_id
+
+  #Check if input failing-list file exists and is not empty
+  if [[ ! -s $test_list ]]; then
+    echo "Input failing-list empty or does not exist, exiting"
+    exit 1
+  fi
+  #Verify iterations and num_instances are numbers
+  re='^[0-9]+$'
+  if ! [[ $test_iterations =~ $re ]] ; then
+    echo "test_iterations is not a number, exiting."
+    exit 1
+  fi
+
+  if ! [[ $num_instances =~ $re ]] ; then
+    echo "num_instances is not a number, exiting."
+    exit 1
+  fi
+
+  #Verify input Branch
+  local RESULT=0
+  git ls-remote ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/alps "${BRANCH}" | grep -q "${BRANCH}" || RESULT=$?
+  if [[ $RESULT -ne 0 ]];then
+    echo "Branch: $BRANCH does not exist for the project: alps"
+    exit 1
+  fi
+
+  #Verify alps exists at specified path
+  git rev-parse --resolve-git-dir $alps_path/.git || RESULT=$?
+  if [[ $RESULT != "0" ]]; then
+    echo "Alps not found at :$ALPS_PATH"
+    echo "Use the -a(--alps-path) to specify the path to alps"
+    exit 1
+  fi
+
 }

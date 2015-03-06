@@ -1,0 +1,162 @@
+#!/bin/bash -e
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/alps:$PATH
+source gc_helpers.sh
+source pl_utils.sh
+source pl_settings.conf
+source pl_help.sh
+
+if [[ $1 == "help" ]]; then
+  show_flag_help
+  exit 1
+fi
+
+TEMP=`getopt -o l:p:W:Ki:a:b:n:D:R:E:\h --long buildid:,alps-path:,pl_failing_tests_list:,WORKSPACE:,branch:,keep-running,test_iterations:,num_instances:,db:,minor_st:,minor_end:,\help -n 'aurora.sh' -- "$@"`
+eval set -- "$TEMP"
+
+STEP_ST=1
+STEP_ED=7
+
+alps_path=/home/${USER}/work/alps
+
+while true ; do
+  case "$1" in
+    -l|--buildid) BUILD_ID=$2 ; shift 2 ;;
+    -a|--alps-path) alps_path=$2 ; shift 2 ;;
+    -p|--pl_failing_tests_list) PL_FAILING_TESTS_LIST=$2 ; shift 2 ;;
+    -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
+    -K|--keep-running) KEEP_RUNNING="-K" ; shift ;;
+    -i|--test_iterations) FLAG_TEST_ITERATIONS=$2 ; shift 2 ;;
+    -b|--branch) BRANCH=$2 ; shift 2 ;;
+    -n|--num_instances) FLAG_NUM_INSTANCES=$2 ; shift 2 ;;
+    -D|--db) FAILING_TESTS_DB=$2 ; shift 2 ;;
+    -R| --minor_st ) STEP_ST="$2"; shift 2 ;;
+    -E| --minor_end ) STEP_ED="$2"; shift 2 ;;
+    -h| --help) show_flag_help; exit 0; shift ;;
+    --) shift ; break ;;
+    *)
+      echo "Unrecognized option $1"
+       exit 1 ;;
+  esac
+done
+
+#Verify inputs
+check_flag_inputs $BUILD_ID $PL_FAILING_TESTS_LIST $FLAG_TEST_ITERATIONS $FLAG_NUM_INSTANCES $BRANCH $alps_path
+
+if [[ ! -d ${WORKSPACE}/flag ]]; then
+  mkdir -p ${WORKSPACE}/flag
+fi
+
+log_dir=${WORKSPACE}/flag/logs
+all_failing_tests_list=${WORKSPACE}/flag/all_failing_tests_list # File holding all test cases in failing_tests database
+failing_test_prob=${WORKSPACE}/flag/failing_test_prob  # File holding failure probability of all failing_tests
+mkdir -p ${WORKSPACE}/flag/logs
+
+function flag_failing_tests() {
+  local step=$1
+  case "$step" in
+
+  1)
+    echo "Check whether $FAILING_TESTS_DB DataBase exists?"
+    if [ ! -e "$FAILING_TESTS_DB" ] ; then
+      echo "DB Does not exist, creating it now"
+      echo "sqlite3 $FAILING_TESTS_DB \"create table $FAILING_TESTS_TABLE (Name STRING PRIMARY KEY, FailureProb INTEGER, FirstOccurence DATETIME);\""
+      sqlite3 $FAILING_TESTS_DB "create table $FAILING_TESTS_TABLE (Name STRING PRIMARY KEY, FailureProb INTEGER, FirstOccurence DATETIME);"
+    else
+      echo "It does exists :)"
+    fi
+    ;;
+
+  2)
+    echo "Add new failing test cases to database"
+    while read test_name;do
+      add_new_failing_tests_to_db $FAILING_TESTS_DB $test_name
+    done < ${PL_FAILING_TESTS_LIST}
+    ;;
+
+  3)
+    echo "Generate a list of all failing test cases in database"
+    sqlite3 $FAILING_TESTS_DB "select NAME FROM $FAILING_TESTS_TABLE;" > ${all_failing_tests_list}
+    ;;
+
+  4)
+    echo "Running aurora debug test. Run each test $((FLAG_TEST_ITERATIONS*FLAG_NUM_INSTANCES)) number of times"
+    retval=0
+    aurora debug-test -W ${WORKSPACE} $KEEP_RUNNING -l $BUILD_ID -i $FLAG_TEST_ITERATIONS -n $FLAG_NUM_INSTANCES -s ${all_failing_tests_list} || retval=$?
+    echo "Debug-test Return value:$retval"
+    ;;
+
+  5)
+    echo "Get probability of failure of each test case"
+    cat /dev/null >  ${failing_test_prob}
+    #Make sure the file is present
+    touch ${WORKSPACE}/failing-list.log
+    time=$(date +%s)
+    num_runs=$(($FLAG_TEST_ITERATIONS*$FLAG_NUM_INSTANCES))
+    echo "======================================================================\n"
+    while read test_name;do
+      num_failures=$(grep "$test_name" ${WORKSPACE}/failing-list.log | wc -l)
+      failure_prob=$(($num_failures*100/$num_runs))
+      echo "test:$test_name num_failures:$num_failures num_runs=$num_runs prob=${failure_prob}"
+      echo "$failure_prob" >> ${failing_test_prob}
+    done < ${all_failing_tests_list}
+    echo "======================================================================"
+    ;;
+
+  6)
+    echo "Update failure probability of all failing tests"
+    i=1
+    while read test_name;do
+      failure_prob=$(cat $failing_test_prob | head -$i | tail -1)
+      echo "**** $test_name: $failure_prob ***"
+      update_failing_tests_prob $FAILING_TESTS_DB $test_name ${failure_prob}
+      i=$((i+1))
+    done < ${all_failing_tests_list}
+    ;;
+
+  7)
+    echo "Mark test cases as unstable"
+    i=1
+    #Output file for builder to send emails/create tickets
+    test_status_file=${WORKSPACE}/test-failure-info
+    cat /dev/null > ${test_status_file}
+    while read test_name;do
+      test_status="stable"
+      now=$(date +%s)
+      failure_prob=$(cat $failing_test_prob | head -$i | tail -1)
+      first_occurence=$(sqlite3 $FAILING_TESTS_DB "SELECT FirstOccurence from $FAILING_TESTS_TABLE WHERE name='$test_name';")
+      failing_since=$((now-first_occurence))
+      limit=$(($MARK_UNSTABLE_AFTER_DAYS*86400))
+
+      echo "Finding CMakeLists.txt file for test:$test_name"
+      test_cmake_file=$(grep --include=CMakeLists.txt -rwl "$alps_path" -e "NAME\ \+$test_name")
+      test_owner_file=`dirname $test_cmake_file`/OWNERS
+      test_primary_owner=$(grep - $test_owner_file | cut -d ' ' -f 2 | head -1)
+
+      #Mark test as unstable if failing for more than the threshold
+      if [[ $failure_prob -ge 10 && ${failing_since} -gt ${limit} ]]; then
+          echo "Marking test case: $test_name as unstable"
+          mark_test_unstable $test_name $failure_prob $test_cmake_file $BRANCH $alps_path
+          #Remove the test from the database
+          remove_test_from_db $FAILING_TESTS_DB $test_name
+          #Send status to builder if test is marked unstable
+          test_status="unstable"
+      fi
+      echo "$test_name,$failure_prob,$failing_since,$BRANCH,$test_status,$test_primary_owner" >> ${test_status_file}
+      i=$((i+1))
+    done < ${all_failing_tests_list}
+    ;;
+
+  esac
+}
+
+script_start_time=$(date +%s)
+for STEP in `seq ${STEP_ST} ${STEP_ED}`; do
+  echo "    === Starting STEP $STEP === "
+  start_time=$(date +%s)
+  flag_failing_tests $STEP
+  end_time=$(date +%s)
+  print_time_taken $start_time $end_time "[$STEP]"
+done
+script_end_time=$(date +%s)
+print_time_taken $script_start_time $script_end_time "FLAG_FAILING_TESTS"
+
