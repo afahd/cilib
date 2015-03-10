@@ -122,7 +122,7 @@ function run_test() {
     ;;
 
   3)
-    start_time=$(date +%s)
+    pipeline_start_time=$(date +%s)
     echo "Waiting for command to finish ..."
     # Background loop to print the number of aurora_run processes
     while [[ ! -z `pgrep -f "run -l ${USER_BUILD_ID} -o ${log_dir}"` ]]; do
@@ -134,7 +134,7 @@ function run_test() {
     for pid in "${pids[@]}"; do
       wait "$pid" || FAIL=$(($? + $FAIL))
     done
-    end_time=$(date +%s)
+    pipeline_end_time=$(date +%s)
     #Exit if any value is nonzero
     if [[ $FAIL != 0 ]]; then
       #Kill the echo while loop, suppress output
@@ -167,17 +167,11 @@ function run_test() {
     for file in ${test_count[@]}; do
       num_total_tests=$((`cat $file`+$num_total_tests))
     done
-    time_taken=$(print_time_taken $start_time $end_time "running aurora-$PIPELINE tests")
+    time_taken=$(print_time_taken $pipeline_start_time $pipeline_end_time "running $PIPELINE pipeline")
     # Write to status file in case of failures
     if [[ ${num_failures} -gt 0 ]]; then
-    #Write status for builder script
-      cat > "${WORKSPACE}/aurora-pipeline-status.log" <<__HEREDOC
-PIPELINE="$PIPELINE"
-num_total_tests="$num_total_tests"
-time_taken="$time_taken"
-num_failures="${num_failures}"
-__HEREDOC
-
+      #Write status for builder script
+      echo "$PIPELINE,$time_taken,${num_failures},$num_total_tests" > ${WORKSPACE}/aurora-pipeline-status
       failed_list=$(find ${untar_log_dir} -name "*FAILED.log")
       for test_name in ${failed_list[@]}; do
         test_name=$(basename "$test_name")
