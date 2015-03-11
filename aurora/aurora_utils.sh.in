@@ -275,14 +275,15 @@ function login_instance() {
     exit 1
   fi
   local INSTANCE_NAME="${emailid}-$1"
-  gcloud compute instances list ${INSTANCE_NAME} | grep "${INSTANCE_NAME}" || RESULT=$? &> /dev/null
-  local INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
-  if [[ $RESULT -ne 0 ]];then
-    echo "INSTANCE ${INSTANCE_NAME} does not exist"
-    show_login_help
+  local retval=$?
+  gcloud compute instances list ${INSTANCE_NAME} | grep "${INSTANCE_NAME}" | grep "RUNNING" || retval=$?
+  if [[ $retval -eq 0 ]]; then
+    local INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
+    run_cmd_gci_sshforwarding ${INSTANCE_IP} "/bin/bash"
+  else
+    echo "Instance not found or not running."
     exit 1
   fi
-  run_cmd_gci_sshforwarding ${INSTANCE_IP} "/bin/bash"
 }
 # *****************************************************************************
 # Function: list_entities
