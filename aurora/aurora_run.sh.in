@@ -17,7 +17,7 @@ if [[ $1 == "help" ]]; then
 fi
 #Starting and ending steps
 STEP_ST=1
-STEP_ED=13
+STEP_ED=14
 
 UUID=`uuidgen`
 SUUID_="${UUID##*-}"
