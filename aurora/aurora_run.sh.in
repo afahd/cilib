@@ -190,11 +190,7 @@ function run_test() {
     ;;
 
   5)
-    check_ssh_server_status ${INSTANCE_IP}
-    if [[ $retval == 1 ]]; then
-      echo "SSH server is not running on cloud instance"
-      exit $retval
-    fi
+    echo "Changing MTU on the instance"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo ifconfig eth0 mtu 1400"
     tryexec run_cmd_gci ${INSTANCE_IP} "DT=\$(ifconfig eth0 | grep 'inet addr' | cut -d: -f2|cut -d' ' -f 1); sudo bash -c 'echo \"'\$DT'  \`hostname\`\" >> /etc/hosts'"
     record_step $step $step_file

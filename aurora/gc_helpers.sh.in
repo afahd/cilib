@@ -189,23 +189,6 @@ function wait_for_instance() {
     done
   return $RESULT
 }
-# *****************************************************************************
-# Purpose : Check whether ssh server is up and running.
-# Usage   : wait_for_instance <cloud_instance_ip>
-# *****************************************************************************
-function check_ssh_server_status() {
-  local INSTANCE_IP=$1
-  local RESULT=1
-  echo "check if ssh server is up and running"
-  #check_and_start_ssh_agent
-
-  for i in `seq 1 60`;
-    do
-      ssh -tA  -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o CheckHostIP=no ${_USER}@$INSTANCE_IP "exit" && RESULT=0 && break
-      sleep 1
-    done
-  return $RESULT
-}
 
 # *****************************************************************************
 # Function: get_lastest_snapshot_id

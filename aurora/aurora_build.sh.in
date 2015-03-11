@@ -23,7 +23,7 @@ PROJECT=""
 
 MAJOR_STEPS="build"
 STEP_ST=1
-STEP_ED=22
+STEP_ED=21
 
 CONTINUE=0
 
@@ -175,23 +175,13 @@ function build_image() {
     ;;
 
   5)
-    echo "setting up forward on ${INSTANCE_IP} Machine "
-    eval `ssh-agent -s`
-    record_step $step $step_file
-    ;;
-
-  6)
-    check_ssh_server_status ${INSTANCE_IP} || retval=$?
-    if [[ $retval == 1 ]]; then
-      echo "ssh server is not running."
-      exit $retval
-    fi
+    echo "Changing MTU on the instance"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo ifconfig eth0 mtu 1400"
     tryexec run_cmd_gci ${INSTANCE_IP} "DT=\$(ifconfig eth0 | grep 'inet addr' | cut -d: -f2|cut -d' ' -f 1); sudo bash -c 'echo \"'\$DT'  \`hostname\`\" >> /etc/hosts'"
     record_step $step $step_file
     ;;
 
-  7)
+  6)
     GIT_SYNC_SCRIPT=$(mktemp /tmp/gitsync.sh-XXXXX)
     echo "Generate script for syncing the gerrit repo"
     tryexec write_gitsync.sh "${GIT_SYNC_SCRIPT}" "${BRANCH}" "${PROJECT}" "${REFSPEC}"
@@ -202,26 +192,21 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  8)
+  7)
     echo "Execute the gitsynch script"
     echo "gitsync Step1: Perform cleanup on the setup"
-    tryexec check_ssh_server_status ${INSTANCE_IP} || retval=$?
-    if [[ $retval == 1 ]]; then
-      echo "ssh server is not running."
-      exit $retval
-    fi
     tryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh cleanup"
     record_step $step $step_file
     ;;
 
-  9)
+  8)
     # Run Step2: Fetch tools
     echo "gitsync Step2: Fetching latest tools"
     retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh tools"
     record_step $step $step_file
     ;;
 
-  10)
+  9)
     # Run Step3: Fetch all repos
     echo "gitsync Step3: Fetching all the repos (${PROJECT_LIST[@]})"
     for p in ${PROJECT_LIST[@]}; do
@@ -230,28 +215,28 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  11)
+  10)
     # Run Step4: Fetch iovisor
     echo "gitsync Step4: Fetching latest iovisor"
     retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh iovisor"
     record_step $step $step_file
     ;;
 
-  12)
+  11)
     # Checkout the required changes for specified project and set apt_component
     echo "gitsync Step5: Checking out required code on ${PROJECT}"
     retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh checkout"
     record_step $step $step_file
     ;;
 
-  13)
+  12)
     #Install tools and iovisor in the background
     echo "Installing tools and iovisor"
     tryexec make_tools_iovisor ${INSTANCE_IP} "/tmp/make_tools_iovisor.log"
     record_step $step $step_file
     ;;
 
-  14)
+  13)
     # Adding polling as a separate step, so that if the connection broke at the previous step,
     # this step can be run directly to see if the previous command is still running
     echo "Polling for tools install"
@@ -261,13 +246,13 @@ function build_image() {
     ;;
 
 
-  15)
+  14)
     #run cmake on the repos
     echo "running cmake on the repos"
     retryexec run_cmd_gci ${INSTANCE_IP} "bash /tmp/gitsync.sh cmake_repos"
     ;;
 
-  16)
+  15)
     # Checks the elfsurgeon files
     if [[ "$PROJECT" == "alps" ]];then
       echo "make alps and check elfsurgeon files"
@@ -276,7 +261,7 @@ function build_image() {
     fi
     ;;
 
-  17)
+  16)
     # Adding polling as a separate step, so that if the connection broke at the previous step.
     if [[ "$PROJECT" == "alps" ]];then
       echo "Polling make for alps and checking elfsurgeon files (tailing \"/tmp/check_elfsurgeon.log\" for complete logs)"
@@ -286,7 +271,7 @@ function build_image() {
     fi
     ;;
 
-  18)
+  17)
     echo "Starting build-all.sh for ${APT_COMPONENT}==="
     # Restart the lxc-net service
     run_cmd_gci ${INSTANCE_IP} "sudo ifconfig lxcbr0 down"
@@ -297,7 +282,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  19)
+  18)
     # Adding polling as a separate step, so that if the connection broke at the previous step,
     # this step can be run directly to see if the previous command is still running
     echo "Polling for build-all (tailing \"/tmp/build_all.log\" for complete logs)"
@@ -306,13 +291,9 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  20)
+  19)
     BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${emailid}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
-    tryexec run_cmd_gci ${INSTANCE_IP} "echo ${INSTANCE_NAME}-ssd1 > ~/build_d1_snapshot"
-    tryexec run_cmd_gci ${INSTANCE_IP} "echo ${INSTANCE_NAME}-ssd2 > ~/build_d2_snapshot"
-    tryexec run_cmd_gci ${INSTANCE_IP} "echo ${SN_ID} > ~/primary_snapshot"
-
     #Flushing the disk buffers
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo sync"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f /opt || true"
@@ -320,7 +301,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  21)
+  20)
     #Flushing the disk buffers
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo sync"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f / || true"
@@ -330,7 +311,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  22)
+  21)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     rm $step_file
