@@ -1,3 +1,5 @@
-#! bin/bash
+#!/bin/bash
+export EXPORT_FAILURES_DIR=/opt/pg/log/
+/home/plumgrid/work/alps/build/scripts/jenkins/lxc-automaton-longevity-jenkins-init.sh
 cd /home/plumgrid/work/alps/build
 ctest -R ExtensiveHALongevityTest02 --output-on-failure -V

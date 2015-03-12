@@ -17,19 +17,18 @@ if [[ $1 == "help" ]]; then
 fi
 #Starting and ending steps
 STEP_ST=1
-STEP_ED=14
+STEP_ED=13
 
 UUID=`uuidgen`
 SUUID_="${UUID##*-}"
 SUUID="${SUUID_,,}"
 TAG="none"
-AUTOMATON_INIT=0
 CONTINUE=0
 KEEP_RUNNING=0
 LOCAL_CHANGES=0
 
 # read the options
-TEMP=`getopt -o l:s:o:n:W:t:CAKc:e:a:R:E:h --long buildid:,script:,log_dir:,runid:,WORKSPACE:,tag:,\continue,automaton-init,keep-running,local_commit:,existing_commit_hash:,alps-path:,minor_st:,minor_end:,\help -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o l:s:o:n:W:t:CKc:e:a:R:E:h --long buildid:,script:,log_dir:,runid:,WORKSPACE:,tag:,\continue,keep-running,local_commit:,existing_commit_hash:,alps-path:,minor_st:,minor_end:,\help -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 while true ; do
   case "$1" in
@@ -41,7 +40,6 @@ while true ; do
     -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
     -t| --tag) TAG=$2 ; shift 2 ;;
     -C| --continue ) CONTINUE=1; shift ;;
-    -A| --automaton-init ) AUTOMATON_INIT=1; shift ;;
     -K| --keep-running ) KEEP_RUNNING=1; shift ;;
     #Local changes flags
     -c| --local_commit) COMMIT_ID=$2; shift 2;;
@@ -215,12 +213,14 @@ function run_test() {
   8)
     # This is here only untill https://gerrit:8443/#/c/10751/ gets merged.
     echo "Execute the pre run-automaton"
+
     local local_file=$(mktemp $WORKSPACE/container_preinit.sh-XXXXX)
     cat /dev/null > ${local_file}
     echo "#!/bin/bash" >> ${local_file}
     echo "sed -i '/restart_lxc lvm/a tryexec lxc-attach -n lvm -- /bin/bash -c \"echo 'NOZEROCONF=true' >> /etc/sysconfig/network\"' /opt/pg/systest/lxc/automaton/automaton-helpers.sh" >> ${local_file}
     echo "rm -f /opt/pg/var/www/temp" >> ${local_file}
     echo "ln -s  /opt/pg/web/temp /opt/pg/var/www/" >> ${local_file}
+
     file_name=/tmp/$(basename ${local_file})
     tryexec upload ${INSTANCE_IP}  ${local_file} ${file_name}
     rm ${local_file}
@@ -229,49 +229,36 @@ function run_test() {
     ;;
 
   9)
-    if [[ $AUTOMATON_INIT == 1 ]]; then
-      echo "Execute the run-automaton script on cloud instance"
-      tryexec run_cmd_gci ${INSTANCE_IP} "sudo ifconfig lxcbr0 down"
-      tryexec run_cmd_gci ${INSTANCE_IP} "sudo brctl delbr lxcbr0"
-      tryexec run_cmd_gci ${INSTANCE_IP} "sudo pkill dnsmasq || true"
-      tryexec run_cmd_gci ${INSTANCE_IP} "sudo service lxc-net restart"
-
-      tryexec run_automaton_init ${INSTANCE_IP} "/tmp/automaton_init.log"
-      record_step $step $step_file
-    fi
+    echo "Restarting lxc-net service"
+    tryexec run_cmd_gci ${INSTANCE_IP} "sudo ifconfig lxcbr0 down"
+    tryexec run_cmd_gci ${INSTANCE_IP} "sudo brctl delbr lxcbr0"
+    tryexec run_cmd_gci ${INSTANCE_IP} "sudo pkill dnsmasq || true"
+    tryexec run_cmd_gci ${INSTANCE_IP} "sudo service lxc-net restart"
+    record_step $step $step_file
     ;;
 
   10)
-    if [[ $AUTOMATON_INIT == 1 ]]; then
-      echo "Poll the automaton-init cmd (tailing \"/tmp/automaton_init.log\" for complete logs)"
-      retryexec run_poll_cmd ${INSTANCE_IP} "run_automaton_init.sh" "/tmp/automaton_init.log" "1"
-      tryexec download ${INSTANCE_IP} "/tmp/automaton_init.log" "${LOG_DIR}/automaton_init_${INSTANCE_NAME}.log"
-      record_step $step $step_file
-    fi
-    ;;
-
-  11)
     tryexec upload ${INSTANCE_IP} ${TEST_SCRIPT} /tmp/user_test_script.sh
     # tryexec is not needed because test can fail as well
     tryexec run_cmd_gci_bg ${INSTANCE_IP} "/bin/bash /tmp/user_test_script.sh" "/tmp/test.logs"
     record_step $step $step_file
     ;;
 
-  12)
+  11)
     echo "Poll the test logs (tailing \"/tmp/test.log\")"
     tryexec run_poll_cmd ${INSTANCE_IP} "/tmp/user_test_script.sh" "/tmp/test.logs" "0"
     tryexec download ${INSTANCE_IP} "/tmp/test.logs" "${LOG_DIR}/${INSTANCE_NAME}.log"
     record_step $step $step_file
     ;;
 
-  13)
+  12)
     echo "Downloading logs in ${LOG_DIR} directory"
     tryexec get_latest_logs ${INSTANCE_IP} ${INSTANCE_NAME} ${LOG_DIR}
     printf "\n\n********* Run has been completed successfully. Please see all logs in ${LOG_DIR} direcotry *********\n\n"
     record_step $step $step_file
     ;;
 
-  14)
+  13)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     rm $step_file

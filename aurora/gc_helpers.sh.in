@@ -486,28 +486,6 @@ DELIM__
   rm ${local_file}
   tryexec run_bg_cmd ${INSTANCE_IP} "${renamed_file}" "/bin/bash ${renamed_file}" "$LOG_FILE"
 }
-# ******************************************************************************
-# Function: run_automaton_init
-# Purpose : Creates a script for running automaton-init, uploads and runs the script.
-#           The return value for automaton-init is echoed to
-#           check for failure.
-# Usage   : run_automaton_init <cloud_instance_ip> <log file>
-# ******************************************************************************
-function run_automaton_init() {
-  local INSTANCE_IP=$1
-  local LOG_FILE=$2
-  local local_file=$(mktemp $WORKSPACE/run_automaton_init-XXXXX)
-  cat /dev/null > ${local_file}
-  echo "cd /opt/pg/systest/lxc/automaton;" >> ${local_file}
-  echo "sudo ./automaton-init.sh" >> ${local_file}
-  #File name needs to be constant for continue functionality, thus renaming.
-  local instance_file=/tmp/$(basename ${local_file})
-  local renamed_file=/tmp/run_automaton_init.sh
-  tryexec upload ${INSTANCE_IP}  ${local_file} ${instance_file}
-  tryexec run_cmd_gci ${INSTANCE_IP} "mv ${instance_file} ${renamed_file}"
-  rm ${local_file}
-  tryexec run_bg_cmd ${INSTANCE_IP} "${renamed_file}" "/bin/bash ${renamed_file}" "$LOG_FILE"
-}
 
 # *****************************************************************************
 # Function: exec_gcloud_instances

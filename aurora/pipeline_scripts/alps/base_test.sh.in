@@ -45,8 +45,10 @@ elif [[ $PIPELINE == "pgui-smoke" ]]; then
   export EXCLUDE_NON_GUI=1
   export EXCLUDE_UNSTABLE=1
 elif [[ $PIPELINE == "automaton" ]]; then
+  /home/plumgrid/work/alps/build/scripts/jenkins/lxc-automaton-jenkins-init.sh
   test_tag=lxc_automaton
 elif [[ $PIPELINE == "automaton-longevity" ]]; then
+  /home/plumgrid/work/alps/build/scripts/jenkins/lxc-automaton-longevity-jenkins-init.sh
   test_tag=lxc_automaton_longevity
 elif [[ $PIPELINE == "unstable" || $PIPELINE == "DEBUG-TEST" ]]; then
   export BUILD_NIGHTLY=1
