@@ -20,9 +20,10 @@ for (( i = 1 ; i < ${#instance_names[@]} ; i=i+2 )) do
   time_difference=$(($current_date - $creation_date))
   #Modify time as needed
   if [[ $time_difference -gt $time_diff ]]; then
-    gcloud compute instances delete ${instance_names[$i]} --delete-disks all -q
+    outdated_instances="$outdated_instances ${instance_names[$i]}"
   fi
 done
+gcloud compute instances delete $outdated_instances --delete-disks all -q
 
 #only get build or run snapshots
 snapshot_list=$(gcloud compute snapshots list --format=text --sort-by=creationTimestamp --regexp "${user_name}.*")
@@ -36,9 +37,10 @@ for (( i = 1 ; i < ${#snapshot_names[@]} ; i=i+2 )) do
   time_difference=$(($current_date - $creation_date))
   #Modify time as needed
   if [[ $time_difference -gt $time_diff ]]; then
-    gcloud compute snapshots delete ${snapshot_names[$i]} -q
+    outdated_snapshots="$outdated_snapshots ${snapshot_names[$i]}"
   fi
 done
+gcloud compute snapshots delete $outdated_snapshots -q
 
 #Disks containg name of instances have to excluded from the search in order to find dangling disks
 disk_exclude_list=$(echo "${instance_names[@]} NAME" | sed -e 's/name\: //g' | tr ' ' \| )
@@ -54,6 +56,7 @@ for (( i = 1 ; i < ${#dangling_disks_names[@]} ; i=i+2 )) do
   time_difference=$(($current_date - $creation_date))
   #Modify time as needed
   if [[ $time_difference -gt $time_diff ]]; then
-    gcloud compute disks delete ${dangling_disks_names[$i]} -q
+    outdated_disks="$outdated_disks ${dangling_disks_names[$i]}"
   fi
 done
+gcloud compute disks delete $outdated_disks -q
