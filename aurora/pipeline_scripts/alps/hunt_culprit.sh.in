@@ -128,11 +128,7 @@ function hunt_culprit_using_bs () {
         sleep 60 ;
       done
       # Get toatal number of failures of aurora debug-test
-      # TODO: Something is wrong with following log directories. Nothing is getting extracted in untar_log_dir.
-      mkdir -p ${untar_log_dir}
-      echo "find ${log_dir} -name "aurora_infra_logs.tar.gz" -type f -exec tar xf {} -C ${untar_log_dir} \;"
-      find ${log_dir} -name "aurora_infra_logs.tar.gz" -type f -exec tar xf {} -C ${untar_log_dir} \;
-      num_failures=$(find ${untar_log_dir} -name "*FAILED.log" | wc -l)
+      num_failures=$(find ${WORKSPACE}/debug_test_$mod_commit_hash -name "*FAILED.log" | wc -l)
 
       if [[ ${num_failures} -eq "0" ]];then
         printf "\n num_failures=$num_failures, Going to call git bisect good \n"

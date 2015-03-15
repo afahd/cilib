@@ -162,8 +162,12 @@ function checkout_existing_commit() {
   cat >> ${local_file} <<DELIM__
     #!/bin/bash -e
     . /opt/pg/env/alps.bashrc
-    cd /home/plumgrid/work/alps/build
+    cd /home/plumgrid/work/alps/
     git checkout $EXISTING_COMMIT_HASH
+    git clean -fdx
+    mkdir build
+    cd build
+    export PATH="/usr/lib/ccache/:\${PATH}"
     cmake ..
     make -j4 install
 DELIM__
@@ -171,6 +175,7 @@ DELIM__
   tryexec upload ${INSTANCE_IP}  ${local_file} /tmp
   tryexec run_cmd_gci ${INSTANCE_IP} "mv /tmp/$file_name ${instance_file}"
   tryexec run_bg_cmd ${INSTANCE_IP} "${instance_file}" "/bin/bash ${instance_file}" "$LOG_FILE"
+  rm {local_file}
 }
 
 # *****************************************************************************
@@ -384,7 +389,10 @@ function make_install_alps() {
   local LOG_FILE=$2
   local local_file=$(mktemp $WORKSPACE/make_install_alps-XXXXX)
   cat /dev/null > ${local_file}
-  echo "cd /home/plumgrid/work/alps/build;" >> ${local_file}
+  echo "cd /home/plumgrid/work/alps/;" >> ${local_file}
+  echo "git clean -fdx" >> ${local_file}
+  echo "mkdir build" >> ${local_file}
+  echo "cd build" >> ${local_file}
   echo "export PATH=\"/usr/lib/ccache/:\${PATH}\"" >> ${local_file}
   echo "cmake ..;" >> ${local_file}
   echo "make -j4 install" >> ${local_file}
