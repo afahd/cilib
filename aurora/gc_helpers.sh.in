@@ -104,7 +104,7 @@ function run_cmd_gci_sshforwarding() {
 }
 
 # *****************************************************************************
-# Function: run_cmd_bg
+# Function: run_cmd_gci_bg
 # Purpose : Run a command on instance in background
 # Usage   : run_cmd<Instance Name>
 # *****************************************************************************
@@ -366,6 +366,7 @@ function run_bg_cmd() {
   local LOG_FILE=$4
   #Append error checking to the file.
   tryexec run_cmd_gci ${INSTANCE_IP} "sed -i '$ a\retval=\\\$?' ${file}"
+  tryexec run_cmd_gci ${INSTANCE_IP} "sed -i '$ a\echo' ${file}"
   tryexec run_cmd_gci ${INSTANCE_IP} "sed -i '$ a\echo \"Return Value=\$retval\"\' ${file}"
   #Run the command in the background
   tryexec run_cmd_gci_bg ${INSTANCE_IP} "$CMD" "$LOG_FILE"
