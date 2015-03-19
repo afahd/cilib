@@ -451,6 +451,7 @@ function make_tools_iovisor() {
 cd /home/plumgrid/work/tools/build
 export PATH="/usr/lib/ccache/:\${PATH}"
 cmake ..
+sudo make test_packages
 sudo make packages
 make -C packages install
 make -j4 install

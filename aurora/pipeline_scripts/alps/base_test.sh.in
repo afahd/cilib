@@ -37,8 +37,6 @@ elif [[ $PIPELINE == "omni" ]]; then
   export BUILD_NIGHTLY=1
   export EXCLUDE_UNSTABLE=1
 elif [[ $PIPELINE == "pgui-smoke" ]]; then
-  cd ~/work/tools/build
-  sudo make test_packages
   cd ~/work/pg_ui/build
   test_tag=uilocal
   export BUILD_GUI=1
