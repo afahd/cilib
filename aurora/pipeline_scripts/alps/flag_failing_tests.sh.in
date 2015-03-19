@@ -89,12 +89,12 @@ function flag_failing_tests() {
     echo "Get probability of failure of each test case"
     cat /dev/null >  ${failing_test_prob}
     #Make sure the file is present
-    touch ${WORKSPACE}/failing-list.log
+    touch ${WORKSPACE}/logs/failing-list.log
     time=$(date +%s)
     num_runs=$(($FLAG_TEST_ITERATIONS*$FLAG_NUM_INSTANCES))
     echo "======================================================================\n"
     while read test_name;do
-      num_failures=$(grep "$test_name" ${WORKSPACE}/failing-list.log | wc -l)
+      num_failures=$(grep "$test_name" ${WORKSPACE}/logs/failing-list.log | wc -l)
       failure_prob=$(($num_failures*100/$num_runs))
       echo "test:$test_name num_failures:$num_failures num_runs=$num_runs prob=${failure_prob}"
       echo "$failure_prob" >> ${failing_test_prob}

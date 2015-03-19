@@ -172,7 +172,7 @@ function run_test() {
       for test_name in ${failed_list[@]}; do
         test_name=$(basename "$test_name")
         test_name=$(echo "$test_name" | sed 's/ctestout_inst.*_iter[0-9]\+_//' | sed 's/.FAILED.log//' )
-        echo "$test_name" >> "${WORKSPACE}/failing-list.log"
+        echo "$test_name" >> "${WORKSPACE}/logs/failing-list.log"
       done
     fi
     ;;

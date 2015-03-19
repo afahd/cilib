@@ -87,7 +87,7 @@ function hunt_culprit_using_file () {
     while IFS=, read commit_hash;do
       mod_commit_hash=${commit_hash:0:5}
       echo "**************** $commit_hash ******************" >> $hunt_report
-      cat  ${WORKSPACE}/debug_test_$mod_commit_hash/failing-list.log >> $hunt_report
+      cat  ${WORKSPACE}/debug_test_$mod_commit_hash/logs/failing-list.log >> $hunt_report
       printf "\n\n"
     done < $COMMIT_HASH_FILE
     printf "\n******* Please see the hunt report in ${hunt_report} *******\n"
