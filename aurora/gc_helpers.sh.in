@@ -137,11 +137,12 @@ function push_local_changes() {
   #Has to be executable
   chmod +x $local_file
   #Push the changes
-  cd $ALPS_PATH;GIT_SSH="${local_file}" git push plumgrid@${INSTANCE_IP}:${INSTANCE_ALPS_PATH} $COMMIT_ID:$BRANCH
   #Checkout the branch
   run_cmd_gci ${INSTANCE_IP} "git --git-dir=${INSTANCE_ALPS_PATH}/.git --work-tree=${INSTANCE_ALPS_PATH} checkout $BRANCH"
   #Need to reset to update the working-tree
   run_cmd_gci ${INSTANCE_IP} "git --git-dir=${INSTANCE_ALPS_PATH}/.git --work-tree=${INSTANCE_ALPS_PATH} reset --hard HEAD"
+  cd $ALPS_PATH;GIT_SSH="${local_file}" git push -f plumgrid@${INSTANCE_IP}:${INSTANCE_ALPS_PATH} $COMMIT_ID:$BRANCH
+  run_cmd_gci ${INSTANCE_IP} "git --git-dir=${INSTANCE_ALPS_PATH}/.git --work-tree=${INSTANCE_ALPS_PATH} reset --hard"
   rm ${local_file}
 }
 
