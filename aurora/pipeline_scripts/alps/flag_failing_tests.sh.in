@@ -128,10 +128,17 @@ function flag_failing_tests() {
       limit=$(($MARK_UNSTABLE_AFTER_DAYS*86400))
 
       echo "Finding CMakeLists.txt file for test:$test_name"
-      test_cmake_file=$(grep --include=CMakeLists.txt -rwl "$alps_path" -e "NAME\ \+$test_name")
-      test_owner_file=`dirname $test_cmake_file`/OWNERS
-      test_primary_owner=$(grep - $test_owner_file | cut -d ' ' -f 2 | head -1)
-
+      test_cmake_file=$(grep --include=CMakeLists.txt -rwl "$alps_path" -e "$test_name" || true )
+      #Skip test if file not found
+      if [[ -z "$test_cmake_file" ]]; then
+        echo "CMakeLists.txt file for test:$test_name not found, skipping test."
+        continue
+      else
+        echo "Path to CMake file for test:$test_name $test_cmake_file"
+      fi
+      #Get the primary owner for the test
+      test_primary_owner=$(get_test_owner_name $test_cmake_file)
+      echo "Owner for test:$test_name, $test_primary_owner"
       #Mark test as unstable if failing for more than the threshold
       if [[ $failure_prob -ge 10 && ${failing_since} -gt ${limit} ]]; then
           echo "Marking test case: $test_name as unstable"

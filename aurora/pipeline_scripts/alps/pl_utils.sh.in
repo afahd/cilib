@@ -119,7 +119,8 @@ function mark_test_unstable() {
   #Get CMakeLists.txt file name
   echo "Test:$test_name found in: $file_name"
   #Mark as unstable
-  sed -i "s/NAME\ \+$test_name/NAME $test_name UNSTABLE/" $file_name
+  #Some tests don't have a 'NAME' tag in the CMakeLists.txt. This regex replaces the test name with <$test_name UNSTABLE>
+  sed -i -E "s/_test\ *\(\ *(NAME\ +$test_name|$test_name)/_test\(NAME $test_name UNSTABLE/" $file_name
   #Create the commit message
   local commit_message=$(mktemp /tmp/commit-message-XXXXX.txt)
   #TODO: Need a better commit message.
@@ -186,4 +187,21 @@ function check_flag_inputs() {
     exit 1
   fi
 
+}
+# *****************************************************************************
+# Function: get_test_owner_name
+# Purpose : Returns the owner name from a given CMakeLists.txt file
+# Usage   : get_test_owner_name <path to cmakelists.txt file>
+# *****************************************************************************
+function get_test_owner_name() {
+  local test_cmake_file=$1
+  local test_folder=$(dirname $test_cmake_file)
+  local test_owner_file=$test_folder/OWNERS
+    #If owner file is not found , go one level up and try again
+    while [[ ! -f $test_owner_file && $test_folder != $alps_path ]]; do
+      test_folder=$(dirname $test_folder)
+      test_owner_file=$test_folder/OWNERS
+    done
+  local test_primary_owner=$(grep - $test_owner_file | cut -d ' ' -f 2 | head -1)
+  echo "$test_primary_owner"
 }
