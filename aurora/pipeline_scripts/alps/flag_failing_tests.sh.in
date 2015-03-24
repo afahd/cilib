@@ -117,7 +117,7 @@ function flag_failing_tests() {
     echo "Mark test cases as unstable"
     i=1
     #Output file for builder to send emails/create tickets
-    test_status_file=${WORKSPACE}/test-failure-info
+    test_status_file=${WORKSPACE}/logs/test-failure-info
     cat /dev/null > ${test_status_file}
     while read test_name;do
       test_status="stable"
