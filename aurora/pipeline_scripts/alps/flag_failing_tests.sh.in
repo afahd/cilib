@@ -109,6 +109,11 @@ function flag_failing_tests() {
       failure_prob=$(cat $failing_test_prob | head -$i | tail -1)
       echo "**** $test_name: $failure_prob ***"
       update_failing_tests_prob $FAILING_TESTS_DB $test_name ${failure_prob}
+      #Remove from DB if the test passed
+      if [[ $failure_prob -eq 0 ]]; then
+        echo "Removing $test_name from DB"
+        remove_test_from_db $FAILING_TESTS_DB $test_name
+      fi
       i=$((i+1))
     done < ${all_failing_tests_list}
     ;;
@@ -116,6 +121,8 @@ function flag_failing_tests() {
   7)
     echo "Mark test cases as unstable"
     i=1
+    echo "Generate a list of all failing test cases in database"
+    sqlite3 $FAILING_TESTS_DB "select NAME FROM $FAILING_TESTS_TABLE;" > ${all_failing_tests_list}
     #Output file for builder to send emails/create tickets
     test_status_file=${WORKSPACE}/logs/test-failure-info
     cat /dev/null > ${test_status_file}

@@ -81,20 +81,14 @@ function update_failing_tests_prob() {
   local failure_prob=$3
   local curr_time=$(date +%s)
 
-  #Remove from DB if the test passed
-  if [[ failure_prob -eq 0 ]]; then
-    echo "Removing $test_name from DB"
-    remove_test_from_db $FAILING_TESTS_DB $test_name
-  else
-    #If the probability of failure was less than 10 previously, First
-    #occurance should be updated when the test started failing.
-    old_failure_prob=$(sqlite3 $FAILING_TESTS_DB "SELECT FailureProb from $FAILING_TESTS_TABLE WHERE name='$test_name';")
-    sqlite3 $FAILING_TESTS_DB "UPDATE $FAILING_TESTS_TABLE SET FailureProb='$failure_prob' WHERE name='$test_name';"
-    #exists=$(sqlite3 $FAILING_TESTS_DB "SELECT EXISTS(SELECT 1 FROM $FAILING_TESTS_TABLE WHERE name='$test_name' LIMIT 1);")
-    if [[ $old_failure_prob -lt 10 && $failure_prob -ge 10 ]]; then
-      #Update the failing since field
-      sqlite3 $FAILING_TESTS_DB "UPDATE $FAILING_TESTS_TABLE SET FirstOccurence='$time' WHERE name='$test_name';"
-    fi
+  #If the probability of failure was less than 10 previously, First
+  #occurance should be updated when the test started failing.
+  local old_failure_prob=$(sqlite3 $FAILING_TESTS_DB "SELECT FailureProb from $FAILING_TESTS_TABLE WHERE name='$test_name';")
+  sqlite3 $FAILING_TESTS_DB "UPDATE $FAILING_TESTS_TABLE SET FailureProb='$failure_prob' WHERE name='$test_name';"
+  #exists=$(sqlite3 $FAILING_TESTS_DB "SELECT EXISTS(SELECT 1 FROM $FAILING_TESTS_TABLE WHERE name='$test_name' LIMIT 1);")
+  if [[ $old_failure_prob -lt 10 && $failure_prob -ge 10 ]]; then
+    #Update the failing since field
+    sqlite3 $FAILING_TESTS_DB "UPDATE $FAILING_TESTS_TABLE SET FirstOccurence='$time' WHERE name='$test_name';"
   fi
 }
 
