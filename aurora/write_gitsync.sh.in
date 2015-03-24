@@ -45,6 +45,7 @@ cat /dev/null > ${git_script}
 # STEP-1: cleanup
 #GPG keys expire after ~10 days, after which /opt/pg/var/www needs to
 #be nuked for master as well and fresh build-all.sh needs to be run
+#(Temporary workaround to cleanup directories for a cleaner environment)
 cat >> ${git_script} <<DELIM__
 #!/bin/bash -e
 set -e
@@ -55,6 +56,8 @@ case \$step in
   cleanup)
 echo 'Performing cleanup'
 sudo rm -rf /opt/pg/var/www/*
+rm -rf /opt/pg/bin/*
+rm -rf /opt/pg/systest/*
 DELIM__
 for p in ${PROJECT_LIST[@]}; do
   cat >> ${git_script} <<DELIM__
