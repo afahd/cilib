@@ -175,7 +175,7 @@ DELIM__
   tryexec upload ${INSTANCE_IP}  ${local_file} /tmp
   tryexec run_cmd_gci ${INSTANCE_IP} "mv /tmp/$file_name ${instance_file}"
   tryexec run_bg_cmd ${INSTANCE_IP} "${instance_file}" "/bin/bash ${instance_file}" "$LOG_FILE"
-  rm {local_file}
+  rm ${local_file}
 }
 
 # *****************************************************************************
