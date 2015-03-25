@@ -181,6 +181,38 @@ DELIM__
 }
 
 # *****************************************************************************
+# Function: get_build_info
+# Purpose : Get build description of the run
+# Usage   : get_build_info INSTANCE_IP PROJECT_NAME
+# *****************************************************************************
+function get_build_info() {
+  local INSTANCE_IP=$1
+  local project=$2
+  local local_file=$(mktemp /$WORKSPACE/get_build_info_XXXXX)
+  local file_name=$(basename ${local_file})
+
+  cat >> ${local_file} <<DELIM__
+  #!/bin/bash -e
+  cd /home/plumgrid/work/$project/
+  # Print the build-info about the current run
+  headrev="\$(git rev-parse HEAD)"
+  headrev_short="\${headrev:0:8}"
+  logmsg="\$(git show HEAD --format='format:%s' | head -1)"
+  if [[ \${#logmsg} -gt 40 ]] ; then
+    # truncate the logmsg if it is too long
+    logmsg="\${logmsg:0:37}..."
+  fi
+  headauthor="\$(git show HEAD --format='format:%an' | head -1)"
+
+  echo "JENKINS_BUILD_DESCRIPTION_TEXT: \${headrev_short} by \${headauthor}: \${logmsg}"
+DELIM__
+
+  tryexec upload ${INSTANCE_IP} ${local_file} /tmp
+  run_cmd_gci ${INSTANCE_IP} "/bin/bash /tmp/${file_name}"
+  rm ${local_file}
+}
+
+# *****************************************************************************
 # Function: wait_for_instance
 # Purpose : Wait Cloud instance to come up.
 # Usage   : wait_for_instance <cloud_instance_ip>
