@@ -177,6 +177,7 @@ function build_image() {
   5)
     echo "Changing MTU on the instance"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo ifconfig eth0 mtu 1400"
+    tryexec run_cmd_gci ${INSTANCE_IP} "sudo bash -c 'echo \"interface \\\"eth0\\\" {supersede interface-mtu 1400;}\" >> /etc/dhcp/dhclient.conf'"
     tryexec run_cmd_gci ${INSTANCE_IP} "DT=\$(ifconfig eth0 | grep 'inet addr' | cut -d: -f2|cut -d' ' -f 1); sudo bash -c 'echo \"'\$DT'  \`hostname\`\" >> /etc/hosts'"
     record_step $step $step_file
     ;;
