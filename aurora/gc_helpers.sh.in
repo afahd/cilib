@@ -164,6 +164,8 @@ function checkout_existing_commit() {
     . /opt/pg/env/alps.bashrc
     cd /home/plumgrid/work/alps/
     git checkout $EXISTING_COMMIT_HASH
+    rm -rf /opt/pg/bin/*
+    rm -rf /opt/pg/systest/*
     git clean -fdx
     mkdir build
     cd build
@@ -390,9 +392,12 @@ function make_install_alps() {
   local local_file=$(mktemp $WORKSPACE/make_install_alps-XXXXX)
   cat /dev/null > ${local_file}
   echo "cd /home/plumgrid/work/alps/;" >> ${local_file}
+  echo "rm -rf /opt/pg/bin/*" >> ${local_file}
+  echo "rm -rf /opt/pg/systest/*" >> ${local_file}
   echo "git clean -fdx" >> ${local_file}
   echo "mkdir build" >> ${local_file}
   echo "cd build" >> ${local_file}
+  echo "source /opt/pg/env/alps.bashrc" >> ${local_file}
   echo "export PATH=\"/usr/lib/ccache/:\${PATH}\"" >> ${local_file}
   echo "cmake ..;" >> ${local_file}
   echo "make -j4 install" >> ${local_file}
