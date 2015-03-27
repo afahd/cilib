@@ -65,7 +65,7 @@ function add_new_failing_tests_to_db() {
 
   local exists=$(sqlite3 $FAILING_TESTS_DB "SELECT EXISTS(SELECT 1 FROM $FAILING_TESTS_TABLE WHERE name='$test_name' LIMIT 1);")
   if [[ $exists != "1" ]]; then
-    echo "New failure"
+    echo "New failure:$test_name"
     sqlite3 $FAILING_TESTS_DB "insert into $FAILING_TESTS_TABLE (Name, FailureProb, FirstOccurence) values ('$test_name', '0', '$time')"
   fi
 }
