@@ -10,16 +10,18 @@ if [[ $1 == "help" ]]; then
   exit 1
 fi
 
-TEMP=`getopt -o l:p:W:Ki:b:n:D:R:E:\h --long buildid:,pl_failing_tests_list:,WORKSPACE:,branch:,keep-running,test_iterations:,num_instances:,db:,minor_st:,minor_end:,\help -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o l:p:W:Ki:a:b:n:D:R:E:\h --long buildid:,alps-path:,pl_failing_tests_list:,WORKSPACE:,branch:,keep-running,test_iterations:,num_instances:,db:,minor_st:,minor_end:,\help -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 
 STEP_ST=1
 STEP_ED=7
 
+alps_path=/home/${USER}/work/alps
 
 while true ; do
   case "$1" in
     -l|--buildid) BUILD_ID=$2 ; shift 2 ;;
+    -a|--alps-path) alps_path=$2 ; shift 2 ;;
     -p|--pl_failing_tests_list) PL_FAILING_TESTS_LIST=$2 ; shift 2 ;;
     -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
     -K|--keep-running) KEEP_RUNNING="-K" ; shift ;;
@@ -38,7 +40,7 @@ while true ; do
 done
 
 #Verify inputs
-check_flag_inputs $BUILD_ID $PL_FAILING_TESTS_LIST $FLAG_TEST_ITERATIONS $FLAG_NUM_INSTANCES $BRANCH
+check_flag_inputs $BUILD_ID $PL_FAILING_TESTS_LIST $FLAG_TEST_ITERATIONS $FLAG_NUM_INSTANCES $BRANCH $alps_path
 
 if [[ ! -d ${WORKSPACE}/flag ]]; then
   mkdir -p ${WORKSPACE}/flag
@@ -117,7 +119,7 @@ function flag_failing_tests() {
     ;;
 
   7)
-    echo "Generate output file."
+    echo "Mark test cases as unstable"
     i=1
     echo "Generate a list of all failing test cases in database"
     sqlite3 $FAILING_TESTS_DB "select NAME FROM $FAILING_TESTS_TABLE;" > ${all_failing_tests_list}
@@ -132,14 +134,28 @@ function flag_failing_tests() {
       failing_since=$((now-first_occurence))
       limit=$(($MARK_UNSTABLE_AFTER_DAYS*86400))
 
+      echo "Finding CMakeLists.txt file for test:$test_name"
+      test_cmake_file=$(grep --include=CMakeLists.txt -rwl "$alps_path" -e "$test_name" || true )
+      #Skip test if file not found
+      if [[ -z "$test_cmake_file" ]]; then
+        echo "CMakeLists.txt file for test:$test_name not found, skipping test."
+        continue
+      else
+        echo "Path to CMake file for test:$test_name $test_cmake_file"
+      fi
+      #Get the primary owner for the test
+      test_primary_owner=$(get_test_owner_name $test_cmake_file)
+      echo "Owner for test:$test_name, $test_primary_owner"
+      #Mark test as unstable if failing for more than the threshold
       if [[ $failure_prob -ge 10 && ${failing_since} -gt ${limit} ]]; then
+          echo "Marking test case: $test_name as unstable"
+          mark_test_unstable $test_name $failure_prob $test_cmake_file $BRANCH $alps_path
           #Remove the test from the database
-          echo "Test:$test_name Status:unstable "
           remove_test_from_db $FAILING_TESTS_DB $test_name
           #Send status to builder if test is marked unstable
           test_status="unstable"
       fi
-      echo "$test_name,$failure_prob,$failing_since,$BRANCH,$test_status" >> ${test_status_file}
+      echo "$test_name,$failure_prob,$failing_since,$BRANCH,$test_status,$test_primary_owner" >> ${test_status_file}
       i=$((i+1))
     done < ${all_failing_tests_list}
     ;;

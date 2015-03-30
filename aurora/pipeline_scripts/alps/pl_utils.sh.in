@@ -92,6 +92,44 @@ function update_failing_tests_prob() {
   fi
 }
 
+# *****************************************************************************
+# Function: mark_test_unstable
+# Purpose : Marks a test as unstable on a given branch. Creates and pushes a commit.
+# Usage   : mark_test_unstable <test_name> <probability of failure> <CMakeLists.txt file path>
+#           <branch> <path to alps>
+# *****************************************************************************
+function mark_test_unstable() {
+  local test_name=$1
+  local failure_prob=$2
+  local file_name=$3
+  local branch=$4
+  local alps_path=$5
+  #Checkout Branch
+  git --git-dir=${alps_path}/.git --work-tree=${alps_path} reset --hard origin/$branch
+  git --git-dir=${alps_path}/.git --work-tree=${alps_path} checkout $branch
+  #Reset and update
+  git --git-dir=${alps_path}/.git --work-tree=${alps_path} reset --hard origin/$branch
+  git --git-dir=${alps_path}/.git --work-tree=${alps_path} pull --rebase
+  #Get CMakeLists.txt file name
+  echo "Test:$test_name found in: $file_name"
+  #Mark as unstable
+  #Some tests don't have a 'NAME' tag in the CMakeLists.txt. This regex replaces the test name with <$test_name UNSTABLE>
+  sed -i -E "s/_test\ *\(\ *(NAME\ +$test_name|$test_name)/_test\(NAME $test_name UNSTABLE/" $file_name
+  #Create the commit message
+  local commit_message=$(mktemp /tmp/commit-message-XXXXX.txt)
+  #TODO: Need a better commit message.
+  echo "Marking Test:$test_name as UNSTABLE" >> $commit_message
+  echo "$test_name is failing at:${BUILD_URL} with $failure_prob% probability." >> $commit_message
+
+  #Add the file to patch and commit
+  git --git-dir=${alps_path}/.git --work-tree=${alps_path} commit -s -o -F $commit_message $file_name
+  #push the commit for review
+  git --git-dir=${alps_path}/.git --work-tree=${alps_path} push origin HEAD:refs/for/$branch
+  #use this if we want to bypass code review
+  #git push origin HEAD:refs/heads/$branch
+  #Delete the commit message
+  rm ${commit_message}
+}
 
 # *****************************************************************************
 # Function: check_flag_inputs
@@ -135,6 +173,29 @@ function check_flag_inputs() {
     exit 1
   fi
 
+  #Verify alps exists at specified path
+  git rev-parse --resolve-git-dir $alps_path/.git || RESULT=$?
+  if [[ $RESULT != "0" ]]; then
+    echo "Alps not found at :$ALPS_PATH"
+    echo "Use the -a(--alps-path) to specify the path to alps"
+    exit 1
+  fi
 
-
+}
+# *****************************************************************************
+# Function: get_test_owner_name
+# Purpose : Returns the owner name from a given CMakeLists.txt file
+# Usage   : get_test_owner_name <path to cmakelists.txt file>
+# *****************************************************************************
+function get_test_owner_name() {
+  local test_cmake_file=$1
+  local test_folder=$(dirname $test_cmake_file)
+  local test_owner_file=$test_folder/OWNERS
+    #If owner file is not found , go one level up and try again
+    while [[ ! -f $test_owner_file && $test_folder != $alps_path ]]; do
+      test_folder=$(dirname $test_folder)
+      test_owner_file=$test_folder/OWNERS
+    done
+  local test_primary_owner=$(grep - $test_owner_file | cut -d ' ' -f 2 | head -1)
+  echo "$test_primary_owner"
 }
