@@ -175,7 +175,11 @@ function delete_instances() {
   local REGEX=".*$1.*"
   local user_instances=$(gcloud compute instances list --regexp "${REGEX}" | grep ${emailid} | cut -d ' ' -f 1)
 
-  # TODO: Print message if no instance matches with given criteria and exit
+  if [[ -z ${user_instances} ]]; then
+   echo "No such instances found"
+   exit
+  fi
+
   echo "The following instances will be permanently deleted: "
   for instance in $user_instances; do
     echo "$instance"
@@ -204,6 +208,11 @@ function delete_snapshots() {
   local REGEX=".*$1.*"
   local user_snapshots=$(gcloud compute snapshots list --regexp "${REGEX}" | grep ${emailid} | cut -d ' ' -f 1)
 
+  if [[ -z ${user_snapshots} ]]; then
+   echo "No such snapshots found"
+   exit
+  fi
+
   echo "The following snapshots will be permanently deleted: "
   for snapshot in $user_snapshots; do
     echo "$snapshot"
@@ -230,6 +239,11 @@ function delete_snapshots() {
 function delete_disks() {
   local REGEX=".*$1.*"
   local user_disks=$(gcloud compute disks list --regexp "${REGEX}" | grep ${emailid} | cut -d ' ' -f 1)
+
+  if [[ -z ${user_disks} ]]; then
+   echo "No such disks found"
+   exit
+  fi
 
   echo "The following disks will be permanently deleted: "
   for disk in $user_disks; do
