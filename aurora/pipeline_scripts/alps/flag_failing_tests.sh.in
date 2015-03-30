@@ -121,8 +121,10 @@ function flag_failing_tests() {
   7)
     echo "Mark test cases as unstable"
     i=1
-    echo "Generate a list of all failing test cases in database"
+    echo "Generate the updated failure names"
     sqlite3 $FAILING_TESTS_DB "select NAME FROM $FAILING_TESTS_TABLE;" > ${all_failing_tests_list}
+    echo "Generate the updated failure probabilities"
+    sqlite3 $FAILING_TESTS_DB "select FailureProb FROM $FAILING_TESTS_TABLE;" > ${failing_test_prob}
     #Output file for builder to send emails/create tickets
     test_status_file=${WORKSPACE}/logs/test-failure-info
     cat /dev/null > ${test_status_file}
