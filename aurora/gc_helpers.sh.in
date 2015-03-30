@@ -251,6 +251,7 @@ function get_latest_snapshot_id() {
   done
   #Exit if retries failed.
   if [[ $success -eq 0 ]]; then
+    echo "Snapshot not found. Exiting" >&2
     return 1
   fi
 
