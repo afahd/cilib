@@ -23,17 +23,18 @@ PROJECT=""
 
 MAJOR_STEPS="build"
 STEP_ST=1
-STEP_ED=22
+STEP_ED=23
 
 CONTINUE=0
-
+BUILD_SCRIPT=@CMAKE_BINARY_DIR@/aurora/init_scripts/run_build_all.sh
 # read the options
-TEMP=`getopt -o Kr:t:Cb:p:W:Q:R:E:Oh --long keep-running,refspec:,WORKSPACE:,tag:,\continue,branch:,proj:,stop,help,major:,minor_st:,minor_end: -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o Kr:t:Cb:p:W:Q:s:R:E:Oh --long keep-running,refspec:,script:,WORKSPACE:,tag:,\continue,branch:,proj:,stop,help,major:,minor_st:,minor_end: -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 while true ; do
   case "$1" in
      -K| --keep-running ) KEEP_RUNNING=1; shift ;;
      -r| --refspec) REFSPEC=$2; shift 2 ;;
+     -s| --script ) BUILD_SCRIPT=$2; shift 2 ;;
      -t| --tag) TAG=$2 ; shift 2 ;;
      -C| --continue) CONTINUE=1 ; shift ;;
      -b|--branch) BRANCH=$2; shift 2 ;;
@@ -53,7 +54,7 @@ done
 mkdir -p ${WORKSPACE}/logs
 
 #Check required Arguments
-if [[ -z "$BRANCH" || -z "PROJECT" ]]; then
+if [[ -z "$BRANCH" || -z "$PROJECT" ]]; then
   echo "Required argument -b(--branch) or -p(--project)"
   show_build_help
   exit 1
@@ -91,6 +92,7 @@ step_file=$WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
 check_build_inputs $INSTANCE_NAME $PROJECT $REFSPEC $BRANCH
 #Check /home/$USER/.ssh/id_rsa.pub file
 check_file_existence "/home/$USER/.ssh/id_rsa.pub"
+check_file_existence "$BUILD_SCRIPT"
 # If "continue" switch has been given then do following steps
 #   a. Get the last successfully completed step.
 #   b. Start the build process from step next to last completed step.
@@ -211,7 +213,11 @@ function build_image() {
     # Run Step3: Fetch all repos
     echo "gitsync Step3: Fetching all the repos (${PROJECT_LIST[@]})"
     for p in ${PROJECT_LIST[@]}; do
-      retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh all_repos $p"
+      if [[ $p == "coral" && $BRANCH != "master" ]]; then
+        continue
+      else
+        retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh all_repos $p"
+      fi
     done
     record_step $step $step_file
     ;;
@@ -280,26 +286,30 @@ function build_image() {
     ;;
 
   18)
-    echo "Starting build-all.sh for ${APT_COMPONENT}==="
-    # Restart the lxc-net service
-    run_cmd_gci ${INSTANCE_IP} "sudo ifconfig lxcbr0 down"
-    run_cmd_gci ${INSTANCE_IP} "sudo brctl delbr lxcbr0"
-    run_cmd_gci ${INSTANCE_IP} "sudo pkill dnsmasq"
-    run_cmd_gci ${INSTANCE_IP} "sudo service lxc-net restart"
-    tryexec run_build_all ${INSTANCE_IP} ${APT_COMPONENT} "/tmp/build_all.log"
+    if [[ $PROJECT == "coral" ]]; then
+      #Hack for building coral
+      #Only here until refs/changes/41/12741/2 and refs/changes/64/12864/4 gets merged
+      run_cmd_gci_sshforwarding ${INSTANCE_IP} "cd /home/plumgrid/work/tools;git fetch ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/tools refs/changes/41/12741/2 && git cherry-pick FETCH_HEAD"
+      run_cmd_gci_sshforwarding ${INSTANCE_IP} "cd /home/plumgrid/work/tools;git fetch ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/tools refs/changes/64/12864/4 && git cherry-pick FETCH_HEAD"
+    fi
     record_step $step $step_file
     ;;
 
   19)
-    # Adding polling as a separate step, so that if the connection broke at the previous step,
-    # this step can be run directly to see if the previous command is still running
-    echo "Polling for build-all (tailing \"/tmp/build_all.log\" for complete logs)"
-    retryexec run_poll_cmd ${INSTANCE_IP} "run_build_all.sh" "/tmp/build_all.log" "1"
-    download ${INSTANCE_IP} "/tmp/build_all.log" "${WORKSPACE}/logs/"
+    echo "Running the build-init script"
+    tryexec upload ${INSTANCE_IP} ${BUILD_SCRIPT} /tmp/build-init.sh
+    tryexec run_bg_cmd ${INSTANCE_IP} "/tmp/build-init.sh" "/bin/bash /tmp/build-init.sh" "/tmp/build-init.log"
     record_step $step $step_file
     ;;
 
   20)
+    echo "Poll the build-init logs (tailing \"/tmp/build-init.log\")"
+    retryexec run_poll_cmd ${INSTANCE_IP} "/tmp/build-init.sh" "/tmp/build-init.log" "1"
+    tryexec download ${INSTANCE_IP} "/tmp/build-init.log" "${WORKSPACE}/logs/build-init.log"
+    record_step $step $step_file
+    ;;
+
+  21)
     BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${emailid}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
     # Flushing the disk buffers
@@ -309,7 +319,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  21)
+  22)
     # Flushing the disk buffers
     echo "Flushing the disk buffers"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo sync"
@@ -320,7 +330,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  22)
+  23)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     rm $step_file

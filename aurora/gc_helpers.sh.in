@@ -334,12 +334,13 @@ function modify_git_config() {
 function get_latest_logs() {
   local instance_ip=$1
   local instance_name=$2
-  local log_dir=$3
+  local source_dir=$3
+  local dest_dir=$4
 
   local local_file=$(mktemp $WORKSPACE/collect_log-XXXXX)
   cat /dev/null > ${local_file}
   echo "#!/bin/bash" >> ${local_file}
-  echo "ls -rtd /opt/pg/log/*/ | tail -1 > /tmp/latest_log_dir" >> ${local_file}
+  echo "ls -rtd ${source_dir}/*/ | tail -1 > /tmp/latest_log_dir" >> ${local_file}
   echo "LOG_FNAME=\$(cat /tmp/latest_log_dir |cut -d '/' -f 5)" >> ${local_file}
   echo "tar -zcf /tmp/\${LOG_FNAME}.tar \`cat /tmp/latest_log_dir\`" >> ${local_file}
   echo "echo \${LOG_FNAME} > /tmp/latest_log_filename"  >> ${local_file}
@@ -347,10 +348,10 @@ function get_latest_logs() {
   upload ${instance_ip} ${local_file} ${file_name}
   rm ${local_file}
   run_cmd_gci ${instance_ip} "bash ${file_name}"
-  download ${instance_ip} /tmp/latest_log_filename ${log_dir}/latest_log_filename
-  local log_tar=$(cat ${log_dir}/latest_log_filename)
-  download ${instance_ip} /tmp/${log_tar}.tar ${log_dir}/${instance_name}-logs.tar
-  echo "Logs have been placed at ${log_dir}/${instance_name}-logs.tar"
+  download ${instance_ip} /tmp/latest_log_filename ${dest_dir}/latest_log_filename
+  local log_tar=$(cat ${dest_dir}/latest_log_filename)
+  download ${instance_ip} /tmp/${log_tar}.tar ${dest_dir}/${instance_name}-logs.tar
+  echo "Logs have been placed at ${dest_dir}/${instance_name}-logs.tar"
 }
 
 # ******************************************************************************
@@ -371,7 +372,7 @@ function run_poll_cmd() {
   cat /dev/null > ${local_file}
   echo "#!/bin/bash" >> ${local_file}
   echo "echo \"Waiting for command to finish ... (Log will be tailed below) \"" >> ${local_file}
-  echo "tail -f $LOG_FILE &" >> ${local_file}
+  echo "tail -n +1 -f $LOG_FILE &" >> ${local_file}
   echo "while [[ ! -z \`pgrep -f ${process}\` ]]; do sleep 5; done;" >> ${local_file}
   echo "pkill tail" >> ${local_file}
 
@@ -392,7 +393,7 @@ function run_poll_cmd() {
   local instance_file=/tmp/$(basename ${local_file})
   tryexec upload ${INSTANCE_IP} ${local_file} ${instance_file}
   rm ${local_file}
-  retryexec run_cmd_gci ${INSTANCE_IP} "bash ${instance_file}"
+  tryexec run_cmd_gci ${INSTANCE_IP} "bash ${instance_file}"
 }
 # ******************************************************************************
 # Function: run_bg_cmd
@@ -415,8 +416,8 @@ function run_bg_cmd() {
 }
 # ******************************************************************************
 # Function: make_install_alps
-# Purpose : Creates a script for running building alps, uploads and runs the script
-#           on the container. The return value for the install is echoed to
+# Purpose : Creates a script for building alps, uploads and runs the script
+#           on the instance. The return value for the install is echoed to
 #           check for failure.
 # Usage   : make_install_alps <cloud_instance_ip> <log file>
 # ******************************************************************************
@@ -438,37 +439,7 @@ function make_install_alps() {
   #File name needs to be constant for continue functionality, thus renaming.
   local instance_file=/tmp/$(basename $local_file)
   local renamed_file=/tmp/make_install_alps.sh
-  tryexec upload ${INSTANCE_IP}  ${local_file} ${instance_file}
-  tryexec run_cmd_gci ${INSTANCE_IP} "mv ${instance_file} ${renamed_file}"
-  rm ${local_file}
-  tryexec run_bg_cmd ${INSTANCE_IP} "${renamed_file}" "/bin/bash ${renamed_file}" "$LOG_FILE"
-}
-# ******************************************************************************
-# Function: run_build_all
-# Purpose : Creates a script for running build-all, uploads and runs the script.
-#           The return value for build-all is echoed to
-#            check for failure.
-# Usage   : run_build_all <cloud_instance_ip> <APT_COMPONENT> <log file>
-# ******************************************************************************
-function run_build_all() {
-  local INSTANCE_IP=$1
-  local APT_COMPONENT=$2
-  local LOG_FILE=$3
-  local local_file=$(mktemp $WORKSPACE/run_build_all-XXXXX)
-  cat /dev/null > ${local_file}
-  echo "export APT_COMPONENT=${APT_COMPONENT}" >> ${local_file}
-  echo "source /opt/pg/env/alps.bashrc" >> ${local_file}
-  echo "export PATH=\"/usr/lib/ccache/:\${PATH}\"" >> ${local_file}
-  echo "sudo bash -c \"echo 'proxy=http://10.10.163.162:3128' >> /etc/yum/yum.conf\"" >> ${local_file}
-  echo "cd /home/plumgrid/work/pkg/build" >> ${local_file}
-  echo "cmake .." >> ${local_file}
-  echo "make -j8 install" >> ${local_file}
-  echo "../scripts/build-all.sh --useallcpus" >> ${local_file}
-
-  #File name needs to be constant for continue functionality, thus renaming.
-  local instance_file=/tmp/$(basename ${local_file})
-  local renamed_file=/tmp/run_build_all.sh
-  tryexec upload ${INSTANCE_IP}  ${local_file} ${instance_file}
+  tryexec upload ${INSTANCE_IP} ${local_file} ${instance_file}
   tryexec run_cmd_gci ${INSTANCE_IP} "mv ${instance_file} ${renamed_file}"
   rm ${local_file}
   tryexec run_bg_cmd ${INSTANCE_IP} "${renamed_file}" "/bin/bash ${renamed_file}" "$LOG_FILE"

@@ -1,0 +1,5 @@
+#!/bin/bash
+CORAL_ROOT=/home/plumgrid/work/coral
+cd $CORAL_ROOT/devtools/;
+sudo chown -R plumgrid:plumgrid /home/plumgrid/.npm
+./coral_build.sh

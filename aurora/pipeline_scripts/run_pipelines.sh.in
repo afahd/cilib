@@ -1,0 +1,36 @@
+#!/bin/bash -e
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/alps:\
+/opt/pg/scripts/gcloud/aurora/pipeline_scripts/coral:$PATH
+
+source /home/$USER/.aurora.conf
+source pl_utils.sh
+source pl_help.sh
+source pl_settings.conf
+source gc_helpers.sh
+
+PIPELINE_ARGUMENTS="$@"
+# read the options
+TEMP=`getopt -o Q:R:E:W:l:P:i:f:t:s:n:\r:d:IFKc:e:a:h --long major:,minor_start:,minor_end:,WORKSPACE:,buildid:,pipeline:,test_iterations:,first_test:,step_size:,script:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update,keep-running,local_commit:,existing_commit_hash:,alps-path:,\help -n 'run_all_test.sh' -- "$@"`
+eval set -- "$TEMP"
+
+# extract options and their arguments into variables.
+while true ; do
+  case "$1" in
+    -P|--pipeline) PIPELINE=$2 ; shift 2 ;;
+    -h|--help)
+      show_run_tests_help
+      exit 0
+      shift ;;
+    --) shift ; break ;;
+    *)
+      shift ;;
+  esac
+done
+
+if [[ $PIPELINE == "coral-smoke" ]]; then
+  BASE_SCRIPT_DIR="@CMAKE_CURRENT_BINARY_DIR@/coral/"
+  coral_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" $PIPELINE_ARGUMENTS
+else
+  BASE_SCRIPT_DIR="@CMAKE_CURRENT_BINARY_DIR@/alps/"
+  alps_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" $PIPELINE_ARGUMENTS
+fi

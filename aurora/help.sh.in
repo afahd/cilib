@@ -48,6 +48,7 @@ Optional Arguments:
   -K, --keep-running  Instance will be left running after aurora run ends.
   -t, --tag           Add a tag to the instance name. Useful if multiple build instances for the
                       same refspec are required.
+  -s, --script        Script to run to setup the build enviroment. By defult build-all.sh is ran.
 BUILDHELP
 }
 
@@ -84,6 +85,7 @@ Optional Arguments:
                         branch.
   -a, --alps-path       Specify the path to the local alps repository
                         Default is /home/${USER}/work/alps
+  -S, --src_log_dir     Path to the remote location to download the logs from. Default is /opt/pg/log
 RUNHELP
 }
 

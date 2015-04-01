@@ -61,7 +61,6 @@ rm -rf /opt/pg/systest/*
 DELIM__
 for p in ${PROJECT_LIST[@]}; do
   cat >> ${git_script} <<DELIM__
-cd /home/plumgrid/work/${p}/build && sudo rm -rf *
 cd /home/plumgrid/work/${p}/ && git clean -fdx
 mkdir -p /home/plumgrid/work/${p}/build
 DELIM__
@@ -148,12 +147,15 @@ cat >> ${git_script} <<DELIM__
 DELIM__
 ## Checkout the requested branch on all the projects
 for p in ${PROJECT_LIST[@]}; do
-  cat >> ${git_script} <<DELIM__
+  # Coral does not use CMake to build, hence skipping cmake.
+  if [[ $p != "coral" ]]; then
+    cat >> ${git_script} <<DELIM__
 cd /home/plumgrid/work/${p}/build
 export APT_COMPONENT=${APT_COMPONENT}
 export PATH="/usr/lib/ccache/:\${PATH}"
 cmake ..
 DELIM__
+  fi
 done
 
 cat >> ${git_script} <<DELIM__

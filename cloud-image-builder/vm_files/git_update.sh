@@ -7,4 +7,5 @@ git clone ssh://sushilks@192.168.10.77:29418/pkg.git ~/work/pkg
 git clone ssh://sushilks@192.168.10.77:29418/pg_cli.git ~/work/pg_cli
 git clone ssh://sushilks@192.168.10.77:29418/python-plumgridlib.git ~/work/python-plumgridlib
 git clone ssh://sushilks@192.168.10.77:29418/alps.git ~/work/alps
+git clone ssh://sushilks@192.168.10.77:29418/coral.git ~/work/coral
 

@@ -19,6 +19,7 @@ fi
 STEP_ST=1
 STEP_ED=13
 
+LOG_SRC_DIR=/opt/pg/log
 UUID=`uuidgen`
 SUUID_="${UUID##*-}"
 SUUID="${SUUID_,,}"
@@ -28,17 +29,18 @@ KEEP_RUNNING=0
 LOCAL_CHANGES=0
 
 # read the options
-TEMP=`getopt -o l:s:o:n:W:t:CKc:e:a:R:E:h --long buildid:,script:,log_dir:,runid:,WORKSPACE:,tag:,\continue,keep-running,local_commit:,existing_commit_hash:,alps-path:,minor_st:,minor_end:,\help -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o l:s:S:o:n:W:t:CKc:e:a:R:E:h --long buildid:,script:,log_dir:,src_log_dir:,runid:,WORKSPACE:,tag:,\continue,keep-running,local_commit:,existing_commit_hash:,alps-path:,minor_st:,minor_end:,\help -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 while true ; do
   case "$1" in
     #Basic Funtionality
     -l| --buildid ) BUILD_ID=$2; shift 2 ;;
     -s| --script ) TEST_SCRIPT=$2; shift 2 ;;
-    -o| --log_dir) LOG_DIR=$2; shift 2 ;;
+    -o| --log_dir) LOG_DEST_DIR=$2; shift 2 ;;
     -n| --runid ) RUNID=$2 ; shift 2 ;;
     -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
     -t| --tag) TAG=$2 ; shift 2 ;;
+    -S| --src_log_dir) LOG_SRC_DIR=$2 ; shift 2 ;;
     -C| --continue ) CONTINUE=1; shift ;;
     -K| --keep-running ) KEEP_RUNNING=1; shift ;;
     #Local changes flags
@@ -60,13 +62,13 @@ if [[ -z "$BUILD_ID" ]]; then
   exit 1
 fi
 
-if [[ -z "$LOG_DIR" ]]; then
-  LOG_DIR="${WORKSPACE}/logs/"
+if [[ -z "$LOG_DEST_DIR" ]]; then
+  LOG_DEST_DIR="${WORKSPACE}/logs/"
 fi
 
-mkdir -p $LOG_DIR
-echo "Logs will be stored in $LOG_DIR"
-echo "aurora_run.sh started with [aurora_run.sh  $ARGS]" > $LOG_DIR/aurora_run_command_$SUUID
+mkdir -p $LOG_DEST_DIR
+echo "Logs will be stored in $LOG_DEST_DIR"
+echo "aurora_run.sh started with [aurora_run.sh  $ARGS]" > $LOG_DEST_DIR/aurora_run_command_$SUUID
 
 BUILD_ID=${emailid}-${BUILD_ID}
 MOD_BUILD_ID=$(echo ${BUILD_ID} | sed 's/bld/run/')
@@ -100,7 +102,7 @@ fi
 #Check /home/$USER/.ssh/id_rsa.pub file
 check_file_existence "/home/$USER/.ssh/id_rsa.pub"
 
-step_file=$LOG_DIR/${INSTANCE_NAME}-last-successful-step
+step_file=$LOG_DEST_DIR/${INSTANCE_NAME}-last-successful-step
 
 # If "continue" switch has been given then do following steps
 #   a. Get the RUN-ID provided by user.
@@ -116,7 +118,7 @@ if [[ $CONTINUE == "1" ]] ; then
   fi
   INSTANCE_NAME=$(echo "${INSTANCE_NAME}" | sed "s/[^-]*$//")
   INSTANCE_NAME=${INSTANCE_NAME}${RUNID}
-  step_file=$LOG_DIR/${INSTANCE_NAME}-last-successful-step
+  step_file=$LOG_DEST_DIR/${INSTANCE_NAME}-last-successful-step
   #Continue only if file exists
   if [[ ! -f $step_file ]]; then
     echo "No last successful step file ${step_file}, cannot resume. Exiting"
@@ -230,16 +232,15 @@ function run_test() {
 
   9)
     echo "Restarting lxc-net service"
-    tryexec run_cmd_gci ${INSTANCE_IP} "sudo ifconfig lxcbr0 down"
-    tryexec run_cmd_gci ${INSTANCE_IP} "sudo brctl delbr lxcbr0"
+    tryexec run_cmd_gci ${INSTANCE_IP} "sudo ifconfig lxcbr0 down || true"
+    tryexec run_cmd_gci ${INSTANCE_IP} "sudo brctl delbr lxcbr0 || true"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo pkill dnsmasq || true"
-    tryexec run_cmd_gci ${INSTANCE_IP} "sudo service lxc-net restart"
+    tryexec run_cmd_gci ${INSTANCE_IP} "sudo service lxc-net restart || true"
     record_step $step $step_file
     ;;
 
   10)
     tryexec upload ${INSTANCE_IP} ${TEST_SCRIPT} /tmp/user_test_script.sh
-    # tryexec is not needed because test can fail as well
     tryexec run_cmd_gci_bg ${INSTANCE_IP} "/bin/bash /tmp/user_test_script.sh" "/tmp/test.logs"
     record_step $step $step_file
     ;;
@@ -247,14 +248,14 @@ function run_test() {
   11)
     echo "Poll the test logs (tailing \"/tmp/test.log\")"
     tryexec run_poll_cmd ${INSTANCE_IP} "/tmp/user_test_script.sh" "/tmp/test.logs" "0"
-    tryexec download ${INSTANCE_IP} "/tmp/test.logs" "${LOG_DIR}/${INSTANCE_NAME}.log"
+    tryexec download ${INSTANCE_IP} "/tmp/test.logs" "${LOG_DEST_DIR}/${INSTANCE_NAME}.log"
     record_step $step $step_file
     ;;
 
   12)
-    echo "Downloading logs in ${LOG_DIR} directory"
-    tryexec get_latest_logs ${INSTANCE_IP} ${INSTANCE_NAME} ${LOG_DIR}
-    printf "\n\n********* Run has been completed successfully. Please see all logs in ${LOG_DIR} direcotry *********\n\n"
+    echo "Downloading logs in ${LOG_DEST_DIR} directory"
+    tryexec get_latest_logs ${INSTANCE_IP} ${INSTANCE_NAME} ${LOG_SRC_DIR} ${LOG_DEST_DIR}
+    printf "\n\n********* Run has been completed successfully. Please see all logs in ${LOG_DEST_DIR} direcotry *********\n\n"
     record_step $step $step_file
     ;;
 

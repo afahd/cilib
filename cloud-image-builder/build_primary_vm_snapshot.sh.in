@@ -12,7 +12,7 @@ BUILD_ENV_USER=${USER}
 
 MAJOR_STEPS="build"
 MINOR_STEPS_ST[build]=1
-MINOR_STEPS_ED[build]=19
+MINOR_STEPS_ED[build]=17
 
 # forward to subshells
 trap "kill 0" SIGINT
@@ -99,14 +99,14 @@ function build_image() {
           ;;
       8)
           echo "git clone of tools"
-          tryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "git clone ssh://${gerritid}@gerrit:29418/tools.git ~/work/tools" 
+          tryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "git clone ssh://${gerritid}@gerrit:29418/tools.git ~/work/tools"
           ;;
       9)
-          projs="pg_ui iovisor sal pkg pg_cli python-plumgridlib alps"
+          projs="pg_ui iovisor sal pkg pg_cli python-plumgridlib alps coral"
           echo "git clone of $projs"
           for pr in $projs ; do
               echo "   ==> Extracting $pr on the instance[$INSTANCE_IP]"
-              tryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "git clone ssh://${gerritid}@gerrit:29418/${pr}.git ~/work/${pr}" 
+              tryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "git clone ssh://${gerritid}@gerrit:29418/${pr}.git ~/work/${pr}"
           done
           ;;
 
@@ -139,21 +139,8 @@ function build_image() {
           echo "Building the rest for master"
           retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_setup_all.sh'"
           ;;
-      16)
-          #TODO: During aurora-build, we remove all contents of build directories of all projects.
-          #      We also nuke /opt/pg/var/www directory. We need to think about that whether
-          #      we really need following during primary snapshot build?
-          echo "Starting build-all.sh"
-          retryexec run_cmd_gci ${INSTANCE_IP} "sudo chown plumgrid.plumgrid /home/plumgrid/run_build_all.sh"
-          tryexec run_build_all ${INSTANCE_IP} "unstable" "/tmp/build_all.log"
-          ;;
-      17)
-          echo "Polling for build-all (tailing \"/tmp/build_all.log\" for complete logs)"
-          tryexec run_poll_cmd ${INSTANCE_IP} "run_build_all.sh" "/tmp/build_all.log" "1"
-          download ${INSTANCE_IP} "/tmp/build_all.log" "${WORKSPACE}/logs/"
-          ;;
 
-      18)
+      16)
           echo "Making a snapshot of the VM"
           SN_ID=`date +%s`
           SNAP_D1="$PRIM_INST_NAME-d1-${SN_ID}"
@@ -163,7 +150,7 @@ function build_image() {
           gcloud compute disks snapshot $PRIM_INST_NAME-d1 --snapshot-names "$SNAP_D1"
           gcloud compute disks snapshot $PRIM_INST_NAME-d2 --snapshot-names "$SNAP_D2"
           ;;
-      19)
+      17)
           echo "Shutting down the Instance $PRIM_INST_NAME"
           gcloud compute instances delete $PRIM_INST_NAME --delete-disks all  -q
           ;;

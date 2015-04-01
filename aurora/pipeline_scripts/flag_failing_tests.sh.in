@@ -1,5 +1,5 @@
 #!/bin/bash -e
-export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/alps:$PATH
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/:$PATH
 source gc_helpers.sh
 source pl_utils.sh
 source pl_settings.conf

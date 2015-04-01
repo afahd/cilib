@@ -1,5 +1,5 @@
 #!/bin/bash -e
-export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/alps:$PATH
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/:$PATH
 source /home/$USER/.aurora.conf
 source pl_utils.sh
 source pl_help.sh
@@ -75,8 +75,7 @@ echo "run_pipelines.sh $ARGS" > $log_dir/aurora_pipeline_command
 
 if [[ $PIPELINE == "smoke" || $PIPELINE == "extended" || $PIPELINE == "unstable" || $PIPELINE == "pgui-smoke" || $PIPELINE == "omni" ]]; then
   db=$(get_db $PIPELINE)
-
-elif [[ $PIPELINE != "DEBUG-TEST" && $PIPELINE != "automaton-longevity" && $PIPELINE != "automaton" ]]; then
+elif [[ $PIPELINE != "DEBUG-TEST" && $PIPELINE != "automaton-longevity" && $PIPELINE != "automaton" && $PIPELINE != "coral-smoke" ]]; then
   echo "Invalid Pipeline Specified"
   exit 1
 fi
@@ -109,7 +108,6 @@ function run_test() {
     pids=()
     echo "log_dir=$log_dir script_dir=$script_dir"
     while read -r -d $'\0'; do
-      #echo "aurora run -l ${USER_BUILD_ID} -s $REPLY -o ${log_dir} -S"
       aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -e $EXISTING_COMMIT_HASH $KEEP_RUNNING $LOCAL_COMMIT_HASH $ALPS_PATH > $REPLY.txt 2>&1 &
       #Get the pid of the last background command
       pids+=("$!")

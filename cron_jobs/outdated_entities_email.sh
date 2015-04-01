@@ -17,13 +17,14 @@ instance_list=$(gcloud compute instances list --format=text --sort-by=creationTi
 #Extract Name and creation time stamp
 instance_names=($(echo "$instance_list" | grep '^name'))
 instance_creationtime=($(echo "$instance_list" | grep creationTimestamp))
+instance_state=($(echo "$instance_list" | grep status))
 j=0
 for (( i = 1 ; i < ${#instance_names[@]} ; i=i+2 )) do
   current_date=$(date +"%s")
   creation_date=$(date -d ${instance_creationtime[$i]} +"%s" )
   time_difference=$(($current_date - $creation_date))
   #Modify time as needed
-  if [[ $time_difference -gt $time_diff ]]; then
+  if [[ $time_difference -gt $time_diff && ${instance_state[$i]} == "RUNNING" ]]; then
     outdated_instances[$j]="${instance_names[$i]} ${instance_creationtime[$i]:0:10}"
     name=$(echo ${instance_names[$i]} | awk -F'-' '{print $1}' )
     #Add to the email array if not already present
@@ -121,6 +122,6 @@ for email in "${!email_array[@]}"; do
   fi
   if [[ $send_mail == 1 ]]; then
     current_date=$(date +"%d %b %Y")
-    cat email_content | mail -s "Aurora Cloud Resources Usage Report ${current_date}" -c "aurora.internal@plumgrid.com" $email@plumgrid.com
+    #cat email_content | mail -s "Aurora Cloud Resources Usage Report ${current_date}" -c "aurora.internal@plumgrid.com" $email@plumgrid.com
   fi
 done
