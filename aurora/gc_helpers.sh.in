@@ -1037,3 +1037,36 @@ function commit_test_against() {
     return 0
   fi
 }
+
+# *****************************************************************************
+# Function: abbrev_to_repository
+# Purpose : Translate exactly one "Test-against"-compliant abbreviation to the full repository name
+# Usage   : abbrev_to_repository
+# *****************************************************************************
+function abbrev_to_repository() {
+  read line
+  case "$line" in
+    alps)
+      echo "alps"
+      ;;
+    pgcli)
+      echo "pg_cli"
+      ;;
+    pglib)
+      echo "python-plumgridlib"
+      ;;
+    pgui)
+      echo "pg_ui"
+      ;;
+    pkg)
+      echo "pkg"
+      ;;
+    sal)
+      echo "sal"
+      ;;
+    *)
+      echo "$line"
+      ;;
+  esac
+  return 0
+}

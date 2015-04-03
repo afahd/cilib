@@ -130,7 +130,7 @@ fi
 
 ## Checkout the requested commit for test-against repository acc to commit message
 if [[ ! -z "${test_against}" ]] ; then
-  test_project=$(echo $test_against | cut -f1 -d':')
+  test_project=$(echo $test_against | cut -f1 -d':' | abbrev_to_repository)
   test_refspec=$(echo $test_against | cut -f2 -d':')
   cat >> ${git_script} <<DELIM__
 cd /home/plumgrid/work/${test_project}
