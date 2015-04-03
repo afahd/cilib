@@ -19,7 +19,7 @@ DEST_SCRIPT_DIR=0
 echo "run_pipelines.sh $@"
 ARGS=$@
 # read the options
-TEMP=`getopt -o Q:R:E:W:l:P:i:f:t:s:n:\r:d:IFKc:e:a:h --long major:,minor_start:,minor_end:,WORKSPACE:,buildid:,pipeline:,test_iterations:,first_test:,step_size:,script:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update,keep-running,local_commit:,existing_commit_hash:,alps-path:,\help -n 'run_all_test.sh' -- "$@"`
+TEMP=`getopt -o Q:R:E:W:l:P:b:i:f:t:s:n:\r:d:IFKc:e:a:h --long major:,minor_start:,minor_end:,WORKSPACE:,buildid:,pipeline:,branch:,test_iterations:,first_test:,step_size:,script:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update,keep-running,local_commit:,existing_commit_hash:,alps-path:,\help -n 'run_all_test.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # extract options and their arguments into variables.
@@ -28,9 +28,10 @@ while true ; do
     -Q|--major) MAJOR_STEPS="$2"; shift 2 ;;
     -R|--minor_start ) MINOR_STEPS_ST[$MAJOR_STEPS]="$2"; shift 2 ;;
     -E|--minor_end ) MINOR_STEPS_ED[$MAJOR_STEPS]="$2"; shift 2 ;;
-    -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
+    -W|--WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
     -l|--buildid) USER_BUILD_ID=$2 ; shift 2 ;;
     -P|--pipeline) PIPELINE=$2 ; shift 2 ;;
+    -b|--branch) BRANCH=$2 ; shift 2 ;;
     -i|--test_iterations) TEST_ITERATIONS=$2 ; shift 2 ;;
     -f|--first_test) FIRST_TEST=$2 ; shift 2 ;;
     -t|--step_size) STEP_SIZE=$2 ; shift 2 ;;
@@ -74,7 +75,13 @@ untar_log_dir=${script_dir}/untar_logs
 echo "run_pipelines.sh $ARGS" > $log_dir/aurora_pipeline_command
 
 if [[ $PIPELINE == "smoke" || $PIPELINE == "extended" || $PIPELINE == "unstable" || $PIPELINE == "pgui-smoke" || $PIPELINE == "omni" ]]; then
-  db=$(get_db $PIPELINE)
+  db=$(get_db $PIPELINE $BRANCH)
+  if [[ -e $db ]]; then
+    echo "database selected = $db"
+  else
+    echo "$db does not exist!"
+    exit 1
+  fi
 elif [[ $PIPELINE != "DEBUG-TEST" && $PIPELINE != "automaton-longevity" && $PIPELINE != "automaton" && $PIPELINE != "coral-smoke" ]]; then
   echo "Invalid Pipeline Specified"
   exit 1
@@ -186,7 +193,6 @@ function run_test() {
       cat $log_file >>  ${WORKSPACE}/logs/ctest_output.log
       echo "--------------------------------------" >> ${WORKSPACE}/logs/ctest_output.log
     done
-
     # find all the failed files and copy them to the WORKSPACE
     for file in `find ${untar_log_dir} -type f -name "*FAILED.log" -o -type f -name "*.tar.gz"`; do
       base_test_name=`basename $file`

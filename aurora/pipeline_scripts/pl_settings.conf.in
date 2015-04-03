@@ -1,4 +1,5 @@
 DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/alps.smoke.db
+DB_PATH=@CMAKE_CURRENT_BINARY_DIR@/dbs/
 SMOKE_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/alps.smoke.db
 EXTENDED_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/alps.extended.db
 UNSTABLE_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/alps.unstable.db

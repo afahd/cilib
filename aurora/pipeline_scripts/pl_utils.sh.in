@@ -5,8 +5,14 @@ source ~/.aurora.conf
 
 function get_db() {
   local pipeline=$1
-  local db=""
-
+  local branch=$2
+  if [[ -n "$branch" ]]; then
+    local db="${DB_PATH}$pipeline-$branch.db"
+  fi
+  if [[ -e "$db" ]]; then
+    echo ${db}
+    return 0
+  fi
   if [[ $pipeline == "smoke" ]]; then
     db=${SMOKE_DB}
   elif [[ $pipeline == "extended" ]]; then

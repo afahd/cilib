@@ -190,13 +190,15 @@ USAGE: aurora pipeline -l <BUILD-ID> [OPTIONS]
        Run smoke/extended/unstable/pgui-smoke/omni pipeline for some particular commit
 
 Required Arguments:
--W, --WORKSPACE       Set the workspace where all the logs will be stored.
 -l, --buildid         Build-ID against which you want to run pipeline
 
 Optional Arguments:
 -P, --pipeline        [OPTIONAL] The pipeline which you want to run.
                       Possible values are "smoke", "extended", "unstable", "pgui-smoke", "omni" "automaton" and "automaton-longevity".
                       Default is 'smoke'.
+-b, --branch          [OPTIONAL] The branch that you want to run your pipeline on. Currently this feature is only available for omni
+                      pipeline. Possible value for this flag is "stable_4_0". If you do not use this the default value would be taken as "master"
+-W, --WORKSPACE       [OPTIONAL]Set the workspace where all the logs will be stored.
 -K, --keep-running    [OPTIONAL] Instance will be left running after aurora run ends.
 -i, --test_iterations [OPTIONAL] Run the pipeline for the specified number of iterations.
 HELP
