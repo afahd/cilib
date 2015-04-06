@@ -44,9 +44,17 @@ elif [[ $PIPELINE == "pgui-smoke" ]]; then
   export EXCLUDE_UNSTABLE=1
 elif [[ $PIPELINE == "automaton" ]]; then
   sudo /home/plumgrid/work/alps/build/scripts/jenkins/lxc-automaton-jenkins-init.sh
+  if [[ $? -ne 0 ]]; then
+    echo "lxc-automaton-jenkins-init failed, tests will not be run... exiting"
+    exit 1
+  fi
   test_tag=lxc_automaton
 elif [[ $PIPELINE == "automaton-longevity" ]]; then
   sudo /home/plumgrid/work/alps/build/scripts/jenkins/lxc-automaton-longevity-jenkins-init.sh
+  if [[ $? -ne 0 ]]; then
+    echo "lxc-automaton-longevity-jenkins-init failed, tests will not be run... exiting"
+    exit 1
+  fi
   test_tag=lxc_automaton_longevity
 elif [[ $PIPELINE == "unstable" || $PIPELINE == "DEBUG-TEST" ]]; then
   export BUILD_NIGHTLY=1
