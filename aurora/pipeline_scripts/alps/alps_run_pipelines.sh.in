@@ -5,7 +5,6 @@ source pl_utils.sh
 source pl_help.sh
 source pl_settings.conf
 source gc_helpers.sh
-
 #Show help
 if [[ $3 == "help" ]]; then
   show_pl_help
@@ -73,11 +72,11 @@ log_dir=${script_dir}/logs
 untar_log_dir=${script_dir}/untar_logs
 
 echo "run_pipelines.sh $ARGS" > $log_dir/aurora_pipeline_command
-
 if [[ $PIPELINE == "smoke" || $PIPELINE == "extended" || $PIPELINE == "unstable" || $PIPELINE == "pgui-smoke" || $PIPELINE == "omni" ]]; then
   db=$(get_db $PIPELINE $BRANCH)
   if [[ -e $db ]]; then
     echo "database selected = $db"
+    echo "branch given = $BRANCH"
   else
     echo "$db does not exist!"
     exit 1
