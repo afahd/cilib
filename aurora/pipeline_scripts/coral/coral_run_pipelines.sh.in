@@ -127,6 +127,8 @@ function run_test() {
     time_taken=$(print_time_taken $pipeline_start_time $pipeline_end_time "running $PIPELINE pipeline")
     #Copy logs for jenkins
     find ${untar_log_dir} -name "*.xml" -type f -exec  mv {} ${WORKSPACE}/logs/ \;
+    #Find a status-message.log file
+    find ${untar_log_dir} -name "status-message.log" -type f -exec  mv {} ${WORKSPACE}/ \;
 
     #Delete the untar folder
     rm -rf ${untar_log_dir}
