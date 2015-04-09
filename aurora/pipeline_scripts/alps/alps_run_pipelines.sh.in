@@ -12,7 +12,7 @@ if [[ $3 == "help" ]]; then
 fi
 BUILD_ENV_USER=${USER}
 STEP_ST=1
-STEP_ED=6
+STEP_ED=7
 DEST_SCRIPT_DIR=0
 
 echo "run_pipelines.sh $@"
@@ -76,7 +76,6 @@ if [[ $PIPELINE == "smoke" || $PIPELINE == "extended" || $PIPELINE == "unstable"
   db=$(get_db $PIPELINE $BRANCH)
   if [[ -e $db ]]; then
     echo "database selected = $db"
-    echo "branch given = $BRANCH"
   else
     echo "$db does not exist!"
     exit 1
@@ -183,15 +182,21 @@ function run_test() {
     ;;
 
   6)
-    num_failures=$(find ${untar_log_dir} -name "*FAILED.log" | wc -l)
-    echo "num_failures=$num_failures"
-    mkdir -p ${WORKSPACE}/test_logs
-
     #Concatenate all the log files into one file
     for log_file in `find ${untar_log_dir} -type f -name "*.log"` ; do
       cat $log_file >>  ${WORKSPACE}/logs/ctest_output.log
       echo "--------------------------------------" >> ${WORKSPACE}/logs/ctest_output.log
     done
+    if [[ -e ${WORKSPACE}/logs/ctest_output.log ]]; then
+      pushd ${WORKSPACE}/logs
+      gzip ctest_output.log
+      popd
+    fi
+    ;;
+  7)
+    num_failures=$(find ${untar_log_dir} -name "*FAILED.log" | wc -l)
+    echo "num_failures=$num_failures"
+    mkdir -p ${WORKSPACE}/test_logs
     # find all the failed files and copy them to the WORKSPACE
     for file in `find ${untar_log_dir} -type f -name "*FAILED.log" -o -type f -name "*.tar.gz"`; do
       base_test_name=`basename $file`
@@ -211,10 +216,8 @@ function run_test() {
     #rm -rf ${untar_log_dir}
 
     mv ${WORKSPACE}/test_logs  ${WORKSPACE}/logs
-
     tar czf $script_dir.tar.gz -C $WORKSPACE/ ${script_dir#$WORKSPACE/}
     mv $script_dir.tar.gz ${WORKSPACE}/logs/aurora_infra_logs.tar.gz
-
     if [[ $num_failures -eq 0 && -z $status ]]; then
       status=0
     else
