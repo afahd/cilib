@@ -190,6 +190,12 @@ function run_test() {
         echo "$test_name" >> "${WORKSPACE}/logs/failing-list.log"
       done
     fi
+    echo "Total number of tests run = $num_total_tests"
+
+    if [[ $num_total_tests -eq 0 ]]; then
+      status=1
+      echo "No tests were run"
+    fi
     ;;
 
   6)
