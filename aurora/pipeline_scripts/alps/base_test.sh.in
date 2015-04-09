@@ -124,7 +124,7 @@ for run in $(seq 1 $itr); do
     rm -rf $EXPORT_FAILURES_DIR/*
   done
 done
-echo "$tests_ran" > $EXPORT_FAILURES_DIR_TMP/total_tests
+echo "$tests_ran" > $EXPORT_FAILURES_DIR_TMP/total_tests_inst${instance_no}
 #Copy logs to /opt/pg/log for get_latest_logs to copy the tests.
 mkdir -p /opt/pg/log/$TESTID
 cp -r ${EXPORT_FAILURES_DIR_TMP} /opt/pg/log/

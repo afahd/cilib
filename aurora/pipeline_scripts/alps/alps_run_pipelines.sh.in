@@ -161,7 +161,7 @@ function run_test() {
   5)
     # Generate failed test case report.
     num_failures=$(find ${untar_log_dir} -name "*FAILED.log" | wc -l)
-    test_count=$(find ${untar_log_dir} -name "total_tests" -type f)
+    test_count=$(find ${untar_log_dir} -name "total_tests_inst*" -type f)
     #Get total tests ran
     local num_total_tests=0
     for file in ${test_count[@]}; do
