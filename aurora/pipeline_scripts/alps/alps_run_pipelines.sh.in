@@ -196,7 +196,17 @@ function run_test() {
   7)
     num_failures=$(find ${untar_log_dir} -name "*FAILED.log" | wc -l)
     echo "num_failures=$num_failures"
+
+    #Copy the automaton-init logs to test_logs folder
+    find ${untar_log_dir} -name "automaton-init*.log" -exec mkdir -p ${WORKSPACE}/test_logs \; -exec mv {} ${WORKSPACE}/test_logs \;
+    if [[ -d ${WORKSPACE}/test_logs ]]; then
+      tar -zcf ${WORKSPACE}/logs/automaton-init-logs.tar.gz -C ${WORKSPACE}/test_logs ./
+      #Delete the automaton logs
+      rm -f ${WORKSPACE}/test_logs/*
+    fi
+
     mkdir -p ${WORKSPACE}/test_logs
+
     # find all the failed files and copy them to the WORKSPACE
     for file in `find ${untar_log_dir} -type f -name "*FAILED.log" -o -type f -name "*.tar.gz"`; do
       base_test_name=`basename $file`
@@ -218,6 +228,7 @@ function run_test() {
     mv ${WORKSPACE}/test_logs  ${WORKSPACE}/logs
     tar czf $script_dir.tar.gz -C $WORKSPACE/ ${script_dir#$WORKSPACE/}
     mv $script_dir.tar.gz ${WORKSPACE}/logs/aurora_infra_logs.tar.gz
+
     if [[ $num_failures -eq 0 && -z $status ]]; then
       status=0
     else
