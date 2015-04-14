@@ -255,7 +255,7 @@ function run_test() {
   12)
     echo "Downloading logs in ${LOG_DEST_DIR} directory"
     tryexec get_latest_logs ${INSTANCE_IP} ${INSTANCE_NAME} ${LOG_SRC_DIR} ${LOG_DEST_DIR}
-    printf "\n\n********* Run has been completed successfully. Please see all logs in ${LOG_DEST_DIR} directory *********\n\n"
+    printf "\n\n********* Run has been completed successfully. Please see all logs in ${LOG_DEST_DIR} direcotry *********\n\n"
     record_step $step $step_file
     ;;
 
