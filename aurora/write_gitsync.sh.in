@@ -105,8 +105,6 @@ echo \${git_dep_branch[iovisor]}
 cd /home/plumgrid/work/iovisor
 git fetch
 git reset --hard \${git_dep_branch[iovisor]}
-cd /home/plumgrid/work/pkg/scripts
-sed -i "/export APT_REPO_HOST/ c\export APT_REPO_HOST=127.0.0.1 && export APT_COMPONENT=${APT_COMPONENT}" build-all.sh
 DELIM__
 # Step-5: -- Checkout the required changes for the defined porject
 #         -- Build tools and iovisor
@@ -142,6 +140,8 @@ DELIM__
 fi
 
 cat >> ${git_script} <<DELIM__
+cd /home/plumgrid/work/pkg/scripts
+sed -i "/export APT_REPO_HOST/ c\export APT_REPO_HOST=127.0.0.1 && export APT_COMPONENT=${APT_COMPONENT}" build-all.sh
     ;;
   cmake_repos)
 DELIM__
