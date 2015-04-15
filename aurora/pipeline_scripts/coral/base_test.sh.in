@@ -1,5 +1,3 @@
 CORAL_ROOT=/home/plumgrid/work/coral
 cd $CORAL_ROOT/devtools/
-#HACK
-sleep 60
 ./coral_test.sh
