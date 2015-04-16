@@ -1041,7 +1041,6 @@ function commit_test_against() {
     return 0
   fi
 }
-
 # *****************************************************************************
 # Function: abbrev_to_repository
 # Purpose : Translate exactly one "Test-against"-compliant abbreviation to the full repository name
@@ -1072,5 +1071,57 @@ function abbrev_to_repository() {
       echo "$line"
       ;;
   esac
+  return 0
+}
+# *****************************************************************************
+# Function: translate_branch
+# Purpose : translate the given branch
+# Usage   : translate_branch <project> <branch map>
+# *****************************************************************************
+function translate_branch() {
+
+  local path_to_files=$4
+  echo "Translating repo:branch [${2}:${1}] => [${3}:?]" >&2
+  #Check for the existence of the Repo specific branch translation file
+  local translation_file=${path_to_files}/${2}_${1}
+  if [[ ! -f $translation_file ]]; then
+    echo "Repo specific translation file: $translation_file not found, using default translation file" >&2
+    #Use default branch translation file
+    translation_file=${path_to_files}/$1
+    if [[ ! -f $translation_file ]]; then
+      echo "Translation file: $translation_file not found, returning input branch [${1}]" >&2
+      echo "${1}"
+      return 0
+    else
+      echo "Translation file for [${1}] found." >&2
+    fi
+  else
+    echo "Translation file for [${2}:${1}] found." >&2
+  fi
+
+  local target_branch=
+
+  # step 1: Direct translation
+  target_branch=$(grep ^$3: $translation_file)
+
+  if [[ -n "$target_branch" ]]; then
+    target_branch=$(echo "$target_branch"| cut -d : -f 2)
+    echo "Translated into [${target_branch}] during step 1" >&2
+    echo "$target_branch"
+    return 0
+  fi
+
+  # step 2: Use default value
+  target_branch=$(grep ^default: $translation_file)
+  if [[ -n "$target_branch" ]]; then
+    target_branch=$(echo "$target_branch"| cut -d : -f 2)
+    echo "Translated into [${target_branch}] during step 2" >&2
+    echo "$target_branch"
+    return 0
+  fi
+
+  # step 3: Return input branch
+  echo "No translation available, returning input branch [${1}]" >&2
+  echo "${1}"
   return 0
 }

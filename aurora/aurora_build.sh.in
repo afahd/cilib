@@ -37,8 +37,8 @@ while true ; do
      -s| --script ) BUILD_SCRIPT=$2; shift 2 ;;
      -t| --tag) TAG=$2 ; shift 2 ;;
      -C| --continue) CONTINUE=1 ; shift ;;
-     -b|--branch) BRANCH=$2; shift 2 ;;
-     -p|--proj) PROJECT=$2; shift 2 ;;
+     -b| --branch) BRANCH=$2; shift 2 ;;
+     -p| --proj) PROJECT=$2; shift 2 ;;
      -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
 
      -Q| --major ) MAJOR_STEPS="$2"; TMP_MAJOR="$2"; shift 2;;
@@ -121,6 +121,15 @@ SN_ID=$(get_latest_snapshot_id)
 SNAP1=${PRIM_INST_NAME}-d1-${SN_ID}
 SNAP2=${PRIM_INST_NAME}-d2-${SN_ID}
 
+echo "Copying the branch translations"
+#Branch translations are located in builder
+if [[ ! -d ${WORKSPACE}/builder/.git ]]; then
+  tryexec git clone --depth=1 ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/builder ${WORKSPACE}/builder
+fi
+#Create the repo list
+readarray -t PROJECT_LIST < ${WORKSPACE}/builder/branch_translations/repo.list
+
+
 #Create file to ensure continue works if run/build is aborted before 1st step completes
 touch $step_file
 
@@ -175,7 +184,7 @@ function build_image() {
   6)
     GIT_SYNC_SCRIPT=$(mktemp /tmp/gitsync.sh-XXXXX)
     echo "Generate script for syncing the gerrit repo"
-    tryexec write_gitsync.sh "${GIT_SYNC_SCRIPT}" "${BRANCH}" "${PROJECT}" "${REFSPEC}"
+    tryexec write_gitsync.sh "${GIT_SYNC_SCRIPT}" "${BRANCH}" "${PROJECT}" "${REFSPEC}" "${WORKSPACE}/builder/branch_translations"
     tryexec upload ${INSTANCE_IP} ${GIT_SYNC_SCRIPT} /tmp/
     GIT_SYNC_BASE=$(basename ${GIT_SYNC_SCRIPT} )
     tryexec run_cmd_gci ${INSTANCE_IP} "mv /tmp/${GIT_SYNC_BASE} /tmp/gitsync.sh"
@@ -201,12 +210,11 @@ function build_image() {
     # Run Step3: Fetch all repos
     echo "gitsync Step3: Fetching all the repos (${PROJECT_LIST[@]})"
     for p in ${PROJECT_LIST[@]}; do
-      if [[ $p == "coral" && $BRANCH != "master" ]]; then
-        continue
-      else
-        retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh all_repos $p"
-      fi
+      translated_branch=$(translate_branch "$BRANCH" "$PROJECT" "$p" "${WORKSPACE}/builder/branch_translations")
+      retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh all_repos $p $translated_branch"
     done
+    #Delete the cloned builder files
+    rm -rf ${WORKSPACE}/builder
     record_step $step $step_file
     ;;
 
@@ -218,7 +226,7 @@ function build_image() {
     ;;
 
   11)
-    # Checkout the required changes for specified project and set apt_component
+    # Checkout the required changes for specified project
     echo "gitsync Step5: Checking out required code on ${PROJECT}"
     retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh checkout"
     record_step $step $step_file

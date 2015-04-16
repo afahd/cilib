@@ -11,6 +11,7 @@ git_script=$1
 branch=$2
 project=$3
 refspec=$4
+branch_translations_path=$5
 test_against=""
 
 APT_COMPONENT=""
@@ -21,13 +22,17 @@ branch_to_component['master']='unstable'
 branch_to_component['stable_4_0']='everest'
 branch_to_component['stable_4_1']='fuji'
 
+readarray -t PROJECT_LIST < ${WORKSPACE}/builder/branch_translations/repo.list
+
 # Convert the branch name to respective component name
+default_branch=$(translate_branch "$branch" "$project" "default" "${branch_translations_path}")
 for key in ${!branch_to_component[@]}; do
-  if [[ "${key}" == ${branch} ]]; then
+  if [[ "${key}" == ${default_branch} ]]; then
     APT_COMPONENT=${branch_to_component[$key]}
     break
   fi
 done
+
 if [[ $APT_COMPONENT == "" ]]; then
   echo "Unable to find the branch -> component mapping for $branch"
   exit 1
@@ -62,8 +67,9 @@ rm -rf /opt/pg/systest/*
 DELIM__
 for p in ${PROJECT_LIST[@]}; do
   cat >> ${git_script} <<DELIM__
-cd /home/plumgrid/work/${p}/ && git clean -fdx
-mkdir -p /home/plumgrid/work/${p}/build
+if [[ -d /home/plumgrid/work/${p}/ ]]; then
+  cd /home/plumgrid/work/${p}/ && git clean -fdx
+fi
 DELIM__
 done
 
@@ -87,12 +93,19 @@ DELIM__
 ## Checkout the requested branch on all the projects
 modify_git_config "\${repo}" "${gerritid}" "${git_script}"
 cat >> ${git_script} <<DELIM__
-echo "Extracting and rebuilding \${repo} for branch ${branch}"
-cd /home/plumgrid/work/\${repo}
-git fetch
-git reset --hard origin/${branch}
-git checkout ${branch}
-git reset --hard origin/${branch}
+branch=\$3
+echo "Extracting and rebuilding \${repo} for branch \${branch}"
+if [[ -d /home/plumgrid/work/\${repo}/ ]]; then
+  cd /home/plumgrid/work/\${repo}
+  git fetch
+  git reset --hard origin/\${branch}
+  git checkout \${branch}
+  git reset --hard origin/\${branch}
+else
+  mkdir /home/plumgrid/work/\${repo}/
+  git clone ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/\${repo} -- /home/plumgrid/work/\${repo}/
+  git checkout \${branch}
+fi
     ;;
   iovisor)
 DELIM__
@@ -151,6 +164,7 @@ for p in ${PROJECT_LIST[@]}; do
   # Coral does not use CMake to build, hence skipping cmake.
   if [[ $p != "coral" ]]; then
     cat >> ${git_script} <<DELIM__
+mkdir -p /home/plumgrid/work/${p}/build
 cd /home/plumgrid/work/${p}/build
 export APT_COMPONENT=${APT_COMPONENT}
 export PATH="/usr/lib/ccache/:\${PATH}"
