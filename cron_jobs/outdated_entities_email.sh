@@ -122,6 +122,6 @@ for email in "${!email_array[@]}"; do
   fi
   if [[ $send_mail == 1 ]]; then
     current_date=$(date +"%d %b %Y")
-    #cat email_content | mail -s "Aurora Cloud Resources Usage Report ${current_date}" -c "aurora.internal@plumgrid.com" $email@plumgrid.com
+    cat email_content | mail -s "Aurora Cloud Resources Usage Report ${current_date}" -c "aurora.internal@plumgrid.com" $email@plumgrid.com
   fi
 done
