@@ -105,6 +105,8 @@ Required Arguments:
   -m, --num_last_commits      Define your area of search. Tell how many last commits you want
                               to probe.
 Optional Arguments:
+  -t, --failure-threshold     Number of failures above which the result should be called bad.
+                              e.g. -t 5 would consider the result bad if test failed 6 times.
   -W, --WORKSPACE             Set the workspace where all the logs will be stored.
   -K, --keep-running          Instance will be left running after aurora run ends.
   -i, --test_iterations       Specify the number of iterations for the tests.

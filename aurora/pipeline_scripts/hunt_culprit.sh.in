@@ -6,7 +6,7 @@ ARGS=$@
 source pl_help.sh
 source pl_settings.conf
 
-TEMP=`getopt -o W:Kl:i:n:s:c:m:a:R:E:h --long WORKSPACE:,keep-running,buildid:,test_iterations:,num_instances:,script:,commit_hash_file:,num_last_commits:,alps-path:,step_st:,step_ed:,\help -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o W:Kl:i:n:t:s:c:m:a:R:E:h --long WORKSPACE:,keep-running,buildid:,failure-threshold:,test_iterations:,num_instances:,script:,commit_hash_file:,num_last_commits:,alps-path:,step_st:,step_ed:,\help -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 
 
@@ -19,11 +19,13 @@ else
 fi
 TEST_ITERATIONS=1
 NUM_INSTANCES=1
+FAILURE_THRESHOLD=0
 # extract options and their arguments into variables.
 while true ; do
   case "$1" in
     -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
     -K|--keep-running) KEEP_RUNNING="-K" ; shift ;;
+    -t|--failure-threshold) FAILURE_THRESHOLD="$2" ; shift 2 ;;
     -l|--buildid) BUILD_ID=$2 ; shift 2 ;;
     -i|--test_iterations) TEST_ITERATIONS=$2 ; shift 2 ;;
     -n|--num_instances) NUM_INSTANCES=$2 ; shift 2 ;;
@@ -43,6 +45,8 @@ while true ; do
        exit 1 ;;
   esac
 done
+
+mkdir -p ${WORKSPACE}/logs
 
 if [[ -z "$BUILD_ID" || -z "$USER_SCRIPT"  ]]; then
   echo "Missing required arguments"
@@ -112,6 +116,8 @@ function hunt_culprit_using_bs () {
     # Run aurora debug-test with above commit.
     mkdir -p ${WORKSPACE}
     num_failures=0
+    result_failure=0
+    result_success=0
     while [[ ${git_bisect_msg} != *"is the first bad commit"* ]]; do
       commit_hash=$(git rev-parse HEAD)
       echo "Run aurora debug-test on commit $commit_hash"
@@ -130,19 +136,28 @@ function hunt_culprit_using_bs () {
       # Get toatal number of failures of aurora debug-test
       num_failures=$(find ${WORKSPACE}/debug_test_$mod_commit_hash -name "*FAILED.log" | wc -l)
 
-      if [[ ${num_failures} -eq "0" ]];then
-        printf "\n num_failures=$num_failures, Going to call git bisect good \n"
-        git_bisect_msg=$(git bisect good)
-      else
+      if [[ ${num_failures} -gt "${FAILURE_THRESHOLD}" ]];then
         printf "\n num_failures=$num_failures, Going to call git bisect bad \n"
         git_bisect_msg=$(git bisect bad)
+        result_failure=1
+      else
+        printf "\n num_failures=$num_failures, Going to call git bisect good \n"
+        git_bisect_msg=$(git bisect good)
+        result_success=1
       fi
       echo "$git_bisect_msg"
     done
-    if [[ $num_failures -eq "0" ]];then
-      echo "I can't kill innocents. All of them are free from bugs."
+    if [[ $result_failure -eq "1" && $result_success -eq "0" ]];then
+      echo "Test failed more than $FAILURE_THRESHOLD times on every commit."
+      echo "Cannot determine the commit causing the failure."
+      exit_status=1
+    elif [[ $result_failure -eq "0" && $result_success -eq "1" ]]; then
+      echo "Test did not fail more than $FAILURE_THRESHOLD times on any commit."
+      echo "Cannot determine the commit causing the failure."
+      exit_status=1
     else
       printf "==================================\n $git_bisect_msg \n==============================="
+      echo "${git_bisect_msg}" > ${WORKSPACE}/logs/aurora_hunt_output
     fi
     ;;
 
@@ -168,4 +183,4 @@ for STEP in `seq ${STEP_ST} ${STEP_ED}`; do
 done
 script_end_time=$(date +%s)
 print_time_taken $script_start_time $script_end_time "HUNT_CULPRIT"
-
+exit $exit_status
