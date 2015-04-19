@@ -182,18 +182,6 @@ function run_test() {
     ;;
 
   6)
-    #Concatenate all the log files into one file
-    for log_file in `find ${untar_log_dir} -type f -name "*.log"` ; do
-      cat $log_file >>  ${WORKSPACE}/logs/ctest_output.log
-      echo "--------------------------------------" >> ${WORKSPACE}/logs/ctest_output.log
-    done
-    if [[ -e ${WORKSPACE}/logs/ctest_output.log ]]; then
-      pushd ${WORKSPACE}/logs
-      gzip ctest_output.log
-      popd
-    fi
-    ;;
-  7)
     num_failures=$(find ${untar_log_dir} -name "*FAILED.log" | wc -l)
     echo "num_failures=$num_failures"
 
@@ -203,6 +191,18 @@ function run_test() {
       tar -zcf ${WORKSPACE}/logs/automaton-init-logs.tar.gz -C ${WORKSPACE}/test_logs ./
       #Delete the automaton logs
       rm -f ${WORKSPACE}/test_logs/*
+    fi
+    ;;
+  7)
+    #Concatenate all the log files into one file
+    for log_file in `find ${untar_log_dir} -type f -name "*.log"` ; do
+      cat $log_file >>  ${WORKSPACE}/logs/ctest_output.log
+      echo "--------------------------------------" >> ${WORKSPACE}/logs/ctest_output.log
+    done
+    if [[ -e ${WORKSPACE}/logs/ctest_output.log ]]; then
+      pushd ${WORKSPACE}/logs
+      gzip ctest_output.log
+      popd
     fi
 
     mkdir -p ${WORKSPACE}/test_logs
