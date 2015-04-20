@@ -403,9 +403,9 @@ echo "*** run_debug_test $@ ***"
   local TEMP=`getopt -o W:l:i:n:s:Ka:c:e:h --long WORKSPACE:,keep-running,buildid:,test_iterations:,num_instances:,script:,local_commit:,existing_commit_hash:,alps-path:,\help -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 
-TEST_ITERATIONS=1
-NUM_INSTANCES=1
-ALPS_PATH=/home/${USER}/work/alps
+local TEST_ITERATIONS=1
+local NUM_INSTANCES=1
+local ALPS_PATH=/home/${USER}/work/alps
 # extract options and their arguments into variables.
 while true ; do
   case "$1" in

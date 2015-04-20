@@ -5,7 +5,7 @@ source pl_settings.conf
 
 TEST_ITERATIONS=1
 # read the options
-TEMP=`getopt -o b:i:r:p:d:h --long base_script:,pipeline:,test_iterations:,base_script_dir:,dest_script_dir:,\help -n 'gen_test_script.sh' -- "$@"`
+TEMP=`getopt -o b:i:r:p:d:n:h --long base_script:,pipeline:,num_instances:,test_iterations:,base_script_dir:,dest_script_dir:,\help -n 'gen_test_script.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # extract options and their arguments into variables.
@@ -21,6 +21,8 @@ while true ; do
       BASE_SCRIPT_DIR=$2 ; shift 2;;
     -d|--dest_script_dir)
       DEST_SCRIPT_DIR=$2 ; shift 2 ;;
+    -n|--num_instances)
+      NUM_INSTANCES=$2 ; shift 2 ;;
     -h|--help)
       #TODO
       show_gen_test_scripts_help
@@ -31,19 +33,14 @@ while true ; do
 done
 echo "**** BASE_SCRIPT_DIR=$BASE_SCRIPT_DIR **** "
 
-if [[ $PIPELINE == "automaton-longevity" ]]; then
-  NUM_TESTS=$NUM_AUTOMATON_LONGEVITY_TESTS
-elif [[ $PIPELINE == "automaton" ]]; then
-  NUM_TESTS=$NUM_AUTOMATON_TESTS
-fi
 
 #Iterate over the number of tests
-for test in `seq 1 $NUM_TESTS`; do
+for test in `seq 1 $NUM_INSTANCES`; do
     #Create target script for base
     cp ${BASE_SCRIPT_DIR}/$BASE_SCRIPT ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
     #Only 1 test per instances so CTEST_ST=CTEST_ED=1
     sed -i 's/CTEST_ST=[0-9]*/CTEST_ST='$test'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
-    if [[ $test -ne $NUM_TESTS ]]; then
+    if [[ $test -ne $NUM_INSTANCES ]]; then
       sed -i 's/CTEST_ED=[0-9]*/CTEST_ED='$test'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
     else
       #Run all the remaining tests on the last instance

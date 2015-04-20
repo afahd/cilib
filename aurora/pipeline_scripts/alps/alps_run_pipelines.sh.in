@@ -85,6 +85,23 @@ elif [[ $PIPELINE != "DEBUG-TEST" && $PIPELINE != "automaton-longevity" && $PIPE
   exit 1
 fi
 
+#Set the number of instances and iterations
+if [[ -z "$NUM_INSTANCES" ]]; then
+  if [[ $PIPELINE == "automaton-longevity" ]]; then
+    NUM_INSTANCES=${NUM_AUTOMATON_LONGEVITY_INSTANCES}
+  elif [[ $PIPELINE == "automaton" ]]; then
+    NUM_INSTANCES=${NUM_AUTOMATON_INSTANCES}
+  elif [[ $PIPELINE == "omni" ]]; then
+    NUM_INSTANCES=${OMNI_NUM_INSTANCES}
+    TEST_ITERATIONS=${OMNI_TEST_ITERATIONS}
+  elif [[ $PIPELINE == "pgui-smoke" ]]; then
+    NUM_INSTANCES=${PGUI_NUM_INSTANCES}
+  else
+    NUM_INSTANCES=${NUM_DEFAULT_INSTANCES}
+  fi
+fi
+
+
 function run_test() {
   local step=$1
 
@@ -96,14 +113,8 @@ function run_test() {
       echo "pipeline is debug-test"
       gen_user_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -n ${NUM_INSTANCES} -d ${script_dir} --base_script_dir ${BASE_SCRIPT_DIR} -s ${USER_SCRIPT}
     elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" ]]; then
-      gen_automaton_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -d ${script_dir} -r $BASE_SCRIPT_DIR -p $PIPELINE
+      gen_automaton_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -d ${script_dir} -r $BASE_SCRIPT_DIR -p $PIPELINE -n ${NUM_INSTANCES}
     else
-      if [[ $PIPELINE == "pgui-smoke" ]]; then
-        NUM_INSTANCES=${PGUI_NUM_INSTANCES}
-      elif [[ $PIPELINE == "omni" ]]; then
-        NUM_INSTANCES=${OMNI_NUM_INSTANCES}
-        TEST_ITERATIONS=${OMNI_TEST_ITERATIONS}
-      fi
       gen_test_scripts.sh -p $PIPELINE -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -f ${FIRST_TEST} -t ${STEP_SIZE} -n ${NUM_INSTANCES} -d ${script_dir} -I ${INITIAL_RUN} --base_script_dir $BASE_SCRIPT_DIR -D ${db}
     fi
 
