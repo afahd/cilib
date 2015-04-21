@@ -48,16 +48,16 @@ elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" ]]; then
   if [[ $PIPELINE == "automaton" ]]; then
     test_tag=lxc_automaton
     test_name=$(ctest -N  -L ^type:$test_tag$ | grep "Test #" | cut -d " " -f 5 | head -n "$CTEST_ST" | tail -n 1)
-    automaton_logs=${EXPORT_FAILURES_DIR_TMP}/automaton-init_${test_name}_PASSED.log
+    automaton_logs=${EXPORT_FAILURES_DIR_TMP}/automaton-init_${test_name}.PASSED.txt
     sudo /home/plumgrid/work/alps/build/scripts/jenkins/lxc-automaton-jenkins-init.sh &> ${automaton_logs}
   else
     test_tag=lxc_automaton_longevity
     test_name=$(ctest -N  -L ^type:$test_tag$ | grep "Test #" | cut -d " " -f 5 | head -n "$CTEST_ST" | tail -n 1)
-    automaton_logs=${EXPORT_FAILURES_DIR_TMP}/automaton-init_${test_name}_PASSED.log
+    automaton_logs=${EXPORT_FAILURES_DIR_TMP}/automaton-init_${test_name}.PASSED.txt
     sudo /home/plumgrid/work/alps/build/scripts/jenkins/lxc-automaton-longevity-jenkins-init.sh &> ${automaton_logs}
   fi
   if [[ $? -ne 0 ]]; then
-    mv ${automaton_logs} ${EXPORT_FAILURES_DIR_TMP}/automaton-init_${test_name}_FAILED.log
+    mv ${automaton_logs} ${EXPORT_FAILURES_DIR_TMP}/automaton-init_${test_name}.FAILED.txt
     echo "lxc-automaton-jenkins-init failed, tests will not be run... exiting"
     cp -r ${EXPORT_FAILURES_DIR_TMP} /opt/pg/log/
     exit 1
