@@ -8,6 +8,7 @@ echo "golang-go golang-go/dashboard boolean false" | sudo debconf-set-selections
 mkdir -p ~/work/tools/build
 cd ~/work/tools/build && cmake ..
 cd ~/work/tools/build && sudo make packages
+cd ~/work/tools/build && sudo make test_packages
 bash -c "sudo chown -R plumgrid.plumgrid /opt/local"
 cd ~/work/tools/build && make
 cd ~/work/tools/build && make -C packages install
