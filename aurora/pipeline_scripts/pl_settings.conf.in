@@ -1,10 +1,10 @@
-DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/alps.smoke.db
 DB_PATH=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/
-SMOKE_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/alps.smoke.db
-EXTENDED_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/alps.extended.db
-UNSTABLE_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/alps.unstable.db
-PGUI_SMOKE_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/pgui.smoke.db
-OMNI_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/omni.db
+DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/smoke-master.db
+SMOKE_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/smoke-master.db
+EXTENDED_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/extended-master.db
+UNSTABLE_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/unstable-master.db
+PGUI_SMOKE_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/pgui-smoke-master.db
+OMNI_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/omni-master.db
 FAILING_TESTS_DB=/home/$USER/failing_tests.db
 FAILING_TESTS_TABLE=failing_tests_table
 PL_FAILING_TESTS_LIST=/home/$USER/pl_failing_tests_list
