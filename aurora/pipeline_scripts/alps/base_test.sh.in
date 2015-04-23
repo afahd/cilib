@@ -100,9 +100,6 @@ for run in $(seq 1 $itr); do
       test_name=$(ctest -N  -L ^type:$test_tag$ | grep "UNSTABLE" | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
     elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" ]]; then
       test_name=$(ctest -N  -L ^type:$test_tag$ | grep "Test #" | cut -d " " -f 5 | head -n "$testno" | tail -n 1)
-    elif [[ $PIPELINE == "DEBUG-TEST" ]]; then
-      test_name=${USER_TEST[$testno]}
-      test_name=$(ctest -N  -L ^type:$test_tag$ | grep -w "$test_name\$")
     else
       test_name=$(ctest -N  -L ^type:$test_tag$ | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
     fi
@@ -116,8 +113,6 @@ for run in $(seq 1 $itr); do
     #Increment the number of tests ran
     if [[ -n "$test_name" ]]; then
       ((tests_ran++))
-    else
-      echo "Test $test_name not found"
     fi
 
     ctest --output-on-failure  -L ^type:$test_tag$ -R "^${test_name}$" >& "$EXPORT_FAILURES_DIR/${log_file_name}.log"
