@@ -62,19 +62,28 @@ function remove_test_from_db() {
 }
 
 # *****************************************************************************
-# Function: add_new_failing_tests_to_db
+# Function: add_new_tests_to_db
 # Purpose : Adds a test case to the database if it does not exist already.
 # Usage   : add_new_failing_tests_to_db <DB Path> <test name>
 # *****************************************************************************
-function add_new_failing_tests_to_db() {
-  local FAILING_TESTS_DB=$1
+function add_new_tests_to_db() {
+  local TESTS_DB=$1
   local test_name=$2
+  local tag=$3
   local time=$(date +%s)
 
-  local exists=$(sqlite3 $FAILING_TESTS_DB "SELECT EXISTS(SELECT 1 FROM $FAILING_TESTS_TABLE WHERE name='$test_name' LIMIT 1);")
-  if [[ $exists != "1" ]]; then
-    echo "New failure:$test_name"
-    sqlite3 $FAILING_TESTS_DB "insert into $FAILING_TESTS_TABLE (Name, FailureProb, FirstOccurence) values ('$test_name', '0', '$time')"
+  if [[ "$tag" == "failing" ]]; then
+    local exists=$(sqlite3 $TESTS_DB "SELECT EXISTS(SELECT 1 FROM $FAILING_TESTS_TABLE WHERE name='$test_name' LIMIT 1);")
+    if [[ $exists != "1" ]]; then
+      echo "New failure:$test_name"
+      sqlite3 $TESTS_DB "insert into $FAILING_TESTS_TABLE (Name, FailureProb, FirstOccurence) values ('$test_name', '0', '$time')"
+    fi
+  elif [[ "$tag" == "unstable" ]]; then
+    local exists=$(sqlite3 $TESTS_DB "SELECT EXISTS(SELECT 1 FROM $UNSTABLE_TESTS_TABLE WHERE name='$test_name' LIMIT 1);")
+    if [[ $exists != "1" ]]; then
+      echo "New failure:$test_name"
+      sqlite3 $TESTS_DB "insert into $UNSTABLE_TESTS_TABLE (Name, FailureProb, FirstPassingOccurence) values ('$test_name', '0', '$time')"
+    fi
   fi
 }
 
@@ -96,10 +105,30 @@ function update_failing_tests_prob() {
   #exists=$(sqlite3 $FAILING_TESTS_DB "SELECT EXISTS(SELECT 1 FROM $FAILING_TESTS_TABLE WHERE name='$test_name' LIMIT 1);")
   if [[ $old_failure_prob -lt 10 && $failure_prob -ge 10 ]]; then
     #Update the failing since field
-    sqlite3 $FAILING_TESTS_DB "UPDATE $FAILING_TESTS_TABLE SET FirstOccurence='$time' WHERE name='$test_name';"
+    sqlite3 $FAILING_TESTS_DB "UPDATE $FAILING_TESTS_TABLE SET FirstOccurence='$curr_time' WHERE name='$test_name';"
   fi
 }
 
+# *****************************************************************************
+# Function: update_passing_tests_prob
+# Purpose : Updates the database with the new failure probablity for a given test.
+# Usage   : update_passing_tests_prob <DB Path> <test name> <failure probability>
+# *****************************************************************************
+function update_passing_tests_prob() {
+  local UNSTABLE_TESTS_DB=$1
+  local test_name=$2
+  local failure_prob=$3
+  local curr_time=$(date +%s)
+
+  # The first occurrence should be the first time the test starts to pass 100/100 iterations. If a test passes the first day and fails
+  # the next day, the first occurrence should be the next time the test passes 100/100 iterations.
+  local old_failure_prob=$(sqlite3 $UNSTABLE_TESTS_DB "SELECT FailureProb from $UNSTABLE_TESTS_TABLE WHERE name='$test_name';")
+  sqlite3 $UNSTABLE_TESTS_DB "UPDATE $UNSTABLE_TESTS_TABLE SET FailureProb='$failure_prob' WHERE name='$test_name';"
+  if [[ $old_failure_prob -gt 0 && $failure_prob -eq 0 ]]; then
+    #Update the failing since field
+    sqlite3 $UNSTBALE_TESTS_DB "UPDATE $UNSTABLE_TESTS_TABLE SET FirstPassingOccurence='$curr_time' WHERE name='$test_name';"
+  fi
+}
 
 # *****************************************************************************
 # Function: check_flag_inputs

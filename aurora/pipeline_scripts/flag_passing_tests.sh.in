@@ -1,0 +1,180 @@
+#!/bin/bash -e
+
+# This script would be automating marking a test stable if it passes 100 iterations for 4 consecutive days.
+# The rundown of the script is such that we get a file, from the jenkins-aurora-flag-and-notify.sh (builder),
+# which would contain the tests, marked unstable in the current run of flag_failing_tests.sh.in.
+# These tests would be added to the UNSTABLE_TESTS_DB, and then a file is generated containing all the tests in the db and
+# a prefix of UNSTABLE_ is added populating a script. This script is provided to the aurora debug-test utility as
+# the script running each test a total of 100 times. Failure count is extracted from the failing-list.log and thereby
+# the failure probability. The failure probability for all the tests are updated. The tests that passed 100 out of 100
+# times (having a failure_prob of 0) and having previous failure probability greater than zero, their FirstPassingOccurrence
+# field is also updated. Now using this first passing occurrence and the current time we calculate the number of days it has
+# been since the first time the test passed. If the test passes and has a 0 (zero) failure probability AND it has been 4
+# days since the test is passing, the relevant information (branch, failure_prob, first occurrence, testname, test_status)
+# relating to the test is written into a file and passed onto builder to mark the test stable.
+
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/:$PATH
+source gc_helpers.sh
+source pl_utils.sh
+source pl_settings.conf
+source pl_help.sh
+
+if [[ $1 == "help" ]]; then
+  show_flag_help
+  exit 1
+fi
+
+TEMP=`getopt -o l:p:W:Ki:b:n:D:R:E:\h --long buildid:,pl_failing_tests_list:,WORKSPACE:,branch:,keep-running,test_iterations:,num_instances:,db:,minor_st:,minor_end:,\help -n 'aurora.sh' -- "$@"`
+eval set -- "$TEMP"
+
+STEP_ST=1
+STEP_ED=7
+
+
+while true ; do
+  case "$1" in
+    -l|--buildid) BUILD_ID=$2 ; shift 2 ;;
+    -p|--unstable_marked_tests) UNSTABLE_MARKED_TESTS=$2 ; shift 2 ;;
+    -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
+    -K|--keep-running) KEEP_RUNNING="-K" ; shift ;;
+    -i|--test_iterations) FLAG_TEST_ITERATIONS=$2 ; shift 2 ;;
+    -b|--branch) BRANCH=$2 ; shift 2 ;;
+    -n|--num_instances) FLAG_NUM_INSTANCES=$2 ; shift 2 ;;
+    -D|--db) UNSTABLE_TESTS_DB=$2 ; shift 2 ;;
+    -R| --minor_st ) STEP_ST="$2"; shift 2 ;;
+    -E| --minor_end ) STEP_ED="$2"; shift 2 ;;
+    -h| --help) show_flag_help; exit 0; shift ;;
+    --) shift ; break ;;
+    *)
+      echo "Unrecognized option $1"
+       exit 1 ;;
+  esac
+done
+
+check_flag_inputs $BUILD_ID $UNSTABLE_MARKED_TESTS $FLAG_TEST_ITERATIONS $FLAG_NUM_INSTANCES $BRANCH
+
+if [[ ! -d ${WORKSPACE}/mark_stable ]]; then
+  mkdir -p ${WORKSPACE}/mark_stable
+fi
+
+if [[ ! -s "${UNSTABLE_MARKED_TESTS}" ]]; then
+  echo "$UNSTABLE_MARKED_TESTS is empty, no test has been marked unstable in this run"
+fi
+
+log_dir=${WORKSPACE}/logs/mark_stable
+# File holding all test cases in failing_tests database
+all_unstable_tests_in_db="${WORKSPACE}/mark_stable/all_unstable_tests_in_db"
+# Script having names of all unstable tests with prefix UNSTABLE_ which would be provided to debug test
+debug_unstable_test_script="${WORKSPACE}/mark_stable/debug_unstable_test_script"
+# File holding failure probability of all unstable tests
+mark_stable_failing_test_prob="${WORKSPACE}/mark_stable/mark_stable_failing_test_prob"
+mkdir -p ${WORKSPACE}/mark_stable
+
+function flag_passing_tests() {
+  local step=$1
+  case "$step" in
+
+  1)
+    echo "Check whether $UNSTABLE_TESTS_DB DataBase exists?"
+    if [ ! -e "$UNSTABLE_TESTS_DB" ] ; then
+      echo "DB Does not exist, creating it now"
+      echo "sqlite3 $UNSTABLE_TESTS_DB \"create table $UNSTABLE_TESTS_TABLE (Name STRING PRIMARY KEY, FailureProb INTEGER, FirstPassingOccurence DATETIME);\""
+      sqlite3 $UNSTABLE_TESTS_DB "create table $UNSTABLE_TESTS_TABLE (Name STRING PRIMARY KEY, FailureProb INTEGER, FirstPassingOccurence DATETIME);"
+    else
+      echo "It does exists :)"
+    fi
+    ;;
+
+  2)
+    echo "Add newly marked unstable test cases to database"
+    while read test_name;do
+      add_new_tests_to_db $UNSTABLE_TESTS_DB $test_name "unstable"
+    done < ${UNSTABLE_MARKED_TESTS}
+    ;;
+
+  3)
+    echo "Generate a list of all unstable test cases in database"
+    # TODO: INFRA-865, provision for case when script provided for aurora debug-test is empty
+    sqlite3 $UNSTABLE_TESTS_DB "select NAME FROM $UNSTABLE_TESTS_TABLE;" > ${all_unstable_tests_in_db}
+    ;;
+
+  4)
+    while read test_name;do
+      echo "UNSTABLE_${test_name}" >> ${debug_unstable_test_script}
+    done < ${all_unstable_tests_in_db}
+    echo "Running aurora debug test. Run each test $((FLAG_TEST_ITERATIONS*FLAG_NUM_INSTANCES)) number of times"
+    retval=0
+    # TODO: INFRA-865, provision for case when script provided for aurora debug-test is empty
+    aurora debug-test -W ${WORKSPACE} -l ${BUILD_ID} -i ${FLAG_TEST_ITERATIONS} -n ${FLAG_NUM_INSTANCES} -s ${debug_unstable_test_script} || retval=$?
+    echo "Debug-test Return value:$retval"
+    ;;
+
+
+  5)
+    echo "Get probability of failure of each test case"
+    cat /dev/null >  ${mark_stable_failing_test_prob}
+    #Make sure the file is present
+    touch ${WORKSPACE}/logs/failing-list.log
+    time=$(date +%s)
+    num_runs=$(($FLAG_TEST_ITERATIONS*$FLAG_NUM_INSTANCES))
+    echo "======================================================================\n"
+    while read test_name;do
+      num_failures=$(grep "$test_name" ${WORKSPACE}/logs/failing-list.log | wc -l)
+      failure_prob=$(($num_failures*100/$num_runs))
+      echo "test:$test_name num_failures:$num_failures num_runs=$num_runs prob=${failure_prob}"
+      echo "$failure_prob" >> ${mark_stable_failing_test_prob}
+    done < ${debug_unstable_test_script}
+    echo "======================================================================"
+    ;;
+
+  6)
+    echo "Update failure probability of all tests in db"
+    i=1
+    while read test_name;do
+      failure_prob=$(cat $mark_stable_failing_test_prob | head -$i | tail -1)
+      echo "**** $test_name: $failure_prob ***"
+      update_passing_tests_prob $UNSTABLE_TESTS_DB $test_name ${failure_prob}
+      i=$((i+1))
+    done < ${all_unstable_tests_in_db}
+    ;;
+
+  7)
+    echo "Generate output file."
+    i=1
+    #Output file for builder to send emails/create tickets
+    test_status_file=${WORKSPACE}/logs/test-mark-stable-info
+    cat /dev/null > ${test_status_file}
+    while read test_name;do
+      test_status="unstable"
+      now=$(date +%s)
+      failure_prob=$(cat $mark_stable_failing_test_prob | head -$i | tail -1)
+      first_occurence=$(sqlite3 $UNSTABLE_TESTS_DB "SELECT FirstPassingOccurence from $UNSTABLE_TESTS_TABLE WHERE name='$test_name';")
+      passing_since=$((now-first_occurence))
+      limit=$(($MARK_UNSTABLE_AFTER_DAYS*86400))
+
+      if [[ $failure_prob -eq 0 && ${passing_since} -gt ${limit} ]]; then
+          #Remove the test from the database
+          echo "Test:$test_name Status:stable "
+          remove_test_from_db $UNSTABLE_TESTS_DB $test_name
+          #Send status to builder if test is marked unstable
+          test_status="stable"
+      fi
+      echo "$test_name,$failure_prob,$passing_since,$BRANCH,$test_status" >> ${test_status_file}
+      i=$((i+1))
+    done < ${all_unstable_tests_in_db}
+    ;;
+
+  esac
+}
+
+script_start_time=$(date +%s)
+for STEP in `seq ${STEP_ST} ${STEP_ED}`; do
+  echo "    === Starting STEP $STEP === "
+  start_time=$(date +%s)
+  flag_passing_tests $STEP
+  end_time=$(date +%s)
+  print_time_taken $start_time $end_time "[$STEP]"
+done
+script_end_time=$(date +%s)
+print_time_taken $script_start_time $script_end_time "FLAG_PASSING_TESTS"
+

@@ -26,6 +26,8 @@ case $1 in
       aurora_run.sh ${@:2} ;;
     flag)
       flag_failing_tests.sh ${@:2} ;;
+    mark)
+      flag_passing_tests.sh ${@:2} ;;
     pipeline)
       run_pipelines.sh ${@:2} ;;
     debug-test)

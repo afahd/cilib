@@ -67,7 +67,7 @@ function flag_failing_tests() {
   2)
     echo "Add new failing test cases to database"
     while read test_name;do
-      add_new_failing_tests_to_db $FAILING_TESTS_DB $test_name
+      add_new_tests_to_db $FAILING_TESTS_DB $test_name "failing"
     done < ${PL_FAILING_TESTS_LIST}
     ;;
 
