@@ -17,6 +17,7 @@ rm -rf "${EXPORT_FAILURES_DIR}"
 rm -rf "${EXPORT_FAILURES_DIR_TMP}"
 mkdir -p "$EXPORT_FAILURES_DIR"
 mkdir -p "$EXPORT_FAILURES_DIR_TMP"
+mkdir -p "$EXPORT_FAILURES_DIR_TMP/xml_logs"
 #Delete the exsisting logs
 rm -rf /opt/pg/log/*
 cd ~/work/alps/build
@@ -115,8 +116,25 @@ for run in $(seq 1 $itr); do
       ((tests_ran++))
     fi
 
-    ctest --output-on-failure  -L ^type:$test_tag$ -R "^${test_name}$" >& "$EXPORT_FAILURES_DIR/${log_file_name}.log"
+    ctest --output-on-failure  -L ^type:$test_tag$ -R "^${test_name}$" -T test >& "$EXPORT_FAILURES_DIR/${log_file_name}.log"
     result="$?"
+    #Generate the XML logs for omni pipeline and for 1 iteration
+    if [[ "$PIPELINE" == "omni" && "$run" -eq 1 ]]; then
+      echo 'Finding the XML file with the results ...'
+      xml_dirname=$(cat Testing/TAG 2>/dev/null | head -1)
+      if [[ -z "$xml_dirname" ]]; then
+        echo "Empty XML dirname in Testing/TAG"
+      fi
+
+      xml_filename="Testing/${xml_dirname}/Test.xml"
+      echo "XML file located at: ${xml_filename}"
+
+      if [[ ! -f "$xml_filename" || ! -r "$xml_filename" ]]; then
+        echo "XML file $xml_filename unreadable or does not exist"
+      fi
+      #Copy the xml output for downloading
+      mv "$xml_filename" ${EXPORT_FAILURES_DIR_TMP}/xml_logs/${log_file_name}.xml
+    fi
     if [[ "x$result" != "x0" ]] ; then
       echo "                 FAILED"
       mv "$EXPORT_FAILURES_DIR/${log_file_name}.log" "$EXPORT_FAILURES_DIR_TMP/${log_file_name}.FAILED.log"

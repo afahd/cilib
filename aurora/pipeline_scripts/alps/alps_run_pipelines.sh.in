@@ -205,6 +205,13 @@ function run_test() {
     fi
     ;;
   7)
+    #Copy the XML logs for omni
+    if [[ "$PIPELINE" == "omni" ]]; then
+      mkdir -p ${WORKSPACE}/logs/xml_logs
+      #Copy the xml logs
+      find ${untar_log_dir} -type f -name "*.xml" -exec mv {} ${WORKSPACE}/logs/xml_logs/ \;
+    fi
+
     #Concatenate all the log files into one file
     for log_file in `find ${untar_log_dir} -type f -name "*.log"` ; do
       cat $log_file >>  ${WORKSPACE}/logs/ctest_output.log
