@@ -19,6 +19,7 @@ APT_COMPONENT=""
 declare -A branch_to_component
 branch_to_component['master']='unstable'
 branch_to_component['stable_4_0']='everest'
+branch_to_component['stable_4_1']='fuji'
 
 # Convert the branch name to respective component name
 for key in ${!branch_to_component[@]}; do

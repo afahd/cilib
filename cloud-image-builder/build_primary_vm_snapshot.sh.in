@@ -12,7 +12,7 @@ BUILD_ENV_USER=${USER}
 
 MAJOR_STEPS="build"
 MINOR_STEPS_ST[build]=1
-MINOR_STEPS_ED[build]=17
+MINOR_STEPS_ED[build]=20
 
 # forward to subshells
 trap "kill 0" SIGINT
@@ -141,6 +141,22 @@ function build_image() {
           ;;
 
       16)
+          echo "Cleaning up stuff"
+          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash /home/plumgrid/work/alps/scripts/system_cleanup.sh'"
+          ;;
+
+      17)
+          echo "Checking out stable_4_1 for the projects"
+          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_checkout_branch.sh stable_4_1'"
+          ;;
+
+      18)
+          echo "Building the rest for stable_4_1"
+          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_setup_all.sh'"
+          ;;
+
+
+      19)
           echo "Making a snapshot of the VM"
           SN_ID=`date +%s`
           SNAP_D1="$PRIM_INST_NAME-d1-${SN_ID}"
@@ -150,7 +166,7 @@ function build_image() {
           gcloud compute disks snapshot $PRIM_INST_NAME-d1 --snapshot-names "$SNAP_D1"
           gcloud compute disks snapshot $PRIM_INST_NAME-d2 --snapshot-names "$SNAP_D2"
           ;;
-      17)
+      20)
           echo "Shutting down the Instance $PRIM_INST_NAME"
           gcloud compute instances delete $PRIM_INST_NAME --delete-disks all  -q
           ;;

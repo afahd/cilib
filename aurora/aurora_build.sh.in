@@ -115,18 +115,6 @@ else
   check_instance_limit
 fi
 
-# Describe the possible mappings for branch->component translations
-declare -A branch_to_component
-branch_to_component['master']='unstable'
-branch_to_component['stable_4_0']='everest'
-# Convert the branch name to respective component name
-for key in ${!branch_to_component[@]}; do
-  if [[ "${key}" == ${BRANCH} ]]; then
-    APT_COMPONENT=${branch_to_component[$key]}
-    break
-  fi
-done
-
 # TODO: SN_ID variable should hold the "v3-d1" part as well.
 # This way we will not need to change v3 manually.
 SN_ID=$(get_latest_snapshot_id)
