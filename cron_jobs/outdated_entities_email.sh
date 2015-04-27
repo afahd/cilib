@@ -10,6 +10,12 @@
 time_diff=$1
 #Time elapsed since creation (seconds) for generating email for disks
 time_diff_disks=$2
+#Number of snapshots to trigger email
+if [[ -z "$3" ]]; then
+  number_snapshots=4
+else
+  number_snapshots=$3
+fi
 #array for mapping emails and gerritids
 declare -A email_array
 #only get build or run instances
@@ -112,7 +118,7 @@ for email in "${!email_array[@]}"; do
   user_snapshots=$(printf '%s\n' "${outdated_snapshots[@]}" | grep "$email")
   number_user_snapshots=$(printf '%s\n' "${outdated_snapshots[@]}" | grep "$email" | wc -l)
   #Trigger email only if more than 2 sets of snapshots present
-  if [[ $number_user_snapshots -gt 4 ]]; then
+  if [[ $number_user_snapshots -gt "$number_snapshots" ]]; then
     echo >> email_content
     echo "The following snapshots are outdated consider deleting them:" >> email_content
     echo -e "Name: CreationDate:\n $user_snapshots" | column -t  >> email_content
