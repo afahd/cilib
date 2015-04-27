@@ -200,7 +200,7 @@ function run_test() {
     if [[ -n "$COMMIT_ID" ]]; then
       tryexec push_local_changes ${INSTANCE_IP} ${COMMIT_ID} ${ALPS_PATH}
       tryexec make_install_alps ${INSTANCE_IP} "/tmp/make_install_alps.log"
-      retryexec run_poll_cmd ${INSTANCE_IP} "make_install_alps.sh" "/tmp/make_install_alps.log" "1"
+      tryexec run_poll_cmd ${INSTANCE_IP} "make_install_alps.sh" "/tmp/make_install_alps.log" "1"
       record_step $step $step_file
     fi
     ;;
@@ -208,7 +208,7 @@ function run_test() {
   7)
     if [[ $VALID_COMMIT_HASH == "true" ]];then
       tryexec checkout_existing_commit ${INSTANCE_IP} ${EXISTING_COMMIT_HASH} /tmp/checkout_existing_commit.log
-      retryexec run_poll_cmd ${INSTANCE_IP} "checkout_existing_commit.sh" "/tmp/checkout_existing_commit.log" "1"
+      tryexec run_poll_cmd ${INSTANCE_IP} "checkout_existing_commit.sh" "/tmp/checkout_existing_commit.log" "1"
     fi
     ;;
 

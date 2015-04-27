@@ -393,7 +393,7 @@ function run_poll_cmd() {
   local instance_file=/tmp/$(basename ${local_file})
   tryexec upload ${INSTANCE_IP} ${local_file} ${instance_file}
   rm ${local_file}
-  tryexec run_cmd_gci ${INSTANCE_IP} "bash ${instance_file}"
+  retryexec run_cmd_gci ${INSTANCE_IP} "bash ${instance_file}"
 }
 # ******************************************************************************
 # Function: run_bg_cmd
