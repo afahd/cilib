@@ -80,7 +80,7 @@ if [[ $PIPELINE == "smoke" || $PIPELINE == "extended" || $PIPELINE == "unstable"
     echo "$db does not exist!"
     exit 1
   fi
-elif [[ $PIPELINE != "DEBUG-TEST" && $PIPELINE != "automaton-longevity" && $PIPELINE != "automaton" && $PIPELINE != "coral-smoke" ]]; then
+elif [[ $PIPELINE != "DEBUG-TEST" && $PIPELINE != "automaton-longevity" && $PIPELINE != "automaton" && $PIPELINE != "longevity" && $PIPELINE != "coral-smoke" ]]; then
   echo "Invalid Pipeline Specified"
   exit 1
 fi
@@ -91,6 +91,8 @@ if [[ -z "$NUM_INSTANCES" ]]; then
     NUM_INSTANCES=${NUM_AUTOMATON_LONGEVITY_INSTANCES}
   elif [[ $PIPELINE == "automaton" ]]; then
     NUM_INSTANCES=${NUM_AUTOMATON_INSTANCES}
+  elif [[ $PIPELINE == "longevity" ]]; then
+    NUM_INSTANCES=${NUM_LONGEVITY_INSTANCES}
   elif [[ $PIPELINE == "omni" ]]; then
     NUM_INSTANCES=${OMNI_NUM_INSTANCES}
     TEST_ITERATIONS=${OMNI_TEST_ITERATIONS}
@@ -112,7 +114,7 @@ function run_test() {
     if [[ $PIPELINE == "DEBUG-TEST" ]]; then
       echo "pipeline is debug-test"
       gen_user_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -n ${NUM_INSTANCES} -d ${script_dir} --base_script_dir ${BASE_SCRIPT_DIR} -s ${USER_SCRIPT}
-    elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" ]]; then
+    elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" || $PIPELINE == "longevity" ]]; then
       gen_automaton_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -d ${script_dir} -r $BASE_SCRIPT_DIR -p $PIPELINE -n ${NUM_INSTANCES}
     else
       gen_test_scripts.sh -p $PIPELINE -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -f ${FIRST_TEST} -t ${STEP_SIZE} -n ${NUM_INSTANCES} -d ${script_dir} -I ${INITIAL_RUN} --base_script_dir $BASE_SCRIPT_DIR -D ${db}

@@ -63,6 +63,9 @@ elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" ]]; then
     cp -r ${EXPORT_FAILURES_DIR_TMP} /opt/pg/log/
     exit 1
   fi
+elif [[ $PIPELINE == "longevity" ]]; then
+  test_tag=longevity
+
 elif [[ $PIPELINE == "unstable" || $PIPELINE == "DEBUG-TEST" ]]; then
   export BUILD_NIGHTLY=1
   unset EXCLUDE_UNSTABLE
@@ -78,7 +81,7 @@ echo 1 | sudo tee /proc/sys/net/ipv6/conf/all/disable_ipv6
 if [[ "x$CTEST_ED" == "x" ]] ; then
   if [[ $PIPELINE == "unstable" ]]; then
     CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "UNSTABLE" | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
-  elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" ]]; then
+  elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" || $PIPELINE == "longevity" ]]; then
     CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "Test #" | wc -l`
   else
     CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "Test " | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
@@ -99,7 +102,7 @@ for run in $(seq 1 $itr); do
     # Dtermine the test name from the test index
     if [[ $PIPELINE == "unstable" ]]; then
       test_name=$(ctest -N  -L ^type:$test_tag$ | grep "UNSTABLE" | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
-    elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" ]]; then
+    elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" || $PIPELINE == "longevity" ]]; then
       test_name=$(ctest -N  -L ^type:$test_tag$ | grep "Test #" | cut -d " " -f 5 | head -n "$testno" | tail -n 1)
     elif [[ $PIPELINE == "DEBUG-TEST" ]]; then
       test_name=${USER_TEST[$testno]}
