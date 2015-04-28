@@ -197,7 +197,7 @@ function run_test() {
     echo "num_failures=$num_failures"
 
     #Copy the automaton-init logs to test_logs folder
-    find ${untar_log_dir} -name "automaton-init*.log" -exec mkdir -p ${WORKSPACE}/test_logs \; -exec mv {} ${WORKSPACE}/test_logs \;
+    find ${untar_log_dir} -name "automaton-init*.txt" -exec mkdir -p ${WORKSPACE}/test_logs \; -exec mv {} ${WORKSPACE}/test_logs \;
     if [[ -d ${WORKSPACE}/test_logs ]]; then
       tar -zcf ${WORKSPACE}/logs/automaton-init-logs.tar.gz -C ${WORKSPACE}/test_logs ./
       #Delete the automaton logs
