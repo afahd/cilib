@@ -136,14 +136,23 @@ function push_local_changes() {
   echo "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o CheckHostIP=no \$*" > ${local_file}
   #Has to be executable
   chmod +x $local_file
+  run_cmd_gci ${INSTANCE_IP} "git --git-dir=${INSTANCE_ALPS_PATH}/.git --work-tree=${INSTANCE_ALPS_PATH} reset --hard HEAD"
+  #Push the branch
+  cd $ALPS_PATH;GIT_SSH="${local_file}" git push -f plumgrid@${INSTANCE_IP}:${INSTANCE_ALPS_PATH} $BRANCH:$BRANCH
   #Push the changes
+  cd $ALPS_PATH;GIT_SSH="${local_file}" git push -f plumgrid@${INSTANCE_IP}:${INSTANCE_ALPS_PATH} $COMMIT_ID:$BRANCH
   #Checkout the branch
   run_cmd_gci ${INSTANCE_IP} "git --git-dir=${INSTANCE_ALPS_PATH}/.git --work-tree=${INSTANCE_ALPS_PATH} checkout $BRANCH"
-  #Need to reset to update the working-tree
-  run_cmd_gci ${INSTANCE_IP} "git --git-dir=${INSTANCE_ALPS_PATH}/.git --work-tree=${INSTANCE_ALPS_PATH} reset --hard HEAD"
-  cd $ALPS_PATH;GIT_SSH="${local_file}" git push -f plumgrid@${INSTANCE_IP}:${INSTANCE_ALPS_PATH} $COMMIT_ID:$BRANCH
+  #Need to reset to update the working tree
   run_cmd_gci ${INSTANCE_IP} "git --git-dir=${INSTANCE_ALPS_PATH}/.git --work-tree=${INSTANCE_ALPS_PATH} reset --hard"
-  rm ${local_file}
+  local remote_head=$(run_cmd_gci ${INSTANCE_IP} "git --git-dir=${INSTANCE_ALPS_PATH}/.git --work-tree=${INSTANCE_ALPS_PATH} rev-parse HEAD")
+  remote_head=$(echo "$remote_head" |tr  -d '\r' )
+  if [[ $remote_head != "$COMMIT_ID" ]]; then
+    echo "Remote HEAD: $remote_head is not the same as CommitID:$COMMIT_ID, exiting"
+    exit 1
+  else
+    echo "Remote HEAD: $remote_head  COMMIT ID: $COMMIT_ID"
+  fi
 }
 
 # *****************************************************************************
