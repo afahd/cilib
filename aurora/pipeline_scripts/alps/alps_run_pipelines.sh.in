@@ -202,22 +202,6 @@ function run_test() {
     num_failures=$(find ${untar_log_dir} -name "*FAILED.log" -o -name "*FAILED.txt" | wc -l)
     echo "num_failures=$num_failures"
 
-    #Copy the automaton-init logs to test_logs folder
-    find ${untar_log_dir} -name "automaton-init*.txt" -exec mkdir -p ${WORKSPACE}/test_logs \; -exec mv {} ${WORKSPACE}/test_logs \;
-    if [[ -d ${WORKSPACE}/test_logs ]]; then
-      tar -zcf ${WORKSPACE}/logs/automaton-init-logs.tar.gz -C ${WORKSPACE}/test_logs ./
-      #Delete the automaton logs
-      rm -f ${WORKSPACE}/test_logs/*
-    fi
-    ;;
-  7)
-    #Copy the XML logs for omni
-    if [[ "$PIPELINE" == "omni" ]]; then
-      mkdir -p ${WORKSPACE}/logs/xml_logs
-      #Copy the xml logs
-      find ${untar_log_dir} -type f -name "*.xml" -exec mv {} ${WORKSPACE}/logs/xml_logs/ \;
-    fi
-
     #Concatenate all the log files into one file
     for log_file in `find ${untar_log_dir} -type f -name "*.log"` ; do
       cat $log_file >>  ${WORKSPACE}/logs/ctest_output.log
@@ -227,6 +211,14 @@ function run_test() {
       pushd ${WORKSPACE}/logs
       gzip ctest_output.log
       popd
+    fi
+    ;;
+  7)
+    #Copy the XML logs for omni
+    if [[ "$PIPELINE" == "omni" ]]; then
+      mkdir -p ${WORKSPACE}/logs/xml_logs
+      #Copy the xml logs
+      find ${untar_log_dir} -type f -name "*.xml" -exec mv {} ${WORKSPACE}/logs/xml_logs/ \;
     fi
 
     mkdir -p ${WORKSPACE}/test_logs
