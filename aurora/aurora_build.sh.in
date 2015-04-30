@@ -23,7 +23,7 @@ PROJECT=""
 
 MAJOR_STEPS="build"
 STEP_ST=1
-STEP_ED=23
+STEP_ED=24
 
 CONTINUE=0
 BUILD_SCRIPT=@CMAKE_BINARY_DIR@/aurora/init_scripts/run_build_all.sh
@@ -292,20 +292,26 @@ function build_image() {
     ;;
 
   19)
+     run_cmd_gci ${INSTANCE_IP} "ln -s /opt/pg/web/temp /opt/pg/var/www/"
+     run_cmd_gci ${INSTANCE_IP} "sudo bash -c \"echo 'proxy=http://10.10.163.162:3128' >> /etc/yum/yum.conf\""
+     record_step $step $step_file
+    ;;
+
+  20)
     echo "Running the build-init script"
     tryexec upload ${INSTANCE_IP} ${BUILD_SCRIPT} /tmp/build-init.sh
     tryexec run_bg_cmd ${INSTANCE_IP} "/tmp/build-init.sh" "/bin/bash /tmp/build-init.sh" "/tmp/build-init.log"
     record_step $step $step_file
     ;;
 
-  20)
+  21)
     echo "Poll the build-init logs (tailing \"/tmp/build-init.log\")"
     tryexec run_poll_cmd ${INSTANCE_IP} "/tmp/build-init.sh" "/tmp/build-init.log" "1"
     tryexec download ${INSTANCE_IP} "/tmp/build-init.log" "${WORKSPACE}/logs/build-init.log"
     record_step $step $step_file
     ;;
 
-  21)
+  22)
     BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${emailid}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
     # Flushing the disk buffers
@@ -315,7 +321,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  22)
+  23)
     # Flushing the disk buffers
     echo "Flushing the disk buffers"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo sync"
@@ -326,7 +332,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  23)
+  24)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     rm $step_file

@@ -1,0 +1,23 @@
+#!/bin/bash
+set -e
+#Restarting the lxc-net service
+#TODO: This block might not be needed anymore
+echo "Restarting the lxc-net service"
+sudo ifconfig lxcbr0 down || true
+sudo brctl delbr lxcbr0 || true
+sudo pkill dnsmasq || true
+sudo service lxc-net restart
+
+source /opt/pg/env/alps.bashrc
+cd /home/plumgrid/work/pkg/build
+make -j4 install
+../scripts/build-all.sh --useallcpus
+
+# This is here only untill https://gerrit:8443/#/c/10751/ gets merged.
+sed -i '/restart_lxc lvm/a tryexec lxc-attach -n lvm -- /bin/bash -c \"echo 'NOZEROCONF=true' >> /etc/sysconfig/network\"' /opt/pg/systest/lxc/automaton/automaton-helpers.sh
+
+sudo /home/plumgrid/work/alps/build/scripts/jenkins/lxc-automaton-longevity-jenkins-init.sh
+#Stop the lxc
+sudo lxc-stop -n lvm -t 10
+#Make the lvm lxc auto start
+sudo bash -c 'echo "lxc.start.auto = 1" >> /var/lib/lxc/lvm/config'

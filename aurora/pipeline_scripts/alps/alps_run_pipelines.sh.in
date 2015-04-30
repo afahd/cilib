@@ -212,7 +212,7 @@ function run_test() {
     ;;
 
   6)
-    num_failures=$(find ${untar_log_dir} -name "*FAILED.log" -o -name "*FAILED.txt" | wc -l)
+    num_failures=$(find ${untar_log_dir} -name "*FAILED.log" | wc -l)
     echo "num_failures=$num_failures"
 
     #Concatenate all the log files into one file
@@ -237,12 +237,10 @@ function run_test() {
     mkdir -p ${WORKSPACE}/test_logs
 
     # find all the failed files and copy them to the WORKSPACE
-    for file in `find ${untar_log_dir} -type f -name "*FAILED.log" -o -type f -name "*FAILED.txt" -o -type f -name "*.tar.gz"`; do
+    for file in `find ${untar_log_dir} -type f -name "*FAILED.log" -o -type f -name "*.tar.gz"`; do
       base_test_name=`basename $file`
       #Remove the instance number, iteration number and extension
       pretty_test_name=$(echo "$base_test_name" | sed 's/ctestout_inst.*_iter[0-9]\+_//' | sed 's/.FAILED.log//' | sed 's/.tar.gz//')
-      #Remove automaton-init perfixes
-      pretty_test_name=$(echo "$pretty_test_name" | sed 's/automaton-init_//' | sed 's/.FAILED.txt//')
       mkdir -p $WORKSPACE/test_logs/$pretty_test_name
       mv $file $WORKSPACE/test_logs/$pretty_test_name/$base_test_name
     done

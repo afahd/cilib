@@ -1,5 +1,6 @@
 #!/bin/bash
 #Restarting the lxc-net service
+#TODO: This block might not be needed anymore
 echo "Restarting the lxc-net service"
 sudo ifconfig lxcbr0 down || true
 sudo brctl delbr lxcbr0 || true
@@ -7,8 +8,6 @@ sudo pkill dnsmasq || true
 sudo service lxc-net restart
 
 source /opt/pg/env/alps.bashrc
-export PATH="/usr/lib/ccache/:${PATH}"
-sudo bash -c "echo 'proxy=http://10.10.163.162:3128' >> /etc/yum/yum.conf"
 cd /home/plumgrid/work/pkg/build
 make -j4 install
 ../scripts/build-all.sh --useallcpus

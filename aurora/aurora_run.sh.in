@@ -17,7 +17,7 @@ if [[ $1 == "help" ]]; then
 fi
 #Starting and ending steps
 STEP_ST=1
-STEP_ED=13
+STEP_ED=12
 
 LOG_SRC_DIR=/opt/pg/log
 TAG="none"
@@ -72,7 +72,7 @@ fi
 if [[ -n $TEST_SCRIPT ]]; then
   check_file_existence $TEST_SCRIPT
 else
-  STEP_ED=9
+  STEP_ED=8
 fi
 
 BUILD_ID=${emailid}-${BUILD_ID}
@@ -178,25 +178,8 @@ function run_test() {
     fi
     ;;
 
+
   8)
-    # This is here only untill https://gerrit:8443/#/c/10751/ gets merged.
-    echo "Execute the pre run-automaton"
-
-    local local_file=$(mktemp $WORKSPACE/container_preinit.sh-XXXXX)
-    cat /dev/null > ${local_file}
-    echo "#!/bin/bash" >> ${local_file}
-    echo "sed -i '/restart_lxc lvm/a tryexec lxc-attach -n lvm -- /bin/bash -c \"echo 'NOZEROCONF=true' >> /etc/sysconfig/network\"' /opt/pg/systest/lxc/automaton/automaton-helpers.sh" >> ${local_file}
-    echo "rm -f /opt/pg/var/www/temp" >> ${local_file}
-    echo "ln -s  /opt/pg/web/temp /opt/pg/var/www/" >> ${local_file}
-
-    file_name=/tmp/$(basename ${local_file})
-    tryexec upload ${INSTANCE_IP}  ${local_file} ${file_name}
-    rm ${local_file}
-    tryexec run_cmd_gci ${INSTANCE_IP} "/bin/bash ${file_name}"
-    record_step $step $step_file
-    ;;
-
-  9)
     echo "Restarting lxc-net service"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo ifconfig lxcbr0 down || true"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo brctl delbr lxcbr0 || true"
@@ -205,27 +188,27 @@ function run_test() {
     record_step $step $step_file
     ;;
 
-  10)
+  9)
     tryexec upload ${INSTANCE_IP} ${TEST_SCRIPT} /tmp/user_test_script.sh
     tryexec run_cmd_gci_bg ${INSTANCE_IP} "/bin/bash /tmp/user_test_script.sh" "/tmp/test.logs"
     record_step $step $step_file
     ;;
 
-  11)
+  10)
     echo "Poll the test logs (tailing \"/tmp/test.log\")"
     tryexec run_poll_cmd ${INSTANCE_IP} "/tmp/user_test_script.sh" "/tmp/test.logs" "0"
     tryexec download ${INSTANCE_IP} "/tmp/test.logs" "${LOG_DEST_DIR}/${INSTANCE_NAME}.log"
     record_step $step $step_file
     ;;
 
-  12)
+  11)
     echo "Downloading logs in ${LOG_DEST_DIR} directory"
     tryexec get_latest_logs ${INSTANCE_IP} ${INSTANCE_NAME} ${LOG_SRC_DIR} ${LOG_DEST_DIR}
     printf "\n\n********* Run has been completed successfully. Please see all logs in ${LOG_DEST_DIR} direcotry *********\n\n"
     record_step $step $step_file
     ;;
 
-  13)
+  12)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     rm $step_file
