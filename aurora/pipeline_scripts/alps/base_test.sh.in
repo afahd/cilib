@@ -24,29 +24,37 @@ cd ~/work/alps/build
 test_tag=local
 export AURORA=1
 #Exporting pipeline variables
-if [[ $PIPELINE == "smoke" ]]; then
+if [[ "$PIPELINE" == "smoke" ]]; then
   export BUILD_GUI=1
   export EXCLUDE_UI_NON_PITA=1
   export EXCLUDE_UNSTABLE=1
-elif [[ $PIPELINE == "extended" ]]; then
+elif [[ "$PIPELINE" == "extended" ]]; then
   export BUILD_NIGHTLY=1
   export EXCLUDE_NON_NIGHTLY=1
   export EXCLUDE_UNSTABLE=1
   export EXCLUDE_UI_NON_PITA=1
   export BUILD_GUI=1
-elif [[ $PIPELINE == "omni" ]]; then
+elif [[ "$PIPELINE" == "omni" ]]; then
   export BUILD_GUI=1
   export EXCLUDE_UI_NON_PITA=1
   export BUILD_NIGHTLY=1
   export EXCLUDE_UNSTABLE=1
-elif [[ $PIPELINE == "pgui-smoke" ]]; then
+elif [[ "$PIPELINE" == "pgui-smoke" ]]; then
   cd ~/work/pg_ui/build
   test_tag=uilocal
   export BUILD_GUI=1
   export EXCLUDE_NON_GUI=1
   export EXCLUDE_UNSTABLE=1
-elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" ]]; then
-  if [[ $PIPELINE == "automaton" ]]; then
+elif [[ "$PIPELINE" == "pgui-extended" ]]; then
+  test_tag=uilocal
+  cd ~/work/pg_ui/build
+  export BUILD_GUI=1
+  export EXCLUDE_NON_GUI=1
+  export BUILD_NIGHTLY=1
+  export EXCLUDE_NON_NIGHTLY=1
+  export EXCLUDE_UNSTABLE=1
+elif [[ "$PIPELINE" == "automaton" || $PIPELINE == "automaton-longevity" ]]; then
+  if [[ "$PIPELINE" == "automaton" ]]; then
     test_tag=lxc_automaton
     test_name=$(ctest -N  -L ^type:$test_tag$ | grep "Test #" | cut -d " " -f 5 | head -n "$CTEST_ST" | tail -n 1)
     automaton_logs=${EXPORT_FAILURES_DIR_TMP}/automaton-init_${test_name}.PASSED.txt
@@ -63,10 +71,10 @@ elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" ]]; then
     cp -r ${EXPORT_FAILURES_DIR_TMP} /opt/pg/log/
     exit 1
   fi
-elif [[ $PIPELINE == "longevity" ]]; then
+elif [[ "$PIPELINE" == "longevity" ]]; then
   test_tag=longevity
 
-elif [[ $PIPELINE == "unstable" || $PIPELINE == "DEBUG-TEST" ]]; then
+elif [[ "$PIPELINE" == "unstable" || "$PIPELINE" == "DEBUG-TEST" ]]; then
   export BUILD_NIGHTLY=1
   unset EXCLUDE_UNSTABLE
   unset EXCLUDE_NON_NIGHTLY
@@ -79,9 +87,9 @@ echo 1 | sudo tee /proc/sys/net/ipv6/conf/all/disable_ipv6
 
 # If this is the last instance, determine the index of the last test that needs to be run
 if [[ "x$CTEST_ED" == "x" ]] ; then
-  if [[ $PIPELINE == "unstable" ]]; then
+  if [[ "$PIPELINE" == "unstable" ]]; then
     CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "UNSTABLE" | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
-  elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" || $PIPELINE == "longevity" ]]; then
+  elif [[ "$PIPELINE" == "automaton" || "$PIPELINE" == "automaton-longevity" || "$PIPELINE" == "longevity" ]]; then
     CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "Test #" | wc -l`
   else
     CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "Test " | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
@@ -100,11 +108,11 @@ for run in $(seq 1 $itr); do
     sleep 0.2
     pgrep rsyslogd >> /dev/null  || $(sudo rsyslogd &)
     # Dtermine the test name from the test index
-    if [[ $PIPELINE == "unstable" ]]; then
+    if [[ "$PIPELINE" == "unstable" ]]; then
       test_name=$(ctest -N  -L ^type:$test_tag$ | grep "UNSTABLE" | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
-    elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" || $PIPELINE == "longevity" ]]; then
+    elif [[ "$PIPELINE" == "automaton" || "$PIPELINE" == "automaton-longevity" || "$PIPELINE" == "longevity" ]]; then
       test_name=$(ctest -N  -L ^type:$test_tag$ | grep "Test #" | cut -d " " -f 5 | head -n "$testno" | tail -n 1)
-    elif [[ $PIPELINE == "DEBUG-TEST" ]]; then
+    elif [[ "$PIPELINE" == "DEBUG-TEST" ]]; then
       test_name=${USER_TEST[$testno]}
       test_name=$(ctest -N  -L ^type:$test_tag$ | grep -o "$test_name\$")
     else

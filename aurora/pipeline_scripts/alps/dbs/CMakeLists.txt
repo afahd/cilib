@@ -8,6 +8,9 @@ file(COPY pgui-smoke-master.db DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 file(COPY pgui-smoke-stable_4_0.db DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 file(COPY omni-master.db DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 file(COPY omni-stable_4_0.db DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY pgui-extended-master.db DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY pgui-extended-stable_4_0.db DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY pgui-extended-stable_4_1.db DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 install_programs (/gcloud/aurora/pipeline_scripts/alps/dbs FILES "${CMAKE_CURRENT_SOURCE_DIR}/smoke-master.db")
 install_programs (/gcloud/aurora/pipeline_scripts/alps/dbs FILES "${CMAKE_CURRENT_SOURCE_DIR}/smoke-stable_4_0.db")
@@ -19,4 +22,6 @@ install_programs (/gcloud/aurora/pipeline_scripts/alps/dbs FILES "${CMAKE_CURREN
 install_programs (/gcloud/aurora/pipeline_scripts/alps/dbs FILES "${CMAKE_CURRENT_SOURCE_DIR}/pgui-smoke-stable_4_0.db")
 install_programs (/gcloud/aurora/pipeline_scripts/alps/dbs FILES "${CMAKE_CURRENT_SOURCE_DIR}/omni-master.db")
 install_programs (/gcloud/aurora/pipeline_scripts/alps/dbs FILES "${CMAKE_CURRENT_SOURCE_DIR}/omni-stable_4_0.db")
-
+install_programs (/gcloud/aurora/pipeline_scripts/alps/dbs FILES "${CMAKE_CURRENT_SOURCE_DIR}/pgui-extended-master.db")
+install_programs (/gcloud/aurora/pipeline_scripts/alps/dbs FILES "${CMAKE_CURRENT_SOURCE_DIR}/pgui-extended-stable_4_0.db")
+install_programs (/gcloud/aurora/pipeline_scripts/alps/dbs FILES "${CMAKE_CURRENT_SOURCE_DIR}/pgui-extended-stable_4_1.db")

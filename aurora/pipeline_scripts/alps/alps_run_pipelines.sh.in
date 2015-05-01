@@ -72,7 +72,7 @@ log_dir=${script_dir}/logs
 untar_log_dir=${script_dir}/untar_logs
 
 echo "run_pipelines.sh $ARGS" > $log_dir/aurora_pipeline_command
-if [[ $PIPELINE == "smoke" || $PIPELINE == "extended" || $PIPELINE == "unstable" || $PIPELINE == "pgui-smoke" || $PIPELINE == "omni" ]]; then
+if [[ $PIPELINE == "smoke" || $PIPELINE == "extended" || $PIPELINE == "unstable" || $PIPELINE == "pgui-smoke" || $PIPELINE == "omni" || $PIPELINE == "pgui-extended" ]]; then
   db=$(get_db $PIPELINE $BRANCH)
   if [[ -e $db ]]; then
     echo "database selected = $db"
@@ -98,6 +98,8 @@ if [[ -z "$NUM_INSTANCES" ]]; then
     TEST_ITERATIONS=${OMNI_TEST_ITERATIONS}
   elif [[ $PIPELINE == "pgui-smoke" ]]; then
     NUM_INSTANCES=${PGUI_NUM_INSTANCES}
+  elif [[ $PIPELINE == "pgui-extended" ]]; then
+    NUM_INSTANCES=${PGUI_EXTENDED_NUM_INSTANCES}
   else
     NUM_INSTANCES=${NUM_DEFAULT_INSTANCES}
   fi
