@@ -19,7 +19,7 @@ DEST_SCRIPT_DIR=0
 echo "run_pipelines.sh $@"
 ARGS=$@
 # read the options
-TEMP=`getopt -o W:r:l:P:i:Kh --long WORKSPACE:,buildid:,pipeline:,test_iterations:,base_script_dir:,keep-running,\help -n 'coral_run_pipelines.sh' -- "$@"`
+TEMP=`getopt -o W:l:P:i:\r:Kh --long WORKSPACE:,buildid:,pipeline:,test_iterations:,base_script_dir:,cost_pipeline_code:,keep-running,\help -n 'coral_run_pipelines.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # extract options and their arguments into variables.
@@ -29,8 +29,9 @@ while true ; do
     -l|--buildid) USER_BUILD_ID=$2 ; shift 2 ;;
     -P|--pipeline) PIPELINE=$2 ; shift 2 ;;
     -i|--test_iterations) TEST_ITERATIONS=$2 ; shift 2 ;;
-    -K|--keep-running) KEEP_RUNNING="-K"; shift ;;
     -r|--base_script_dir) BASE_SCRIPT_DIR=$2 ; shift 2;;
+    --cost_pipeline_code) COST_CODE="$2" ; shift 2 ;;
+    -K|--keep-running) KEEP_RUNNING="-K"; shift ;;
     -h|--help)
       show_run_tests_help
       exit 0
@@ -78,7 +79,7 @@ function run_test() {
     pids=()
     echo "log_dir=$log_dir script_dir=$script_dir"
     while read -r -d $'\0'; do
-      aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY $KEEP_RUNNING -S /home/plumgrid/work/coral/devtools > $REPLY.txt 2>&1 &
+      aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY --cost_pipeline_code ${COST_CODE} $KEEP_RUNNING -S /home/plumgrid/work/coral/devtools > $REPLY.txt 2>&1 &
       #Get the pid of the last background command
       pids+=("$!")
     done < <(find ${script_dir} -regextype posix-extended  -regex '^.*.sh-[0-9]+$' -print0)

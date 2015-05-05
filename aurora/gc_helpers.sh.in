@@ -268,6 +268,33 @@ function get_latest_snapshot_id() {
 }
 
 # *****************************************************************************
+# Function: generate_instance_name
+# Purpose : Generate instance name for "aurora run" instance.
+# Usage   : generate_instance_name <BuildID> <TAG> <PIPELINE_CODE>
+# *****************************************************************************
+function generate_instance_name() {
+  local BUILD_ID=$1
+  local TAG=$2
+  local COST_PIPELINE_CODE=${3:-x} # "x" represents that this run is not for any pipeline.
+  UUID=`uuidgen`
+  local RUN_ID=$(echo $UUID | awk '{print substr($0,0,5)}')
+
+  BUILD_ID=${BUILD_ID}  # alir-bld-master
+  MOD_BUILD_ID=$(echo ${BUILD_ID} | sed 's/bld/run/') # alir-run-master
+  local INSTANCE_NAME=${MOD_BUILD_ID} # alir-run-master
+  #Append tag if provided
+  if [[ $TAG != "none" ]]; then
+    #Only keeping alphanumeric characters
+    TAG=${TAG//[^[:alnum:]]/}
+    #Converting to lowercase since instance name cannot contain uppercase characters
+    TAG=${TAG,,}
+    INSTANCE_NAME=${INSTANCE_NAME}-${TAG} # alir-run-master-tag
+  fi
+  INSTANCE_NAME=${INSTANCE_NAME}-p-${COST_PIPELINE_CODE}-${RUN_ID} # alir-run-master-tag-ccod-x-12345
+  echo ${INSTANCE_NAME}
+}
+
+# *****************************************************************************
 # Function: get_instance_ip
 # Purpose : Gets the internal IP address of the instance.
 # Usage   : get_instance_ip <instance name>

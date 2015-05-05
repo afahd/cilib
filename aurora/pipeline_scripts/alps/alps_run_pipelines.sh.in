@@ -18,7 +18,7 @@ DEST_SCRIPT_DIR=0
 echo "run_pipelines.sh $@"
 ARGS=$@
 # read the options
-TEMP=`getopt -o Q:R:E:W:l:P:b:i:f:t:s:n:\r:d:IFKc:e:a:h --long major:,minor_start:,minor_end:,WORKSPACE:,buildid:,pipeline:,branch:,test_iterations:,first_test:,step_size:,script:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update,keep-running,local_commit:,existing_commit_hash:,alps-path:,\help -n 'run_all_test.sh' -- "$@"`
+TEMP=`getopt -o Q:R:E:W:l:P:b:i:f:t:s:n:\r:d:IFKc:e:a:h --long major:,minor_start:,minor_end:,WORKSPACE:,buildid:,pipeline:,branch:,test_iterations:,first_test:,step_size:,script:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update,keep-running,local_commit:,existing_commit_hash:,alps-path:,cost_pipeline_code:,\help -n 'run_all_test.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # extract options and their arguments into variables.
@@ -45,6 +45,7 @@ while true ; do
     -c|--local_commit) LOCAL_COMMIT_HASH="-c $2" ; shift 2 ;;
     -e|--existing_commit_hash) EXISTING_COMMIT_HASH=$2 ; shift 2 ;;
     -a|--alps-path) ALPS_PATH="-a $2" ; shift 2 ;;
+    --cost_pipeline_code) COST_PIPELINE_CODE="$2" ; shift 2 ;;
     -h|--help)
       show_run_tests_help
       exit 0
@@ -128,7 +129,7 @@ function run_test() {
     pids=()
     echo "log_dir=$log_dir script_dir=$script_dir"
     while read -r -d $'\0'; do
-      aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -e $EXISTING_COMMIT_HASH $KEEP_RUNNING $LOCAL_COMMIT_HASH $ALPS_PATH > $REPLY.txt 2>&1 &
+      aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -e $EXISTING_COMMIT_HASH --cost_pipeline_code $COST_PIPELINE_CODE $KEEP_RUNNING $LOCAL_COMMIT_HASH $ALPS_PATH > $REPLY.txt 2>&1 &
       #Get the pid of the last background command
       pids+=("$!")
     done < <(find ${script_dir} -regextype posix-extended  -regex '^.*.sh-[0-9]+$' -print0)

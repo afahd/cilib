@@ -13,6 +13,17 @@ PIPELINE_ARGUMENTS="$@"
 TEMP=`getopt -o Q:R:E:W:l:P:b:i:f:t:s:n:\r:d:IFKc:e:a:h --long major:,minor_start:,minor_end:,WORKSPACE:,buildid:,pipeline:,branch:,test_iterations:,first_test:,step_size:,script:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update,keep-running,local_commit:,existing_commit_hash:,alps-path:,\help -n 'run_all_test.sh' -- "$@"`
 eval set -- "$TEMP"
 
+declare -A pl_code
+pl_code[smoke]="1"
+pl_code[extended]="2"
+pl_code[unstable]="3"
+pl_code[pgui-smoke]="4"
+pl_code[omni]="5"
+pl_code[automaton]="6"
+pl_code[automaton-longevity]="7"
+pl_code[longevity]="8"
+pl_code[coral]="9"
+
 # extract options and their arguments into variables.
 while true ; do
   case "$1" in
@@ -27,10 +38,17 @@ while true ; do
   esac
 done
 
+# Build cost code. This code will be embedded in instance name.
+# From there, we can generate cost report by using this code.
+# First: Get Branch name.
+# TODO: Need to get branch name from build id. Append this branch name in cost_code.
+cost_pipeline_code=${pl_code["$PIPELINE"]}
+echo "cost_pipeline_code=${cost_pipeline_code}"
+
 if [[ $PIPELINE == "coral-smoke" ]]; then
   BASE_SCRIPT_DIR="@CMAKE_CURRENT_BINARY_DIR@/coral/"
-  coral_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" $PIPELINE_ARGUMENTS
+  coral_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" --cost_pipeline_code "$cost_pipeline_code" $PIPELINE_ARGUMENTS
 else
   BASE_SCRIPT_DIR="@CMAKE_CURRENT_BINARY_DIR@/alps/"
-  alps_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" $PIPELINE_ARGUMENTS
+  alps_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" --cost_pipeline_code "$cost_pipeline_code" $PIPELINE_ARGUMENTS
 fi
