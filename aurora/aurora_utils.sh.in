@@ -534,17 +534,44 @@ function cp_build() {
   # SRC_BUILD_ID=bld-stable-4-0 and SRC_USER_EMAIL=ahsanr@plumgrid.com
   # disk1=ahsanr-bld-stable-4-0-d1   and disk2=ahsanr-bld-stable-4-0-d2
   # ssd1 =ahsanr-bld-stable-4-0-ssd1 and ssd2 =ahsanr-bld-stable-4-0-ssd2
+  # MY_TAG=final
   local SRC_USER_EMAIL=$1
   local SRC_BUILD_ID=$2
+  local MY_TAG=$3
+
 
   local mod_src_user_email=${SRC_USER_EMAIL%@*}   # ahsanr
   local complete_src_build_id=${mod_src_user_email}-${SRC_BUILD_ID} # ahsanr-bld-stable-4-0
   local mod_my_emailid=${emailid%@*}
-  local my_build_id=${mod_my_emailid}-${SRC_BUILD_ID} # tahir-bld-stable-4-0
+  local my_build_id=""
+
+    # Check if SRC_BUILD has a TAG
+  if [[ $SRC_BUILD_ID =~ [[:alnum:]]+-bld ]]; then
+    # pullout the TAG NAME
+    local SRC_TAG=`expr "$BASH_REMATCH" : '\(.*-\)'`
+    # trim out the leading -
+    SRC_TAG=${SRC_TAG%-}
+    my_build_id=${mod_my_emailid}-${SRC_BUILD_ID}
+    my_build_id="${my_build_id/$SRC_TAG/$MY_TAG}"
+    echo "src has a TAG $SRC_TAG"
+
+  else
+    echo "src doesn't have a TAG!"
+    # If SRC_BUILD_ID doesn't have a tag and we do.
+    if [[ "$MY_TAG" != ""  ]]; then
+
+      my_build_id=${mod_my_emailid}-${MY_TAG}-${SRC_BUILD_ID} # tahir-final-bld-stable-4-0
+    else
+    # If SRC_BUILD_ID doesn't have a tag and neither do we.
+      my_build_id=${mod_my_emailid}-${SRC_BUILD_ID} # tahir-bld-stable-4-0
+    fi
+  fi
+
   local my_disk1=${my_build_id}-d1
   local my_disk2=${my_build_id}-d2
   local my_ssd1=${my_build_id}-ssd1
   local my_ssd2=${my_build_id}-ssd2
+
 
   # TODO: Return if src build-id does not exist
   # *******************
