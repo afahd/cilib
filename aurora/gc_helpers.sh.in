@@ -504,7 +504,10 @@ function check_elfsurgeon() {
   cat /dev/null > ${local_file}
   cat >> ${local_file} <<DELIM__
 cd /home/plumgrid/work/alps/build
-make -j4
+for i in \`seq 1 4\`; do
+  make -k -j 4 install
+  [[ \$? -eq 0 ]] && break
+done
 elfsurgeon_files=\$(git status --porcelain | grep 'dependency_hist' | wc -l)
 if [[ "\$elfsurgeon_files" != "0" ]]; then
 echo "\${elfsurgeon_files} ELFsurgeon history files were not updated:"
