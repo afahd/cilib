@@ -505,10 +505,10 @@ function check_elfsurgeon() {
   cat >> ${local_file} <<DELIM__
 cd /home/plumgrid/work/alps/build
 make -j4
-elfsurgeon_files=\$(git status --porcelain | grep 'common/elfsurgeon/dependency_hist' | wc -l)
+elfsurgeon_files=\$(git status --porcelain | grep 'dependency_hist' | wc -l)
 if [[ "\$elfsurgeon_files" != "0" ]]; then
-git status --porcelain | grep 'common/elfsurgeon/dependency_hist'
 echo "\${elfsurgeon_files} ELFsurgeon history files were not updated:"
+git status --porcelain | grep 'dependency_hist'
 exit 1; fi
 DELIM__
   #File name needs to be constant for continue functionality, thus renaming.
