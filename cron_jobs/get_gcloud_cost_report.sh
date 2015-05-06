@@ -5,6 +5,18 @@ convertsecs() {
  ((m=(${1}%3600)/60))
  ((s=${1}%60))
 }
+show_help() {
+  echo "Required Arguments:
+  -n, --numdays             The number of days you want the report for. For instance './get_gcloud_cost_report.sn -n 7' will create 
+                            a report for last 7 days.
+  OR
+  -d, --date                Incase you want a report for a particular date. Legal format for date is YYYYMMDD. For instance 
+                            './get_gcloud_cost_report.sn -d 20150416' will create a report for April 16th, 2015.
+
+Optional Arguments:
+  -e, --email               Use this flag if you want an e-mail to be sent to all recipients mentioned in the cost report" 1>&2;
+  exit 1;
+}
 
 declare -A usages_N1Standard_2
 declare -A usages_N1Standard_4
@@ -21,17 +33,37 @@ G1Small_cost=0.032
 F1Micro_cost=0.012
 N1Highcpu_2_cost=0.080
 N1Highmem_4_cost=0.296
-num_days=$1
+num_days=1
+TEMP=`getopt -o n:ed:h --long numdays:,email,date:,\help -n 'get_gcloud_cost_report.sh' -- "$@"`
+eval set -- "$TEMP"
+while true ; do
+  case "$1" in
+    -n|--numdays) num_days=$2 ; shift 2 ;;
+    -e|--email ) SEND_EMAIL="true" ; shift ;;
+    -d|--date ) DATE=$2 ; shift 2 ;;
+    -h|--help )
+      show_help
+      exit 0 ;;
+    --) shift ; break ;;
+     *)
+        echo "Unrecognized option $1"
+        exit 1 ;;
+  esac
+done
 
 echo "1. Download latest ci-report file"
-latest_ci_report=( $(gsutil ls gs://ci-bucket/* | grep ci-report | tail -$num_days) )
+if [[ -z "$DATE" ]]; then
+ latest_ci_report=( $(gsutil ls gs://ci-bucket/* | grep ci-report | grep '.\{50\}' | tail -$num_days ) )
+else
+ latest_ci_report=( $(gsutil ls gs://ci-bucket/ci-report* | grep ${DATE}) )
+fi
 i=0
 for file in ${latest_ci_report[@]}; do
-  latest_ci_report[i++]=${file##*/}
+   latest_ci_report[i++]=${file##*/}
 done
 firstday=${latest_ci_report[0]##*_}
 firstday=${firstday%.*}
-if [[ num_days -eq 1 ]]; then
+if [[ "$num_days" -eq 1 ]]; then
   gcloud_report="gcloud_report_$firstday"
 else
   lastday=${latest_ci_report[$num_days-1]##*_}
@@ -55,7 +87,6 @@ ci_report=$latest_ci_report
 echo "2. Extract VMs information from ci-report file"
 timestamp=${ci_report##*_}
 timestamp=${timestamp%.*}
-
 grep Vmimage ${ci_report} > vminfo
 
 echo "3. Calculate individual user's usage (will be in seconds)"
@@ -204,41 +235,44 @@ for name in "${!overall_cost[@]}"; do
   printf "%-15s %-15s \n" ${overall_cost[$name]} $name >> tmp_report
 done
 sort -n -r tmp_report >> sorted_usage_report${timestamp}
+echo "Path to sorted_usage_report = "${PWD}
 
 #sending out email
-echo "5. Sending out email"
-printf "\nHi All\n" >> email_body
-if [[ num_days -eq 30 || num_days -eq 31 ]]; then
- printf "\nFollowing is the Aurora cloud resources cost report for last month.\n" >> email_body
- email_sub="Aurora monthly cloud resources cost report"
-elif [[ num_days -eq 7 ]]; then
- printf "\nFollowing is the Aurora cloud resources cost report for last week.\n" >> email_body
- email_sub="Aurora weekly cloud resources cost report"
-elif [[ num_days -eq 1 ]]; then
- printf "\nFollowing is the Aurora daily cloud resources cost report.\n" >> email_body
- email_sub="Aurora daily cloud resources cost report"
-else
-  printf "\nFollowing is the Aurora cloud resources cost report for last $num_days days.\n" >> email_body
- email_sub="Aurora cloud resources cost report for last $num_days days"
+if [[ "$SEND_EMAIL" == "true" ]]; then
+  echo "5. Sending out email"
+  printf "\nHi All\n" >> email_body
+  if [[ "$num_days" -eq 30 || "$num_days" -eq 31 ]]; then
+   printf "\nFollowing is the Aurora cloud resources cost report for last month.\n" >> email_body
+   email_sub="Aurora monthly cloud resources cost report"
+  elif [[ "$num_days" -eq 7 ]]; then
+   printf "\nFollowing is the Aurora cloud resources cost report for last week.\n" >> email_body
+   email_sub="Aurora weekly cloud resources cost report"
+  elif [[ "$num_days" -eq 1 ]]; then
+   printf "\nFollowing is the Aurora daily cloud resources cost report.\n" >> email_body
+   email_sub="Aurora daily cloud resources cost report"
+  else
+   printf "\nFollowing is the Aurora cloud resources cost report for last $num_days days.\n" >> email_body
+   email_sub="Aurora cloud resources cost report for last $num_days days"
+  fi
+  printf "\n-----------------------------------------------------------\n" >> email_body
+  printf "Total cost spent by each individual" >> email_body
+  printf "\n-----------------------------------------------------------\n\n" >> email_body
+  printf "%-15s %-15s %-15s \n"  "Cost" "Name" "Total Time" >> email_body
+  printf "%-15s %-15s %-15s \n"  " " " " "(HHHH:MM:SS)" >> email_body
+  printf "\n--------------------------------------------\n" >> email_body
+  cat /dev/null > tmp_report
+  for name in "${!overall_cost[@]}"; do
+    time_sec=${overall_usages[$name]}
+    convertsecs $time_sec
+    readable_time="$h:$m:$s"
+    printf "%-15s %-15s %-15s \n"  "$"${overall_cost[$name]} $name $readable_time >> tmp_report
+  done
+  sort -k1.2 -g -r tmp_report >> email_body
+  for name in "${!overall_cost[@]}"; do
+    email_recipients="$email_recipients $name@plumgrid.com"
+  done
+  cat email_body | mail -s "$email_sub" $email_recipients
+  rm email_body sorted*
 fi
-printf "\n-----------------------------------------------------------\n" >> email_body
-printf "Total cost spent by each individual" >> email_body
-printf "\n-----------------------------------------------------------\n\n" >> email_body
-printf "%-15s %-15s %-15s \n"  "Cost" "Name" "Total Time" >> email_body
-printf "%-15s %-15s %-15s \n"  " " " " "(HHHH:MM:SS)" >> email_body
-printf "\n--------------------------------------------\n" >> email_body
-cat /dev/null > tmp_report
-for name in "${!overall_cost[@]}"; do
-  time_sec=${overall_usages[$name]}
-  convertsecs $time_sec
-  readable_time="$h:$m:$s"
-  printf "%-15s %-15s %-15s \n"  "$"${overall_cost[$name]} $name $readable_time >> tmp_report
-done
-sort -k1.2 -g -r tmp_report >> email_body
-for name in "${!overall_cost[@]}"; do
-  email_recipients="$email_recipients $name@plumgrid.com"
-done
-cat email_body | mail -s $email_sub $email_recipients
-
 echo "Cleanup"
-rm tmp_report vminfo email_body
+rm tmp_report vminfo ci-report* gcloud*
