@@ -64,6 +64,7 @@ echo 'Performing cleanup'
 sudo rm -rf /opt/pg/var/www/*
 rm -rf /opt/pg/bin/*
 rm -rf /opt/pg/systest/*
+rm -rf /opt/pg/sal/
 DELIM__
 for p in ${PROJECT_LIST[@]}; do
   cat >> ${git_script} <<DELIM__
