@@ -10,6 +10,8 @@ cd ~/work/pg_cli/build
 make -j 4 install
 cd ~/work/python-plumgridlib/build
 make -j 4 install
+cd ~/work/python-plumgridlib/lib
+sudo python setup.py install
 cd ~/work/alps/build
 return_value=0
 for i in `seq 1 4`; do
