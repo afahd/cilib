@@ -16,6 +16,7 @@ COMMAND:
   upload              Upload file to cloud instance from local machine.
   ls                  List all currently active cloud instances or snapshots
   cp                  Create a copy of other user's build.
+  shutdown            Shuts down the ENTITY containing value in REGEX
   rm                  Deletes the ENTITY containing value in REGEX
   login               Login to the specified INSTANCE
   load                Shows the resources used by all users.
@@ -139,6 +140,20 @@ USAGE: aurora ls <ENTITY>
                       run: Lists the run instances and the corresponding build-ids.
                       disks: Lists the disks not attached to instances.
                       Default is instances.
+HELP
+}
+
+function show_shutdown_help() {
+   cat << HELP
+USAGE: aurora shutdown <ENTITY> <REGEX> [-f --force]
+       Shuts down the ENTITY containing value in REGEX
+
+<ENTITY>              Value can be:
+                      "instances"
+<REGEX>               Regex to match. e.g "run" will delete all instances or snapshots
+                      having 'run' as part of name.
+Options:
+-f, --force           Suppresses user confirmation
 HELP
 }
 

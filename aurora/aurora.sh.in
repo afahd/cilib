@@ -12,6 +12,8 @@ case $1 in
       init_id ${@:2} ;;
     ls)
       list_entities ${@:2} ;;
+    shutdown)
+      shutdown_entities ${@:2} ;;
     rm)
       delete_entities ${@:2} ;;
     cp)
