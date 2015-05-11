@@ -113,6 +113,14 @@ if [[ $CONTINUE == "1" ]] ; then
   fi
 else
   check_instance_limit
+  #Check if the snapshots already exist
+  retval=0
+  check_snapshot_exists ${INSTANCE_NAME}-ssd1 1 || ((++retval))
+  check_snapshot_exists ${INSTANCE_NAME}-ssd2 1 || ((++retval))
+  if [[ $retval != "2" ]]; then
+    echo "Snapshots for ${INSTANCE_NAME} already exist. Use aurora rm build to remove snapshots or use a different tag."
+    exit 1
+  fi
 fi
 
 # TODO: SN_ID variable should hold the "v3-d1" part as well.
@@ -185,7 +193,7 @@ function build_image() {
     GIT_SYNC_SCRIPT=$(mktemp /tmp/gitsync.sh-XXXXX)
     echo "Generate script for syncing the gerrit repo"
     tryexec write_gitsync.sh "${GIT_SYNC_SCRIPT}" "${BRANCH}" "${PROJECT}" "${REFSPEC}" "${WORKSPACE}/builder/branch_translations"
-    tryexec upload ${INSTANCE_IP} ${GIT_SYNC_SCRIPT} /tmp/
+    retryexec upload ${INSTANCE_IP} ${GIT_SYNC_SCRIPT} /tmp/
     GIT_SYNC_BASE=$(basename ${GIT_SYNC_SCRIPT} )
     tryexec run_cmd_gci ${INSTANCE_IP} "mv /tmp/${GIT_SYNC_BASE} /tmp/gitsync.sh"
     rm ${GIT_SYNC_SCRIPT}
@@ -251,7 +259,7 @@ function build_image() {
     # this step can be run directly to see if the previous command is still running
     echo "Polling for tools install"
     tryexec run_poll_cmd ${INSTANCE_IP} "make_tools_iovisor.sh" "/tmp/make_tools_iovisor.log" "1"
-    download ${INSTANCE_IP} "/tmp/make_tools_iovisor.log" "${WORKSPACE}/logs/"
+    retryexec download ${INSTANCE_IP} "/tmp/make_tools_iovisor.log" "${WORKSPACE}/logs/"
     record_step $step $step_file
     ;;
 
@@ -276,7 +284,7 @@ function build_image() {
     if [[ "$PROJECT" == "alps" ]];then
       echo "Polling make for alps and checking elfsurgeon files (tailing \"/tmp/check_elfsurgeon.log\" for complete logs)"
       tryexec run_poll_cmd ${INSTANCE_IP} "check_elfsurgeon.sh" "/tmp/check_elfsurgeon.log" "1"
-      download ${INSTANCE_IP} "/tmp/check_elfsurgeon.log" "${WORKSPACE}/logs/"
+      retryexec download ${INSTANCE_IP} "/tmp/check_elfsurgeon.log" "${WORKSPACE}/logs/"
       record_step $step $step_file
     fi
     ;;
@@ -299,7 +307,7 @@ function build_image() {
 
   20)
     echo "Running the build-init script"
-    tryexec upload ${INSTANCE_IP} ${BUILD_SCRIPT} /tmp/build-init.sh
+    retryexec upload ${INSTANCE_IP} ${BUILD_SCRIPT} /tmp/build-init.sh
     tryexec run_bg_cmd ${INSTANCE_IP} "/tmp/build-init.sh" "/bin/bash /tmp/build-init.sh" "/tmp/build-init.log"
     record_step $step $step_file
     ;;
@@ -307,7 +315,7 @@ function build_image() {
   21)
     echo "Poll the build-init logs (tailing \"/tmp/build-init.log\")"
     tryexec run_poll_cmd ${INSTANCE_IP} "/tmp/build-init.sh" "/tmp/build-init.log" "1"
-    tryexec download ${INSTANCE_IP} "/tmp/build-init.log" "${WORKSPACE}/logs/build-init.log"
+    retryexec download ${INSTANCE_IP} "/tmp/build-init.log" "${WORKSPACE}/logs/build-init.log"
     record_step $step $step_file
     ;;
 

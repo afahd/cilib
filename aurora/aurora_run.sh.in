@@ -178,7 +178,6 @@ function run_test() {
     fi
     ;;
 
-
   8)
     echo "Restarting lxc-net service"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo ifconfig lxcbr0 down || true"
@@ -189,7 +188,7 @@ function run_test() {
     ;;
 
   9)
-    tryexec upload ${INSTANCE_IP} ${TEST_SCRIPT} /tmp/user_test_script.sh
+    retryexec upload ${INSTANCE_IP} ${TEST_SCRIPT} /tmp/user_test_script.sh
     tryexec run_cmd_gci_bg ${INSTANCE_IP} "/bin/bash /tmp/user_test_script.sh" "/tmp/test.logs"
     record_step $step $step_file
     ;;
@@ -197,7 +196,7 @@ function run_test() {
   10)
     echo "Poll the test logs (tailing \"/tmp/test.log\")"
     tryexec run_poll_cmd ${INSTANCE_IP} "/tmp/user_test_script.sh" "/tmp/test.logs" "0"
-    tryexec download ${INSTANCE_IP} "/tmp/test.logs" "${LOG_DEST_DIR}/${INSTANCE_NAME}.log"
+    retryexec download ${INSTANCE_IP} "/tmp/test.logs" "${LOG_DEST_DIR}/${INSTANCE_NAME}.log"
     record_step $step $step_file
     ;;
 
