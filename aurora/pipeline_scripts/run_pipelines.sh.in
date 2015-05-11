@@ -23,6 +23,7 @@ pl_code[automaton]="6"
 pl_code[automaton-longevity]="7"
 pl_code[longevity]="8"
 pl_code[coral]="9"
+pl_code[DEBUG-TEST]="10"
 
 # extract options and their arguments into variables.
 while true ; do
