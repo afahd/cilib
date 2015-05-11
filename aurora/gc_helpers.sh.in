@@ -273,11 +273,15 @@ function get_latest_snapshot_id() {
 # Usage   : generate_instance_name <BuildID> <TAG> <PIPELINE_CODE>
 # *****************************************************************************
 function generate_instance_name() {
+
   local BUILD_ID=$1
   local TAG=$2
-  local COST_PIPELINE_CODE=${3:-x} # "x" represents that this run is not for any pipeline.
+  local COST_PIPELINE_CODE=$3
+  local CONTINUE=$4
+  local RUNID=$5
+
   UUID=`uuidgen`
-  local RUN_ID=$(echo $UUID | awk '{print substr($0,0,5)}')
+  local SUUID=$(echo $UUID | awk '{print substr($0,0,5)}')
 
   BUILD_ID=${BUILD_ID}  # alir-bld-master
   MOD_BUILD_ID=$(echo ${BUILD_ID} | sed 's/bld/run/') # alir-run-master
@@ -290,8 +294,26 @@ function generate_instance_name() {
     TAG=${TAG,,}
     INSTANCE_NAME=${INSTANCE_NAME}-${TAG} # alir-run-master-tag
   fi
-  INSTANCE_NAME=${INSTANCE_NAME}-p-${COST_PIPELINE_CODE}-${RUN_ID} # alir-run-master-tag-ccod-x-12345
+  INSTANCE_NAME=${INSTANCE_NAME}-p-${COST_PIPELINE_CODE}-${SUUID} # alir-run-master-tag-ccod-x-12345
+
+  # Replace generated SUUID with RUNID in case of continue.
+  if [[ $CONTINUE == "1" ]] ; then
+    # User must give the run-id(SUUID generated during first time execution of run process.)
+    # along with continue such that we can know that which "aurora run" he needs to resume.
+    echo "continue=$CONTINUE and runid=$RUNID" >&2
+    if [ -z ${RUNID} ]; then
+      echo "Please provide the RUN-ID which you want to continue e.g. f82ba2b78256" >&2
+      return 1
+    fi
+    INSTANCE_NAME=$(echo "${INSTANCE_NAME}" | sed "s/[^-]*$//") # alir-run-master-tag-ccod-x-
+    INSTANCE_NAME=${INSTANCE_NAME}${RUNID} # alir-run-master-tag-ccod-x-67890
+  fi
   echo ${INSTANCE_NAME}
+
+  if [ ${#INSTANCE_NAME} -gt "58" ]; then
+    echo "Instance name is too long, try a shorter TAG, exiting." >&2
+    return 1
+  fi
 }
 
 # *****************************************************************************

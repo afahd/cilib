@@ -78,11 +78,10 @@ fi
 BUILD_ID=${emailid}-${BUILD_ID}
 #Validate Inputs
 check_run_inputs $BUILD_ID
-INSTANCE_NAME=$(generate_instance_name ${BUILD_ID} ${TAG} ${COST_PIPELINE_CODE})
-if [ ${#INSTANCE_NAME} -gt "58" ]; then
-    echo "Instance name is too long, try a shorter TAG, exiting."
-    exit 1
+if [[ -z "$COST_PIPELINE_CODE" ]]; then
+  COST_PIPELINE_CODE="x"
 fi
+INSTANCE_NAME=$(generate_instance_name ${BUILD_ID} ${TAG} ${COST_PIPELINE_CODE} ${CONTINUE} ${RUNID})
 #Check /home/$USER/.ssh/id_rsa.pub file
 check_file_existence "/home/$USER/.ssh/id_rsa.pub"
 step_file=$LOG_DEST_DIR/${INSTANCE_NAME}-last-successful-step
@@ -92,14 +91,6 @@ step_file=$LOG_DEST_DIR/${INSTANCE_NAME}-last-successful-step
 #   b. Get the last successfully completed step.
 #   c. Start the run process from step next to last completed step.
 if [[ $CONTINUE == "1" ]] ; then
-  # User must give the run-id(SUUID generated during first time execution of run process.)
-  # along with continue such that we can know that which "aurora run" he needs to resume.
-  if [ -z ${RUNID+x} ]; then
-    echo "Please provide the RUN-ID which you want to continue e.g. f82ba2b78256"
-    exit
-  fi
-  INSTANCE_NAME=$(echo "${INSTANCE_NAME}" | sed "s/[^-]*$//")
-  INSTANCE_NAME=${INSTANCE_NAME}${RUNID}
   step_file=$LOG_DEST_DIR/${INSTANCE_NAME}-last-successful-step
   #Continue only if file exists
   if [[ ! -f $step_file ]]; then

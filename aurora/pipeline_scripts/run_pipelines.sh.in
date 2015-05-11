@@ -44,8 +44,10 @@ done
 # First: Get Branch name.
 # TODO: Need to get branch name from build id. Append this branch name in cost_code.
 cost_pipeline_code=${pl_code["$PIPELINE"]}
+if [[ -z "$cost_pipeline_code" ]]; then
+  cost_pipeline_code="x"
+fi
 echo "cost_pipeline_code=${cost_pipeline_code}"
-
 if [[ $PIPELINE == "coral-smoke" ]]; then
   BASE_SCRIPT_DIR="@CMAKE_CURRENT_BINARY_DIR@/coral/"
   coral_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" --cost_pipeline_code "$cost_pipeline_code" $PIPELINE_ARGUMENTS
