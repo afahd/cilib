@@ -240,9 +240,9 @@ function wait_for_instance() {
 }
 
 # *****************************************************************************
-# Function: get_lastest_snapshot_id
+# Function: get_latest_snapshot_id
 # Purpose : Lists the snapshot with the highest time stamp.
-# Usage   : get_lastest_snapshot_id
+# Usage   : get_latest_snapshot_id
 # *****************************************************************************
 function get_latest_snapshot_id() {
   #The snapshots are sorted in desencding order by name. Sorting by name also works for numbers.
@@ -406,10 +406,12 @@ function get_latest_logs() {
   upload ${instance_ip} ${local_file} ${file_name}
   rm ${local_file}
   run_cmd_gci ${instance_ip} "bash ${file_name}"
-  download ${instance_ip} /tmp/latest_log_filename ${dest_dir}/latest_log_filename
-  local log_tar=$(cat ${dest_dir}/latest_log_filename)
+  local log_filename=$(mktemp ${dest_dir}/latest_log_filename-XXXXX)
+  download ${instance_ip} /tmp/latest_log_filename ${log_filename}
+  local log_tar=$(cat ${log_filename})
   download ${instance_ip} /tmp/${log_tar}.tar ${dest_dir}/${instance_name}-logs.tar
   echo "Logs have been placed at ${dest_dir}/${instance_name}-logs.tar"
+  rm ${log_filename}
 }
 
 # ******************************************************************************

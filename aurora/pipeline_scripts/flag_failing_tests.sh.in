@@ -135,7 +135,7 @@ function flag_failing_tests() {
       test_status="stable"
       now=$(date +%s)
       failure_prob=$(cat $failing_test_prob | head -$i | tail -1)
-      old_prob=$(grep "${test_name}|" $old_probability_file | cut -d \| -f 2)
+      old_prob=$(grep "^${test_name}|" $old_probability_file | cut -d \| -f 2)
       first_occurence=$(sqlite3 $FAILING_TESTS_DB "SELECT FirstOccurence from $FAILING_TESTS_TABLE WHERE name='$test_name';")
       failing_since=$((now-first_occurence))
       limit=$(($MARK_UNSTABLE_AFTER_DAYS*86400))
