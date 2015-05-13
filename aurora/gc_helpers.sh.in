@@ -130,7 +130,7 @@ function push_local_changes() {
 
   cd $ALPS_PATH
   #Get branch name from commit
-  local BRANCH=$(git branch --contains $COMMIT_ID | cut -d ' ' -f 2)
+  local BRANCH=$(git branch --contains $COMMIT_ID | tr -d ' ' | tr -d '*')
   run_cmd_gci ${INSTANCE_IP} "git config  -f ${INSTANCE_ALPS_PATH}/.git/config receive.denyCurrentBranch ignore"
   local local_file=$(mktemp /tmp/ssh-command-XXXXX)
   echo "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o CheckHostIP=no \$*" > ${local_file}
