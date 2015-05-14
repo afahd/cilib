@@ -831,7 +831,7 @@ function cleanup() {
   gcloud compute disks delete ${INSTANCE_NAME}-d2 -q
   gcloud compute snapshots delete ${INSTANCE_NAME}-ssd1 -q
   gcloud compute snapshots delete ${INSTANCE_NAME}-ssd2 -q
-  #Enable error checknig again.
+  #Enable error checking again.
   set -e
 }
 
@@ -853,14 +853,12 @@ function tryexec() {
   echo "Value returned: ${retval}"
   echo "$(basename $0) Failed, do you want to cleanup the instances?"
   read -r -p "Are you sure you want to continue? (y/N)" response
-    response=${response,,}    # tolower
-    if [[ $response =~ ^(yes|y)$ ]]; then
-      echo "Proceeding with cleanup..."
-      cleanup
-      exit $retval
-    else
-      exit $retval
-    fi
+  response=${response,,}    # tolower
+  if [[ $response =~ ^(yes|y)$ ]]; then
+    echo "Proceeding with cleanup..."
+    cleanup
+  fi
+  exit $retval
 }
 
 # *****************************************************************************

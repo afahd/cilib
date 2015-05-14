@@ -5,6 +5,14 @@ source pl_utils.sh
 source pl_help.sh
 source pl_settings.conf
 source gc_helpers.sh
+
+#Kill child  processes, if some exist, before exiting.
+function exit_handler() {
+  [[ -z "$(jobs -p)" ]] || kill -9 $(jobs -p)
+}
+
+trap "exit_handler" EXIT
+
 #Show help
 if [[ $3 == "help" ]]; then
   show_pl_help
