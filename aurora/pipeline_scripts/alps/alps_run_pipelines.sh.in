@@ -220,7 +220,7 @@ function run_test() {
     ;;
   7)
     #Copy the XML logs for omni
-    if [[ "$PIPELINE" == "omni" ]]; then
+    if [[ "$PIPELINE" == "omni" || "$PIPELINE" == "extended" || "$PIPELINE" == "smoke" || "$PIPELINE" == "unstable" ]]; then
       mkdir -p ${WORKSPACE}/logs/xml_logs
       #Copy the xml logs
       find ${untar_log_dir} -type f -name "*.xml" -exec mv {} ${WORKSPACE}/logs/xml_logs/ \;
