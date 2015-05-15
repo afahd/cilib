@@ -134,7 +134,7 @@ function update_passing_tests_prob() {
 # Function: check_flag_inputs
 # Purpose : Checks the inputs given to aurora flag.
 # Usage   : check_flag_inputs <build-id> <test-list> <test iterations> <num instances>
-#                              <branch> <alps path>
+#                              <branch>
 # *****************************************************************************
 function check_flag_inputs() {
   local build_id=$1
@@ -142,13 +142,12 @@ function check_flag_inputs() {
   local test_iterations=$3
   local num_instances=$4
   local branch=$5
-  local alps_path=$6
 
   #Check build-id exists
   check_run_inputs ${emailid}-$build_id
 
   #Check if input failing-list file exists and is not empty
-  if [[ ! -s $test_list ]]; then
+  if [[ ! -f $test_list ]]; then
     echo "Input failing-list empty or does not exist, exiting"
     exit 1
   fi
