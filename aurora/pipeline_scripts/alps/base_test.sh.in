@@ -135,7 +135,7 @@ for run in $(seq 1 $itr); do
     ctest --output-on-failure  -L ^type:$test_tag$ -R "^${test_name}$" -T test >& "$EXPORT_FAILURES_DIR/${log_file_name}.log"
     result="$?"
     #Generate the XML logs for omni pipeline and for 1 iteration
-    if [[ "$PIPELINE" == "omni" && "$run" -eq 1 ]]; then
+    if [[ "$PIPELINE" == "omni" || "$PIPELINE" == "extended" || "$PIPELINE" == "smoke" || "$PIPELINE" == "unstable" && "$run" -eq 1 ]]; then
       echo 'Finding the XML file with the results ...'
       xml_dirname=$(cat Testing/TAG 2>/dev/null | head -1)
       if [[ -z "$xml_dirname" ]]; then
