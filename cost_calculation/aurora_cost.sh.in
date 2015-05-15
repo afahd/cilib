@@ -1,0 +1,78 @@
+#!/bin/bash -e
+source cost_utils.sh
+NUM_DAYS=1
+DURATION="day"
+USER_DURATION=""
+USER_DATE=""
+PIPELINE_CODE=""
+total_cost=0
+WORKSPACE=/tmp/cost/
+TEMP=`getopt -o U:p:T:W:ed:h --long user:,pipeline:,duration:,workspace:,email,date:,\help -n 'aurora_cost.sh' -- "$@"`
+eval set -- "$TEMP"
+while true ; do
+ case "$1" in
+  -U|--user) USER_NAME=$2 ; shift 2 ;;
+  -p|--pipeline) PIPELINE_NAME=$2 ; shift 2 ;;
+  -T|--duration) USER_DURATION=$2 ; shift 2 ;;
+  -W|--workspace) WORKSPACE=$2 ; shift 2 ;;
+  -e|--email ) SEND_EMAIL="true" ; shift ;;
+  -d|--date ) USER_DATE=$2 ; shift 2 ;;
+  -h|--help )
+      show_help
+      exit 0 ;;
+  --) shift ; break ;;
+  *)
+    echo "Unrecognized option $1"
+    exit 1 ;;
+ esac
+done
+if [[ -n "$USER_DURATION" && -n "$USER_DATE" ]]; then
+  echo "Incorrect usage of arguments! -T and -d cannot be used together"
+  exit 1
+fi
+if [[ -n "$USER_DURATION" ]]; then
+  DURATION="$USER_DURATION"
+fi
+if [[ "$DURATION" != "day" && "$DURATION" != "week" && "$DURATION" != "month" ]]; then
+  echo "$USER_DURATION is an invalid value for -T. Valid values are 'day' 'week' 'month'"
+  exit 1
+fi
+#Create workspace
+mkdir -p $WORKSPACE
+# Get number of days against duration specifed by user.
+NUM_DAYS=$(get_num_of_days $DURATION)
+# Convert pipeline name to coresponding pipeline cost code
+if [[ -n "$PIPELINE_NAME" ]]; then
+ PIPELINE_CODE=$(get_pl_cost_code $PIPELINE_NAME)
+ PIPELINE_CODE="\-p-$PIPELINE_CODE-"
+fi
+#Loop to iterate for each day.
+for num in `seq 1 $NUM_DAYS`; do
+#Check whether user has entered a particular date. Otherwise generate date for each day in given duration.
+ if [[ -z "$USER_DATE" ]]; then
+  DATE=$(ci_report_date "$num")
+ else
+#Convert date string entered by user to GNU date format to verify format.
+  DATE=$(date "+%Y%m%d" -d $USER_DATE)
+  #DATE=$USER_DATE
+ fi
+ #Check if the report already exists so that the script uses existing report. Othewise
+ #download from Google cloud storage.
+ existing_file="$WORKSPACE/ci-report_303028489312_$DATE.csv"
+ if [[ ! -e $existing_file ]]; then
+  downloaded_report=$(download_ci_report "$DATE" "${WORKSPACE}")
+ else
+  downloaded_report=$existing_file
+ fi
+ #Generate another report extracted from the "downloaded report" according to given parameters.
+ extracted_report=$(extract_pattern "$PIPELINE_CODE" $downloaded_report "extracted_report.csv" $WORKSPACE $USER_NAME)
+ #Calculate total usage time.
+ total_time=$(get_time_spent $extracted_report $WORKSPACE)
+ #Calulate cost according to usage time.
+ cost=$(get_cost_spent $total_time)
+ #Calulate overall cost.
+ total_cost=$(echo "$total_cost+$cost" | bc -l)
+ readable_date=$(date -d $DATE +'%d-%b-%Y')
+ echo "Cost for $readable_date = \$$cost"
+done
+echo "Total_cost = \$$total_cost"

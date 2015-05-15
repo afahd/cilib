@@ -1,0 +1,204 @@
+#!/bin/bash -e
+declare -A instance_usages
+instance_usages[N1Standard_1]=0
+instance_usages[N1Standard_2]=0
+instance_usages[N1Standard_4]=0
+instance_usages[N1Highcpu_2]=0
+instance_usages[N1Highmem_4]=0
+instance_usages[N1Highmem_2]=0
+instance_usages[G1Small]=0
+instance_usages[F1Micro]=0
+
+declare -A instance_rates
+instance_rates[N1Standard_1]=0.055
+instance_rates[N1Standard_2]=0.110
+instance_rates[N1Standard_4]=0.220
+instance_rates[N1Highcpu_2]=0.084
+instance_rates[N1Highmem_4]=0.278
+instance_rates[N1Highmem_2]=0.139
+instance_rates[G1Small]=0.030
+instance_rates[F1Micro]=0.009
+
+declare -A pl_cost_code
+pl_cost_code[smoke]=1
+pl_cost_code[extended]=2
+pl_cost_code[unstable]=3
+pl_cost_code[pgui-smoke]=4
+pl_cost_code[omni]=5
+pl_cost_code[automaton]=6
+pl_cost_code[automaton-longevity]=7
+pl_cost_code[longevity]=8
+pl_cost_code[coral]=9
+pl_cost_code[DEBUG-TEST]=10
+
+show_help() {
+  echo "Required Arguments:
+  -p, --pipeline            Use this option if you want to get cost for a specific pipeline. e.g. aurora cost -p smoke
+  OR
+  -U, --user                Use this option if you want to get cost for a specific user. e.g. aurora cost -U jenkins
+
+Optional Arguments:
+  -T, --duration            Use this option to specific time duration for you want the cost for. e.g. aurora cost -p smoke -T week.
+                            Valid options are 'day' 'week' 'month'. Default value is day.
+  -d, --date                Use this option if you want to get cost for a specific date. Please use the format YYYYMMDD.
+                            e.g. aurora cost -p smoke -d 201505021
+  -W, --WORKSPACE           Use this option to define workspace. Default is /tmp/cost " 1>&2;
+  exit 1;
+}
+
+# *****************************************************************************
+# Function: get_time_spent
+# Purpose : Calculates time spent for each instance type from supplied file.
+#           Returns the ouput file path.
+# Usage   : get_time_spent <file> <workspace>
+# *****************************************************************************
+function get_time_spent() {
+ local file=$1
+ local path=$2
+ local old_time
+ local new_time
+ while read line
+ do
+ instance_type=`echo $line | cut -d',' -f 2`
+ instance_type=${instance_type##*/}
+ instance_type=${instance_type:7}
+ time_sec=`echo $line | cut -d',' -f 3`
+
+ old_time="${instance_usages[$instance_type]}"
+ new_time=$((old_time + time_sec))
+ instance_usages[$instance_type]=$new_time
+ done < $file
+ cat /dev/null > tmp_time.txt
+ for i in "${!instance_usages[@]}"; do
+  printf "%s%s%s\n" "$i" ":" "${instance_usages[$i]}" >> tmp_time.txt
+ done
+ file=tmp_time.txt
+ mv $file $path
+ echo "$path$file"
+}
+
+# *****************************************************************************
+# Function: get_cost_spent
+# Purpose : Calculates cost spent for each instance type from supplied file.
+#           Returns total cost spent.
+# Usage   : get_time_spent <file>
+# *****************************************************************************
+function get_cost_spent() {
+ local time_file=$1
+ local total_cost=0
+ while IFS=":" read -r instance_type time_sec
+ do
+  rate=${instance_rates[$instance_type]}
+  h=$((time_sec/3600))
+  inst_cost=$(echo "$h*$rate" | bc -l)
+  total_cost=$(echo "$total_cost+$inst_cost" | bc -l )
+ done < $time_file
+ echo $total_cost
+}
+
+# *****************************************************************************
+# Function: get_pl_cost_code
+# Purpose : Returns pipeline cost code.
+# Usage   : get_pl_cost_code <pipeline name>
+# *****************************************************************************
+function get_pl_cost_code() {
+ local pl_name="$1"
+ echo ${pl_cost_code[$pl_name]}
+}
+
+# *****************************************************************************
+# Function: get_pl_name
+# Purpose : Returns pipeline name.
+# Usage   : get_pl_name <pipeline code>
+# *****************************************************************************
+function get_pl_name() {
+ local pl_code="$1"
+ for i in "${!pl_cost_code[@]}"; do
+  if [[ "${pl_cost_code[$i]}" == "$pl_code" ]]; then
+   pl_name="$i"
+  fi
+ done
+ echo $pl_name
+}
+
+# *****************************************************************************
+# Function: ci_report_date
+# Purpose : Gets the date for file to be downloaded from Google Cloud Storage.
+# Usage   : ci_report_date <Number of days>
+# *****************************************************************************
+function ci_report_date() {
+ local days=$1
+ tmp_arr=( $(gsutil ls gs://ci-bucket/* | grep ci-report | grep '.\{50\}' | tail -$days ) )
+ report_date=${tmp_arr[0]##*_}
+ report_date=${report_date%.*}
+ echo $report_date
+}
+
+# *********************************************************************************
+# Function: download_ci_report
+# Purpose : Downloads file (ci-report) of specified date from Google Cloud Storage.
+# Usage   : ci_report_date <Number of days>
+# *********************************************************************************
+function download_ci_report() {
+ local date=$1
+ local path=$2
+ file=$(gsutil ls gs://ci-bucket/ci-report* | grep ${date})
+ file=${file##*/}
+ gsutil cp gs://ci-bucket/${file} . &> /dev/null
+ mv $file $path
+ echo "$path$file"
+}
+
+# ***********************************************************************************************************
+# Function: extract_pattern
+# Purpose : Extracts the lines from specified file according to patterns supplied.
+# Usage   : extract_pattern <pipeline code> <user name> <path to ci-report> <name of output file> <workspace>
+# ***********************************************************************************************************
+function extract_pattern() {
+ local pl_code=$1
+ local filepath=$2
+ local newname=$3
+ local workspace=$4
+ local user=$5
+ #Added this check to ommit pl_code as search criteria when only user is given. This will count the lines
+ #where pipeline info was included in the instance name.
+ if [[ -n "$pl_code" ]]; then
+  grep "$pl_code" $filepath > tmp_file
+ else
+  cat $filepath > tmp_file
+ fi
+ if [[ -n "$user" ]]; then
+  grep "$user" tmp_file > tmp_file1
+  grep Vmimage tmp_file1 > $workspace$newname
+ else
+  grep Vmimage tmp_file > $workspace$newname
+ fi
+
+ rm tmp_file*
+ echo "$workspace$newname"
+}
+
+# *****************************************************************************
+# Function: get_num_of_days
+# Purpose : Takes time duration and returns number of days accordingly.
+# Usage   : get_num_of_days <duration>
+# *****************************************************************************
+function get_num_of_days() {
+ local duration="$1"
+ local num_of_days
+ case $duration in
+  day)
+   num_of_days=1
+   ;;
+  week)
+   num_of_days=7
+   ;;
+  month)
+   num_of_days=30
+   ;;
+  *)
+   echo "Invalid input!"
+   exit 1
+ esac
+ echo $num_of_days
+}

@@ -1,6 +1,6 @@
 #!/bin/bash -e
 set -e
-export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/:/opt/pg/scripts/gcloud/utilities:$PATH
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/:/opt/pg/scripts/gcloud/utilities:/opt/pg/scripts/gcloud/aurora/cost_calculation/:$PATH
 . gc_helpers.sh
 source help.sh
 if [ $1 != "init" ]; then
@@ -44,6 +44,8 @@ case $1 in
       download_using_instance_name ${@:2} ;;
     load)
       aurora_load.sh ${@:2} ;;
+    cost)
+      aurora_cost.sh ${@:2} ;;
     set_max_instances)
       set_max_instances ${@:2} ;;
     help)
