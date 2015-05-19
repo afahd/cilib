@@ -52,13 +52,14 @@ function get_script_dir() {
 # *****************************************************************************
 # Function: remove_test_from_db
 # Purpose : Removes a test case from the database
-# Usage   : remove_test_from_db <DB Path> <test name>
+# Usage   : remove_test_from_db <DB Path> <Name of Table in DB> <test name>
 # *****************************************************************************
 function remove_test_from_db() {
-  local FAILING_TESTS_DB=$1
-  local test_name=$2
+  local TESTS_DB=$1
+  local TESTS_TABLE=$2
+  local TEST_NAME=$3
 
-  sqlite3 $FAILING_TESTS_DB "DELETE FROM $FAILING_TESTS_TABLE WHERE name='$test_name';"
+  sqlite3 $TESTS_DB "DELETE FROM $TESTS_TABLE WHERE name='$TEST_NAME';"
 }
 
 # *****************************************************************************

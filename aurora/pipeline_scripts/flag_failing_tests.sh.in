@@ -115,7 +115,7 @@ function flag_failing_tests() {
       #Remove from DB if the test passed
       if [[ $failure_prob -eq 0 ]]; then
         echo "Removing $test_name from DB"
-        remove_test_from_db $FAILING_TESTS_DB $test_name
+        remove_test_from_db $FAILING_TESTS_DB $FAILING_TESTS_TABLE $test_name
       fi
       i=$((i+1))
     done < ${all_failing_tests_list}
@@ -143,7 +143,7 @@ function flag_failing_tests() {
       if [[ $failure_prob -ge 10 && ${failing_since} -gt ${limit} ]]; then
           #Remove the test from the database
           echo "Test:$test_name Status:unstable "
-          remove_test_from_db $FAILING_TESTS_DB $test_name
+          remove_test_from_db $FAILING_TESTS_DB $FAILING_TESTS_TABLE $test_name
           #Send status to builder if test is marked unstable
           test_status="unstable"
       fi

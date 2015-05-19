@@ -155,7 +155,7 @@ function flag_passing_tests() {
       if [[ $failure_prob -eq 0 && ${passing_since} -gt ${limit} ]]; then
           #Remove the test from the database
           echo "Test:$test_name Status:stable "
-          remove_test_from_db $UNSTABLE_TESTS_DB $test_name
+          remove_test_from_db $UNSTABLE_TESTS_DB $UNSTABLE_TESTS_TABLE $test_name
           #Send status to builder if test is marked unstable
           test_status="stable"
       fi
