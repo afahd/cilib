@@ -26,6 +26,11 @@ STEP_ST=1
 STEP_ED=24
 
 CONTINUE=0
+declare -A br_code
+br_code[master]="1"
+br_code[stable_4_0]="2"
+br_code[stable_4_1]="3"
+
 BUILD_SCRIPT=@CMAKE_BINARY_DIR@/aurora/init_scripts/run_build_all.sh
 # read the options
 TEMP=`getopt -o Kr:t:Cb:p:W:Q:s:R:E:Oh --long keep-running,refspec:,script:,WORKSPACE:,tag:,\continue,branch:,proj:,stop,help,major:,minor_st:,minor_end: -n 'aurora.sh' -- "$@"`
@@ -59,7 +64,8 @@ if [[ -z "$BRANCH" || -z "$PROJECT" ]]; then
   show_build_help
   exit 1
 fi
-
+#creating branch code from branch name provided by user.
+branch_code="b-${br_code[$BRANCH]}"
 #keep_running equalling 1 means -k was specified, end step should be 1 less.
 if [[ $KEEP_RUNNING == "1" ]]; then
   # STEPS_ED=STEP_ED-1
@@ -76,7 +82,8 @@ if [[ $TAG != "none" ]]; then
   TAG=${TAG,,}
   INSTANCE_NAME=${INSTANCE_NAME}-${TAG}
 fi
-
+#Append branch code to the instance name
+INSTANCE_NAME=${INSTANCE_NAME}-${branch_code}
 #Append refspec
 if [[ $REFSPEC == "none" ]]; then
   MOD_BRANCH=$(echo "$BRANCH" | tr _ -)
