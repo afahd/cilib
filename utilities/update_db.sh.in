@@ -1,0 +1,81 @@
+#!/bin/bash
+
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/:$PATH
+source gc_helpers.sh
+source pl_utils.sh
+source pl_settings.conf
+source pl_help.sh
+
+if [[ $1 == "help" ]]; then
+  show_db_update_help
+  exit 1
+fi
+
+TEMP=`getopt -o p:W:P:b:l:u:t:\h --long project:,WORKSPACE:,pipeline:,branch:,build_id:,update_db_failure_limit:,tag:,\help -n 'update_db.sh' -- "$@"`
+eval set -- "$TEMP"
+
+while true ; do
+  case "$1" in
+    -p|--project) PROJECT=$2 ; shift 2 ;;
+    -W|--WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
+    -P|--pipeline) PIPELINE=$2 ; shift 2 ;;
+    -b|--branch) BRANCH=$2 ; shift 2 ;;
+    -l|--build_id) BUILD_ID=$2 ; shift 2 ;;
+    -u|--update_db_failure_limit) UPDATE_DB_FAILURE_LIMIT=$2 ; shift 2 ;;
+    -t|--tag) TAG=$2 ; shift 2 ;;
+    -h| --help) show_db_update_help; exit 0; shift ;;
+    --) shift ; break ;;
+    *)
+      echo "Unrecognized option $1"
+       exit 1 ;;
+  esac
+done
+
+BUILD_WORKSPACE=${WORKSPACE}/aurora-build-${BRANCH}
+BUILDID_FILE=${WORKSPACE}/aurora-build-${BRANCH}/logs/build_id
+PIPELINE_WORKSPACE=${WORKSPACE}/pl-${PIPELINE}-${BRANCH}
+create_dir_or_remove_contents ${BUILD_WORKSPACE}
+
+## check if build id is provided by user as parameter
+if [[ -z "$BUILD_ID" ]]; then
+  echo "NO BUILD ID PROVIDED BY USER"
+  echo "No Build exits, creating new build"
+  echo "====================================================="
+  echo " Running aurora build for Branch $BRANCH on $PROJECT"
+  echo "====================================================="
+
+  ## call aurora build utility, providing the required parameters.
+  aurora build -p $PROJECT -b $BRANCH -W $BUILD_WORKSPACE -t ${TAG}
+  ## get return value of aurora build
+  bld_retval=$?
+  ## Check if aurora build did not finish successfully, exiting out with status 1.
+  if [[ "$bld_retval" -ne 0 ]]; then
+    echo "aurora build failed for Branch $BRANCH, logs in $BUILD_WORKSPACE"
+    echo "exiting"
+    exit 1
+  else
+    echo "aurora build finished successfully, preparing to run aurora pipeline..."
+    ## if build has been run successfully and the buildid file exists, getting the buildid to run the pipeline.
+    IFS="=" read -r id BUILD_ID<${BUILDID_FILE}
+  fi
+fi
+
+#### read the pipelines one by one from the comma seperated provided as parameter
+IFS=',' read -ra pl <<< "$PIPELINE"
+for pipeline in "${pl[@]}"; do
+  echo "$pipeline"
+  echo "========================================================="
+  echo " Running aurora pipeline on Branch $BRANCH for $PIPELINE"
+  echo "========================================================="
+  PIPELINE_WORKSPACE=${WORKSPACE}/pl-${pipeline}-${BRANCH}
+  create_dir_or_remove_contents ${PIPELINE_WORKSPACE}
+  aurora pipeline -l ${BUILD_ID} -P ${pipeline} -b ${BRANCH} -W ${PIPELINE_WORKSPACE} -u ${UPDATE_DB_FAILURE_LIMIT} -F
+  pl_retval=$?
+  if [[ $pl_retval -ne 0 ]]; then
+    echo "aurora pipeline failed, something went wrong... "
+    ## Jumping to next pipeline (if more than one comma seperated pipeline is provided)
+    continue
+  else
+    echo "aurora pipeline run completed successfully..."
+  fi
+done

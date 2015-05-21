@@ -1209,3 +1209,18 @@ function translate_branch() {
   echo "${1}"
   return 0
 }
+# *****************************************************************************
+# Function: create_dir_or_remove_contents
+# Purpose : check if a directory exists, if does not exists, creates the directory
+#           otherwise, if directory exists, removes the contents of that directory
+# Usage   : translate_branch <project> <branch map>
+# *****************************************************************************
+function create_dir_or_remove_contents() {
+  local path=$1
+
+  if [[ -d "${path}" ]]; then
+    rm -rf ${path}/*
+  else
+    mkdir ${path}
+  fi
+}

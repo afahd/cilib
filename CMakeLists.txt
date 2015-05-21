@@ -7,3 +7,4 @@ set (CMAKE_INSTALL_PREFIX "/opt/pg/scripts")
 
 add_subdirectory(aurora)
 add_subdirectory(cloud-image-builder)
+add_subdirectory(utilities)

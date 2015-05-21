@@ -122,3 +122,27 @@ EXAMPLE:
 HELP
 }
 
+function show_db_update_help() {
+    cat << HELP
+-------------------------------------------------------------------------------
+USAGE: aurora update_db -j <project> -b <BRANCH> -P <pipeline-name> -u <acceptable test failure limit> [OPTIONS]
+      The utility enables the user to update the data-base of the specified pipeline and branch.
+
+Required Arguments:
+  -p, --project                     Project e.g. alps, pg_ui etc.
+  -B, --branch                      Branch of the code-base e.g. master, stable_4_0, stable_4_1
+  -P, --pipeline                    The pipeline which you want to run.
+                                    Possible values are "smoke", "extended", "unstable", "pgui-smoke", "omni".
+                                    (Default is 'smoke')
+                                    Multiple pipelines can be specified in a comma separated string e.g smoke,extended,omni
+  -u, --update_db_failure_limit     Limit of the acceptable failure limit, if test failures seen in a pipeline run are less
+                                    or equal to the specified limit, the dbs would be updated.
+
+Optional Arguments:
+  -l, --buildid                     Build-ID against which you want to run test cases
+                                    If you already have a build, just specify the build use this flag and
+  -W, --WORKSPACE                   Set the workspace where all the logs will be stored.
+                                    Logs will be place in ${WORKSPACE}/logs
+-------------------------------------------------------------------------------
+HELP
+}

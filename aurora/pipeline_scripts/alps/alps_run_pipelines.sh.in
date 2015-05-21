@@ -26,7 +26,7 @@ DEST_SCRIPT_DIR=0
 echo "run_pipelines.sh $@"
 ARGS=$@
 # read the options
-TEMP=`getopt -o Q:R:E:W:l:P:b:i:f:t:s:n:\r:d:IFKc:e:a:h --long major:,minor_start:,minor_end:,WORKSPACE:,buildid:,pipeline:,branch:,test_iterations:,first_test:,step_size:,script:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update,keep-running,local_commit:,existing_commit_hash:,alps-path:,cost_pipeline_code:,\help -n 'run_all_test.sh' -- "$@"`
+TEMP=`getopt -o Q:R:E:W:l:P:b:i:f:t:u:s:n:\r:d:IFKc:e:a:h --long major:,minor_start:,minor_end:,WORKSPACE:,buildid:,pipeline:,branch:,test_iterations:,first_test:,step_size:,update_db_failure_limit:,script:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update,keep-running,local_commit:,existing_commit_hash:,alps-path:,cost_pipeline_code:,\help -n 'run_all_test.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # extract options and their arguments into variables.
@@ -42,6 +42,7 @@ while true ; do
     -i|--test_iterations) TEST_ITERATIONS=$2 ; shift 2 ;;
     -f|--first_test) FIRST_TEST=$2 ; shift 2 ;;
     -t|--step_size) STEP_SIZE=$2 ; shift 2 ;;
+    -u|--update_db_failure_limit) UPDATE_DB_FAILURE_LIMIT=$2 ; shift 2 ;;
     -s|--script) USER_SCRIPT=$2 ; shift 2 ;;
     -n|--num_instances) NUM_INSTANCES=$2 ; shift 2 ;;
     -r|--base_script_dir) BASE_SCRIPT_DIR=$2 ; shift 2;;
@@ -244,13 +245,12 @@ function run_test() {
       #Remove the instance number, iteration number and extension
       pretty_test_name=$(echo "$base_test_name" | sed 's/ctestout_inst.*_iter[0-9]\+_//' | sed 's/.FAILED.log//' | sed 's/.tar.gz//')
       mkdir -p $WORKSPACE/test_logs/$pretty_test_name
-      mv $file $WORKSPACE/test_logs/$pretty_test_name/$base_test_name
+      cp $file $WORKSPACE/test_logs/$pretty_test_name/$base_test_name
     done
-
-    if [[ $num_failures -eq 0 && $DB_UPDATE == "true" ]];then
+    if [[ "$num_failures" -le "$UPDATE_DB_FAILURE_LIMIT" && $DB_UPDATE == "true" ]];then
       # Update database
       echo "Update database ${db} from ${untar_log_dir}"
-      ./build_db.sh -D ${db} -d ${untar_log_dir} > ${untar_log_dir}/DB_REPORT.txt
+      build_db.sh -D ${db} -d ${untar_log_dir} > ${untar_log_dir}/DB_REPORT.txt
       cat ${untar_log_dir}/DB_REPORT.txt
       printf "\n\n******* Updation of database has been completed. Please see ${untar_log_dir}/DB_REPORT.txt ******\n\n"
     fi

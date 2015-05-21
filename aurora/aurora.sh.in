@@ -1,6 +1,6 @@
 #!/bin/bash -e
 set -e
-export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/:$PATH
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/:/opt/pg/scripts/gcloud/utilities:$PATH
 . gc_helpers.sh
 source help.sh
 if [ $1 != "init" ]; then
@@ -34,6 +34,8 @@ case $1 in
       run_debug_test ${@:2} ;;
     hunt)
       hunt_culprit.sh ${@:2} ;;
+    update_db)
+      update_db.sh ${@:2} ;;
     upload)
       upload_using_instance_name ${@:2} ;;
     download)
