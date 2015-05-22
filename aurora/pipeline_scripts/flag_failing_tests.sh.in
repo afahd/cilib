@@ -38,7 +38,11 @@ while true ; do
 done
 
 #Verify inputs
-check_flag_inputs $BUILD_ID $PL_FAILING_TESTS_LIST $FLAG_TEST_ITERATIONS $FLAG_NUM_INSTANCES $BRANCH
+check_flag_inputs $BUILD_ID $FLAG_TEST_ITERATIONS $FLAG_NUM_INSTANCES $BRANCH
+
+if [[ ! -s "$PL_FAILING_TESTS_LIST" ]]; then
+  echo "$PL_FAILING_TESTS_LIST is empty"
+fi
 
 if [[ ! -d ${WORKSPACE}/flag ]]; then
   mkdir -p ${WORKSPACE}/flag

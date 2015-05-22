@@ -139,19 +139,13 @@ function update_passing_tests_prob() {
 # *****************************************************************************
 function check_flag_inputs() {
   local build_id=$1
-  local test_list=$2
-  local test_iterations=$3
-  local num_instances=$4
-  local branch=$5
+  local test_iterations=$2
+  local num_instances=$3
+  local branch=$4
 
   #Check build-id exists
   check_run_inputs ${emailid}-$build_id
 
-  #Check if input failing-list file exists and is not empty
-  if [[ ! -f $test_list ]]; then
-    echo "Input failing-list empty or does not exist, exiting"
-    exit 1
-  fi
   #Verify iterations and num_instances are numbers
   re='^[0-9]+$'
   if ! [[ $test_iterations =~ $re ]] ; then
@@ -166,9 +160,9 @@ function check_flag_inputs() {
 
   #Verify input Branch
   local RESULT=0
-  git ls-remote ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/alps "${BRANCH}" | grep -q "${BRANCH}" || RESULT=$?
+  git ls-remote ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/alps "${branch}" | grep -q "${branch}" || RESULT=$?
   if [[ $RESULT -ne 0 ]];then
-    echo "Branch: $BRANCH does not exist for the project: alps"
+    echo "Branch: $branch does not exist for the project: alps"
     exit 1
   fi
 

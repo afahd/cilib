@@ -24,7 +24,7 @@ if [[ $1 == "help" ]]; then
   exit 1
 fi
 
-TEMP=`getopt -o l:p:W:Ki:b:n:D:R:E:\h --long buildid:,pl_failing_tests_list:,WORKSPACE:,branch:,keep-running,test_iterations:,num_instances:,db:,minor_st:,minor_end:,\help -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o l:p:W:Ki:b:n:D:R:E:\h --long buildid:,unstable_marked_tests:,WORKSPACE:,branch:,keep-running,test_iterations:,num_instances:,db:,minor_st:,minor_end:,\help -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 
 STEP_ST=1
@@ -51,7 +51,7 @@ while true ; do
   esac
 done
 
-check_flag_inputs $BUILD_ID $UNSTABLE_MARKED_TESTS $FLAG_TEST_ITERATIONS $FLAG_NUM_INSTANCES $BRANCH
+check_flag_inputs $BUILD_ID $FLAG_TEST_ITERATIONS $FLAG_NUM_INSTANCES $BRANCH
 
 if [[ ! -d ${WORKSPACE}/mark_stable ]]; then
   mkdir -p ${WORKSPACE}/mark_stable
