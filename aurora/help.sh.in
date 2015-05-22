@@ -16,7 +16,8 @@ COMMAND:
   upload              Upload file to cloud instance from local machine.
   ls                  List all currently active cloud instances or snapshots
   cp                  Create a copy of other user's build.
-  shutdown            Shuts down the ENTITY containing value in REGEX
+  start               Starts the INSTANCE containing value in REGEX
+  shutdown            Shuts down the INSTANCE containing value in REGEX
   rm                  Deletes the ENTITY containing value in REGEX
   login               Login to the specified INSTANCE
   load                Shows the resources used by all users.
@@ -143,6 +144,20 @@ USAGE: aurora ls <ENTITY>
 HELP
 }
 
+function show_start_help() {
+   cat << HELP
+USAGE: aurora start <ENTITY> <REGEX> [-f --force]
+       Shuts down the ENTITY containing value in REGEX
+
+<ENTITY>              Value can be:
+                      "instances"
+<REGEX>               Regex to match. e.g "run" will start all instances
+                      having 'run' as part of name.
+Options:
+-f, --force           Suppresses user confirmation
+HELP
+}
+
 function show_shutdown_help() {
    cat << HELP
 USAGE: aurora shutdown <ENTITY> <REGEX> [-f --force]
@@ -150,7 +165,7 @@ USAGE: aurora shutdown <ENTITY> <REGEX> [-f --force]
 
 <ENTITY>              Value can be:
                       "instances"
-<REGEX>               Regex to match. e.g "run" will delete all instances or snapshots
+<REGEX>               Regex to match. e.g "run" will shutdown all instances
                       having 'run' as part of name.
 Options:
 -f, --force           Suppresses user confirmation
