@@ -211,7 +211,7 @@ function delete_instances() {
 
   if [[ -z ${user_instances} ]]; then
    echo "No such instances found"
-   exit
+   return
   fi
 
   echo "The following instances will be permanently deleted: "
@@ -244,7 +244,7 @@ function delete_snapshots() {
 
   if [[ -z ${user_snapshots} ]]; then
    echo "No such snapshots found"
-   exit
+   return
   fi
 
   echo "The following snapshots will be permanently deleted: "
@@ -276,7 +276,7 @@ function delete_disks() {
 
   if [[ -z ${user_disks} ]]; then
    echo "No such disks found"
-   exit
+   return
   fi
 
   echo "The following disks will be permanently deleted: "
