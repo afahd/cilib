@@ -69,7 +69,7 @@ function build_image() {
             "MIGRATE" --scopes "$SCOPES" -q \
             --disk "name=${PRIM_INST_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
             --disk "name=${PRIM_INST_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" \
-            --metadata-from-file sshKeys=/tmp/keys
+            --no-address --tags "no-ip" --metadata-from-file sshKeys=/tmp/keys
         ;;
       3)
           echo "Waiting for the machine to boot up and allow ssh access"
@@ -78,10 +78,8 @@ function build_image() {
           ;;
       4)
           echo "Copying setup file over"
-          tryexec scp -o StrictHostKeyChecking=no ~/.ssh/id_rsa.pub ${_USER}@$INSTANCE_IP:./auth-key.pub
-          tryexec ssh -t ${_USER}@${INSTANCE_IP}  -o UserKnownHostsFile=/dev/null -o CheckHostIP=no -o StrictHostKeyChecking=no "cat ./auth-key.pub >> ~/.ssh/authorized_keys && sudo ifconfig eth0 mtu 1400"
+          tryexec run_cmd_gci ${INSTANCE_IP} "sudo ifconfig eth0 mtu 1400"
           tryexec scp -o StrictHostKeyChecking=no @CMAKE_CURRENT_BINARY_DIR@/vm_files/* ${_USER}@${INSTANCE_IP}:.
-          tryexec scp -o StrictHostKeyChecking=no ~/.ssh/id_rsa.pub ${_USER}@${INSTANCE_IP}:authorized_keys
           ;;
 
       5)

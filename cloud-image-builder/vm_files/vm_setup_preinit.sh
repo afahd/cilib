@@ -1,6 +1,5 @@
 #!/bin/bash -e
 set -e
-cat ./auth-key.pub >> ~/.ssh/authorized_keys
 echo 'Acquire::http { Proxy \"http://10.10.163.162:3142\"; };' > /tmp/02proxy
 sudo mv /tmp/02proxy /etc/apt/apt.conf.d/02proxy
 sudo apt-get install -y btrfs-tools haveged libxml2-dev

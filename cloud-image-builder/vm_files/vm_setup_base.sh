@@ -30,9 +30,6 @@ cp ssh_config /home/plumgrid/.ssh/config
 #/bin/mkdir /var/run/sshd
 #ADD authorized_keys /home/plumgrid/.ssh/authorized_keys
 sudo sed -i 's/ \/var\/www/ \/opt\/pg\/var\/www/g'  /etc/apache2/sites-available/default
-cat authorized_keys >> /home/plumgrid/.ssh/authorized_keys
-/bin/chown plumgrid.plumgrid /home/plumgrid/.ssh/authorized_keys
-/bin/chmod 600 /home/plumgrid/.ssh/authorized_keys
 /bin/chown plumgrid.plumgrid /opt
 /bin/chmod 777 /opt
 su plumgrid -c 'bash -c "sudo mkdir -p /opt/local/bin"'
