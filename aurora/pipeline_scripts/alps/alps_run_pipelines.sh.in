@@ -230,6 +230,8 @@ function run_test() {
     #Copy the XML logs for omni
     if [[ "$PIPELINE" == "omni" || "$PIPELINE" == "extended" || "$PIPELINE" == "smoke" || "$PIPELINE" == "unstable" ]]; then
       mkdir -p ${WORKSPACE}/logs/xml_logs
+      #Replace the '.FAILED' for the failing logs so failing logs take precedence
+      find ${untar_log_dir} -type f -name "*FAILED.xml" -exec  rename -f 's/.FAILED.xml/.xml/' '{}' \;
       #Copy the xml logs
       find ${untar_log_dir} -type f -name "*.xml" -exec mv {} ${WORKSPACE}/logs/xml_logs/ \;
     fi
