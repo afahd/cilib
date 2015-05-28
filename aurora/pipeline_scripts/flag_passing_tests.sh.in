@@ -145,7 +145,7 @@ function flag_passing_tests() {
     test_status_file=${WORKSPACE}/logs/test-mark-stable-info
     cat /dev/null > ${test_status_file}
     while read test_name;do
-      test_status="unstable"
+      test_status="mark_unstable"
       now=$(date +%s)
       failure_prob=$(cat $mark_stable_failing_test_prob | head -$i | tail -1)
       first_occurence=$(sqlite3 $UNSTABLE_TESTS_DB "SELECT FirstPassingOccurence from $UNSTABLE_TESTS_TABLE WHERE name='$test_name';")
@@ -157,7 +157,7 @@ function flag_passing_tests() {
           echo "Test:$test_name Status:stable "
           remove_test_from_db $UNSTABLE_TESTS_DB $UNSTABLE_TESTS_TABLE $test_name
           #Send status to builder if test is marked unstable
-          test_status="stable"
+          test_status="mark_stable"
       fi
       echo "$test_name,$failure_prob,$passing_since,$BRANCH,$test_status" >> ${test_status_file}
       i=$((i+1))
