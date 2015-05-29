@@ -490,7 +490,7 @@ function delete_entities()
 # *****************************************************************************
 # Function: cp_entities
 # Purpose : Copy an entity created by some other user
-# Usage   : cp_entities <entity type> <entitiy_name>
+# Usage   : cp_entities <entity type> <entitiy_name> <optional_tag>
 # *****************************************************************************
 function cp_entities()
 {
@@ -506,7 +506,7 @@ function cp_entities()
 
   case $1 in
     build)
-      cp_build $2 $3 ;;
+      cp_build $2 $3 $4;;
     *)
       echo "Invalid entity for aurora cp"
       show_cp_help;;
@@ -588,12 +588,12 @@ fi
 # *****************************************************************************
 # Function: cp_build
 # Purpose : Copy a particular build created by some other user.
-# Usage   : cp_build <SRC_USER_EMAIL> <SRC_BUILD_ID>
+# Usage   : cp_build <SRC_USER_EMAIL> <SRC_BUILD_ID> <Optional Tag>
 # *****************************************************************************
 function cp_build() {
-  # SRC_BUILD_ID=bld-stable-4-0 and SRC_USER_EMAIL=ahsanr@plumgrid.com
-  # disk1=ahsanr-bld-stable-4-0-d1   and disk2=ahsanr-bld-stable-4-0-d2
-  # ssd1 =ahsanr-bld-stable-4-0-ssd1 and ssd2 =ahsanr-bld-stable-4-0-ssd2
+  # SRC_BUILD_ID=lastlast-bld-stable-4-0 and SRC_USER_EMAIL=ahsanr@plumgrid.com
+  # disk1=ahsanr-lastlast-bld-stable-4-0-d1   and disk2=ahsanr-lastlast-bld-stable-4-0-d2
+  # ssd1 =ahsanr-lastlast-bld-stable-4-0-ssd1 and ssd2 =ahsanr-lastlast-bld-stable-4-0-ssd2
   # MY_TAG=final
   local SRC_USER_EMAIL=$1
   local SRC_BUILD_ID=$2
@@ -601,28 +601,39 @@ function cp_build() {
 
 
   local mod_src_user_email=${SRC_USER_EMAIL%@*}   # ahsanr
-  local complete_src_build_id=${mod_src_user_email}-${SRC_BUILD_ID} # ahsanr-bld-stable-4-0
+  local complete_src_build_id=${mod_src_user_email}-${SRC_BUILD_ID} # ahsanr-lastlast-bld-stable-4-0
   local mod_my_emailid=${emailid%@*}
   local my_build_id=""
 
-    # Check if SRC_BUILD has a TAG
+
+    # if src has a tag
   if [[ $SRC_BUILD_ID =~ [[:alnum:]]+-bld ]]; then
-    # pullout the TAG NAME
-    local SRC_TAG=`expr "$BASH_REMATCH" : '\(.*-\)'`
+    # pullout the tag name
+    local SRC_TAG=`expr "$BASH_REMATCH" : '\(.*-\)'` #lastlast-
     # trim out the leading -
-    SRC_TAG=${SRC_TAG%-}
-    my_build_id=${mod_my_emailid}-${SRC_BUILD_ID}
-    my_build_id="${my_build_id/$SRC_TAG/$MY_TAG}"
-    echo "src has a TAG $SRC_TAG"
+    SRC_TAG=${SRC_TAG%-} #lastlast
 
-  else
-    echo "src doesn't have a TAG!"
-    # If SRC_BUILD_ID doesn't have a tag and we do.
-    if [[ "$MY_TAG" != ""  ]]; then
+    #...and we have a tag as well
+    if [[ "$MY_TAG" != "" ]]; then
+      echo "replacing $SRC_TAG with $MY_TAG"
+      my_build_id=${mod_my_emailid}-${SRC_BUILD_ID}
+      my_build_id="${my_build_id/$SRC_TAG/$MY_TAG}" # tahir-final-bld-stable-4-0
 
-      my_build_id=${mod_my_emailid}-${MY_TAG}-${SRC_BUILD_ID} # tahir-final-bld-stable-4-0
+    #..but we don't have a tag
     else
-    # If SRC_BUILD_ID doesn't have a tag and neither do we.
+      echo "no new tag, copying $SRC_TAG as is"
+      my_build_id=${mod_my_emailid}-${SRC_BUILD_ID} # tahir-lastlast-bld-stable-4-0
+    fi
+
+    # If src doesn't have a tag
+  else
+    #...and we have a tag
+    if [[ "$MY_TAG" != ""  ]]; then
+      echo "adding TAG: $MY_TAG to the bld name"
+      my_build_id=${mod_my_emailid}-${MY_TAG}-${SRC_BUILD_ID} # tahir-final-bld-stable-4-0
+
+    #...and neither do we
+    else
       my_build_id=${mod_my_emailid}-${SRC_BUILD_ID} # tahir-bld-stable-4-0
     fi
   fi

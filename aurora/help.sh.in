@@ -189,15 +189,17 @@ HELP
 function show_cp_help() {
    cat << HELP
 
-USAGE: aurora cp <ENTITY> <SRC_USER_EMAIL> <ENTITIY-NAME>
+USAGE: aurora cp <ENTITY> <SRC_USER_EMAIL> <ENTITIY-NAME> <OPTIONAL-TAG>
        Copy the entitiy created by another user
 
   ENTITY              "build" is only supported value right now.
   SRC_USER_EMAIL      PLUMgrid email-id of user whose entity you want to copy.
                       "@plumgrid.com" part is NOT needed.
   ENTITY_NAME         NAME of the entity which you want to copy.
+  OPTIONAL-TAG        Replaces or adds the tag in the src entity-name If no tag is
+                      mentioned, simply copies the entity-name as is.
 
-e.g "aurora cp build ahsanr bld-stable-4-0"
+e.g "aurora cp build ahsanr last-bld-stable-4-0 final"
 NOTE: To see "builds" created by other user, give their email id as parameter.
 "aurora ls build alir"
 
