@@ -1,4 +1,5 @@
 #!/bin/bash
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/:$PATH
 . ~/.aurora.conf
 . aurora_utils.sh
 
@@ -13,6 +14,10 @@
 function cleanup() {
   start_time=$(date +%s)
   local BUILD_ID=$1
+  if [[ -z $BUILD_ID ]]; then
+    echo "no build given"
+    exit 1
+  fi
   local RUN_ID=$(echo "$BUILD_ID" | sed "s/bld/run/g")
   #Delete the build Instance
   delete_instances "${BUILD_ID}" "--force"
