@@ -240,7 +240,7 @@ function shutdown_instances() {
 # *****************************************************************************
 function delete_instances() {
   local REGEX=.*$(echo "$1" | tr -d '*' ).*
-  local user_instances=$(gcloud compute instances list --regexp "${REGEX}" | grep ${emailid} | cut -d ' ' -f 1)
+  local user_instances=$(gcloud compute instances list --regexp "${emailid}-${REGEX}" | grep "^${emailid}.*" | cut -d ' ' -f 1)
 
   if [[ -z ${user_instances} ]]; then
    echo "No such instances found"
@@ -273,7 +273,7 @@ function delete_instances() {
 # *****************************************************************************
 function delete_snapshots() {
   local REGEX=.*$(echo "$1" | tr -d '*' ).*
-  local user_snapshots=$(gcloud compute snapshots list --regexp "${REGEX}" | grep ${emailid} | cut -d ' ' -f 1)
+  local user_snapshots=$(gcloud compute snapshots list --regexp "${emailid}-${REGEX}" | grep "^${emailid}.*" | cut -d ' ' -f 1)
 
   if [[ -z ${user_snapshots} ]]; then
    echo "No such snapshots found"
@@ -305,7 +305,7 @@ function delete_snapshots() {
 # *****************************************************************************
 function delete_disks() {
   local REGEX=.*$(echo "$1" | tr -d '*' ).*
-  local user_disks=$(gcloud compute disks list --regexp "${REGEX}" | grep ${emailid} | cut -d ' ' -f 1)
+  local user_disks=$(gcloud compute disks list --regexp "${emailid}-${REGEX}" | grep "^${emailid}.*" | cut -d ' ' -f 1)
 
   if [[ -z ${user_disks} ]]; then
    echo "No such disks found"
