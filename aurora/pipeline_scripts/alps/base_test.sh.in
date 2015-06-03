@@ -99,7 +99,7 @@ for run in $(seq 1 $itr); do
       test_name=$(ctest -N  -L ^type:$test_tag$ | grep "Test #" | cut -d " " -f 5 | head -n "$testno" | tail -n 1)
     elif [[ "$PIPELINE" == "DEBUG-TEST" ]]; then
       test_name=${USER_TEST[$testno]}
-      test_name=$(ctest -N  -L ^type:$test_tag$ | grep -o "$test_name\$")
+      test_name=$(ctest -N  -L ^type:$test_tag$ | grep -o " $test_name\$" | tr -d ' ')
     else
       test_name=$(ctest -N  -L ^type:$test_tag$ | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
     fi
