@@ -119,7 +119,7 @@ function flag_passing_tests() {
     num_runs=$(($FLAG_TEST_ITERATIONS*$FLAG_NUM_INSTANCES))
     echo "======================================================================\n"
     while read test_name;do
-      num_failures=$(grep "$test_name" ${WORKSPACE}/logs/failing-list.log | wc -l)
+      num_failures=$(grep "^${test_name}$" ${WORKSPACE}/logs/failing-list.log | wc -l)
       failure_prob=$(($num_failures*100/$num_runs))
       echo "test:$test_name num_failures:$num_failures num_runs=$num_runs prob=${failure_prob}"
       echo "$failure_prob" >> ${mark_stable_failing_test_prob}

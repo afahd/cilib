@@ -127,7 +127,7 @@ function update_passing_tests_prob() {
   sqlite3 $UNSTABLE_TESTS_DB "UPDATE $UNSTABLE_TESTS_TABLE SET FailureProb='$failure_prob' WHERE name='$test_name';"
   if [[ $old_failure_prob -gt 0 && $failure_prob -eq 0 ]]; then
     #Update the failing since field
-    sqlite3 $UNSTBALE_TESTS_DB "UPDATE $UNSTABLE_TESTS_TABLE SET FirstPassingOccurence='$curr_time' WHERE name='$test_name';"
+    sqlite3 $UNSTABLE_TESTS_DB "UPDATE $UNSTABLE_TESTS_TABLE SET FirstPassingOccurence='$curr_time' WHERE name='$test_name';"
   fi
 }
 
