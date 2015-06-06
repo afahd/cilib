@@ -23,7 +23,7 @@ PROJECT=""
 
 MAJOR_STEPS="build"
 STEP_ST=1
-STEP_ED=24
+STEP_ED=23
 
 CONTINUE=0
 declare -A br_code
@@ -297,36 +297,26 @@ function build_image() {
     ;;
 
   18)
-    if [[ $PROJECT == "coral" ]]; then
-      #Hack for building coral
-      #Only here until refs/changes/41/12741/2 and refs/changes/64/12864/4 gets merged
-      run_cmd_gci_sshforwarding ${INSTANCE_IP} "cd /home/plumgrid/work/tools;git fetch ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/tools refs/changes/41/12741/2 && git cherry-pick FETCH_HEAD"
-      run_cmd_gci_sshforwarding ${INSTANCE_IP} "cd /home/plumgrid/work/tools;git fetch ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/tools refs/changes/64/12864/4 && git cherry-pick FETCH_HEAD"
-    fi
-    record_step $step $step_file
-    ;;
-
-  19)
      run_cmd_gci ${INSTANCE_IP} "ln -s /opt/pg/web/temp /opt/pg/var/www/"
      run_cmd_gci ${INSTANCE_IP} "sudo bash -c \"echo 'proxy=http://10.10.163.162:3128' >> /etc/yum/yum.conf\""
      record_step $step $step_file
     ;;
 
-  20)
+  19)
     echo "Running the build-init script"
     retryexec upload ${INSTANCE_IP} ${BUILD_SCRIPT} /tmp/build-init.sh
     tryexec run_bg_cmd ${INSTANCE_IP} "/tmp/build-init.sh" "/bin/bash /tmp/build-init.sh" "/tmp/build-init.log"
     record_step $step $step_file
     ;;
 
-  21)
+  20)
     echo "Poll the build-init logs (tailing \"/tmp/build-init.log\")"
     tryexec run_poll_cmd ${INSTANCE_IP} "/tmp/build-init.sh" "/tmp/build-init.log" "1"
     retryexec download ${INSTANCE_IP} "/tmp/build-init.log" "${WORKSPACE}/logs/build-init.log"
     record_step $step $step_file
     ;;
 
-  22)
+  21)
     BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${emailid}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
     # Flushing the disk buffers
@@ -336,7 +326,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  23)
+  22)
     # Flushing the disk buffers
     echo "Flushing the disk buffers"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo sync"
@@ -347,7 +337,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  24)
+  23)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     rm $step_file
