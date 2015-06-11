@@ -1,4 +1,9 @@
 #!/bin/bash -e
+
+## The purpose of this script is to provide translation/mapping to each of the aurora utilities
+## requested by the user. For each and every aurora utility that would be called from the terminal, a script
+## would be run to enable the developer to perform the desired testing/development.
+
 set -e
 export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/:/opt/pg/scripts/gcloud/utilities:/opt/pg/scripts/gcloud/aurora/cost_calculation/:$PATH
 . gc_helpers.sh
