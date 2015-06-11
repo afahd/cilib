@@ -41,6 +41,7 @@ done
 check_flag_inputs $BUILD_ID $FLAG_TEST_ITERATIONS $FLAG_NUM_INSTANCES $BRANCH
 
 if [[ ! -s "$PL_FAILING_TESTS_LIST" ]]; then
+  touch $PL_FAILING_TESTS_LIST
   echo "$PL_FAILING_TESTS_LIST is empty"
 fi
 
