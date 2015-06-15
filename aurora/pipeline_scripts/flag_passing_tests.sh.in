@@ -94,7 +94,12 @@ function flag_passing_tests() {
 
   3)
     echo "Generate a list of all unstable test cases in database"
-    # TODO: INFRA-865, provision for case when script provided for aurora debug-test is empty
+    # provisioning for case when script provided for debug-test is empty, i.e. db is empty
+    count_test=$(sqlite3 $UNSTABLE_TESTS_DB "select count(Name) from tests;")
+    if [[ "$count_test" -eq 0 ]]; then
+      echo "No tests in database. Since there are no test-cases to run, exiting..."
+      exit 0
+    fi
     sqlite3 $UNSTABLE_TESTS_DB "select NAME FROM $UNSTABLE_TESTS_TABLE;" > ${all_unstable_tests_in_db}
     ;;
 
@@ -104,7 +109,6 @@ function flag_passing_tests() {
     done < ${all_unstable_tests_in_db}
     echo "Running aurora debug test. Run each test $((FLAG_TEST_ITERATIONS*FLAG_NUM_INSTANCES)) number of times"
     retval=0
-    # TODO: INFRA-865, provision for case when script provided for aurora debug-test is empty
     aurora debug-test -W ${WORKSPACE} -l ${BUILD_ID} -i ${FLAG_TEST_ITERATIONS} -n ${FLAG_NUM_INSTANCES} -s ${debug_unstable_test_script} || retval=$?
     echo "Debug-test Return value:$retval"
     ;;

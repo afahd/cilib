@@ -78,6 +78,12 @@ function flag_failing_tests() {
 
   3)
     echo "Generate a list of all failing test cases in database"
+    # provisioning for case when script provided for debug-test is empty, i.e. db is empty
+    count_test=$(sqlite3 $FAILING_TESTS_DB "select count(Name) from tests;")
+    if [[ "$count_test" -eq 0 ]]; then
+      echo "No tests in database. Since there are no test-cases to run, exiting..."
+      exit 0
+    fi
     sqlite3 $FAILING_TESTS_DB "select NAME FROM $FAILING_TESTS_TABLE;" > ${all_failing_tests_list}
     ;;
   4)

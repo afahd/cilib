@@ -107,7 +107,7 @@ function show_upload_help() {
    cat << HELP
 
 USAGE: aurora upload <INSTANCE-NAME> <UPLOAD-FILE> <DESTINATION>
-       Download file from cloud instance to local machine.
+       Upload file from local machine to cloud instance.
 
 <INSTANCE-NAME>       Name of the instance to upload to.
                       To see a list of available instances use "aurora ls instances"
