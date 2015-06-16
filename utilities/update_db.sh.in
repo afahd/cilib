@@ -31,13 +31,20 @@ while true ; do
   esac
 done
 
+if [[ ! -e ${WORKSPACE} ]]; then
+  mkdir ${WORKSPACE}
+fi
+
 BUILD_WORKSPACE=${WORKSPACE}/aurora-build-${BRANCH}
 BUILDID_FILE=${WORKSPACE}/aurora-build-${BRANCH}/logs/build_id
 PIPELINE_WORKSPACE=${WORKSPACE}/pl-${PIPELINE}-${BRANCH}
-create_dir_or_remove_contents ${BUILD_WORKSPACE}
 
-## check if build id is provided by user as parameter
+## if build id is provided by user as parameter, that would be used by the script
+## if build id is not provided, the build_id file would be checked, if present, that build_id would be used
+
 if [[ -z "$BUILD_ID" ]]; then
+  IFS="=" read -r id BUILD_ID<${BUILDID_FILE}
+elif [[ -z "${BUILD_ID}" && ! -e "${BUILDID_FILE}" ]]; then
   echo "NO BUILD ID PROVIDED BY USER"
   echo "No Build exits, creating new build"
   echo "====================================================="
@@ -53,13 +60,9 @@ if [[ -z "$BUILD_ID" ]]; then
     echo "aurora build failed for Branch $BRANCH, logs in $BUILD_WORKSPACE"
     echo "exiting"
     exit 1
-  else
-    echo "aurora build finished successfully, preparing to run aurora pipeline..."
-    ## if build has been run successfully and the buildid file exists, getting the buildid to run the pipeline.
-    IFS="=" read -r id BUILD_ID<${BUILDID_FILE}
   fi
+  IFS="=" read -r id BUILD_ID<${BUILDID_FILE}
 fi
-
 #### read the pipelines one by one from the comma seperated provided as parameter
 IFS=',' read -ra pl <<< "$PIPELINE"
 for pipeline in "${pl[@]}"; do
@@ -69,9 +72,8 @@ for pipeline in "${pl[@]}"; do
   echo "========================================================="
   PIPELINE_WORKSPACE=${WORKSPACE}/pl-${pipeline}-${BRANCH}
   create_dir_or_remove_contents ${PIPELINE_WORKSPACE}
-  aurora pipeline -l ${BUILD_ID} -P ${pipeline} -b ${BRANCH} -W ${PIPELINE_WORKSPACE} -u ${UPDATE_DB_FAILURE_LIMIT} -F
-  pl_retval=$?
-  if [[ $pl_retval -ne 0 ]]; then
+  aurora pipeline -l ${BUILD_ID} -P ${pipeline} -b ${BRANCH} -W ${PIPELINE_WORKSPACE} -u ${UPDATE_DB_FAILURE_LIMIT} -F || true
+  if [[ -s "${PIPELINE_WORKSPACE}/logs/failing-list.log" ]]; then
     echo "aurora pipeline failed, something went wrong... "
     ## Jumping to next pipeline (if more than one comma seperated pipeline is provided)
     continue
