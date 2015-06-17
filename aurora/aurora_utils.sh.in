@@ -51,12 +51,13 @@ function download_using_instance_name() {
 # *****************************************************************************
 # Function: list_instances
 # Purpose : Lists the cloud instances currently running for the user.
-# Usage   : list_instances
+# Usage   : list_instances <emailid>
 # Prereq: Aurora init has been called.
 # *****************************************************************************
 function list_instances() {
-  echo "Listing instances for the user:$emailid"
-  local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp  --regexp "${emailid}-.*" | sed -e "s/${emailid}-//g")
+  local EMAILID=$1
+  echo "Listing instances for the user:$EMAILID"
+  local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp  --regexp "${EMAILID}-.*" | sed -e "s/${EMAILID}-//g")
   local instance_names=($(echo "$instance_list" | grep '^name'))
   local instance_status=($(echo "$instance_list" | grep status))
   local instance_creationtime=($(echo "$instance_list" | grep creationTimestamp))
@@ -73,12 +74,13 @@ function list_instances() {
 # *****************************************************************************
 # Function: list_snapshots
 # Purpose : Lists the cloud instances currently running for the user.
-# Usage   : list_instances
+# Usage   : list_snapshots <emailid>
 # Prereq: Aurora init has been called.
 # *****************************************************************************
 function list_snapshots() {
-  echo "Listing snapshots for the user:$emailid"
-  local snapshot_list=$(gcloud compute snapshots list --format=text --sort-by=creationTimestamp --regexp "${emailid}-.*" | sed -e "s/${emailid}-//g")
+  local EMAILID=$1
+  echo "Listing snapshots for the user:$EMAILID"
+  local snapshot_list=$(gcloud compute snapshots list --format=text --sort-by=creationTimestamp --regexp "${EMAILID}-.*" | sed -e "s/${EMAILID}-//g")
   local snapshot_names=($(echo "$snapshot_list" | grep name))
   local snapshot_status=($(echo "$snapshot_list" | grep status))
   local snapshot_size=($(echo "$snapshot_list" | grep diskSizeGb))
@@ -94,7 +96,7 @@ function list_snapshots() {
 # *****************************************************************************
 # Function: list_buildids
 # Purpose : Lists buildids running for the user by getting the snapshot list.
-# Usage   : list_buildids
+# Usage   : list_buildids <emailid>
 # Prereq: Aurora init has been called.
 # *****************************************************************************
 function list_buildids() {
@@ -117,12 +119,13 @@ function list_buildids() {
 # *****************************************************************************
 # Function: list_runids
 # Purpose : Lists the runids for the user by getting the instance list.
-# Usage   : list_instances
+# Usage   : list_runids <emailid>
 # Prereq: Aurora init has been called.
 # *****************************************************************************
 function list_runids() {
-  echo "Listing run-ids for the user:$emailid"
-  local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp  --regexp "${emailid}-.*run-.*" | sed -e "s/${emailid}-//g")
+  local EMAILID=$1
+  echo "Listing run-ids for the user:$EMAILID"
+  local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp  --regexp "${EMAILID}-.*run-.*" | sed -e "s/${EMAILID}-//g")
   local instance_names=($(echo "$instance_list" | grep '^name'))
   local instance_status=($(echo "$instance_list" | grep status))
   printf "%-15s %-40s %-10s\n" "Run-id" "Build-id-[Run-TAG]" "Status"
@@ -136,13 +139,14 @@ function list_runids() {
 # *****************************************************************************
 # Function: list_disks
 # Purpose : Lists the disks without instances for the user.
-# Usage   : list_disks
+# Usage   : list_disks <emailid>
 # Prereq: Aurora init has been called.
 # *****************************************************************************
 function list_disks() {
-  echo "Listing disks for the user:$emailid"
+  local EMAILID=$1
+  echo "Listing disks for the user:$EMAILID"
   # Instances
-  local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp --regexp ".*" | grep ${emailid} | sed -e "s/${emailid}-//g")
+  local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp --regexp ".*" | grep ${EMAILID} | sed -e "s/${EMAILID}-//g")
   local instance_names=($(echo "$instance_list" | grep '^name'))
   local instances_str=${instance_names[1]}
   for (( i = 3; i < ${#instance_names[@]} ; i=i+2 )) do
@@ -150,12 +154,12 @@ function list_disks() {
   done
 
   # Disks without instances
-  local REGEX=".*$1.*"
+  local REGEX=".*${EMAILID}.*"
 
   if [[ -n $instances_str ]]; then
-    local disk_list=$(gcloud compute disks list --format=text --sort-by=creationTimestamp --regexp "${REGEX}" | grep ${emailid} | sed -e "s/${emailid}-//g" | grep -v "$instances_str")
+    local disk_list=$(gcloud compute disks list --format=text --sort-by=creationTimestamp --regexp "${REGEX}" | grep ${EMAILID} | sed -e "s/${EMAILID}-//g" | grep -v "$instances_str")
   else
-    local disk_list=$(gcloud compute disks list --format=text --sort-by=creationTimestamp --regexp "${REGEX}" | grep ${emailid} | sed -e "s/${emailid}-//g")
+    local disk_list=$(gcloud compute disks list --format=text --sort-by=creationTimestamp --regexp "${REGEX}" | grep ${EMAILID} | sed -e "s/${EMAILID}-//g")
   fi
 
   local disk_names=($(echo "$disk_list" | grep name))
@@ -387,15 +391,15 @@ function list_entities()
   local EMAILID=${2:-$emailid}
   case $1 in
     instances|"")
-      list_instances ;;
+      list_instances $EMAILID;;
     snapshots)
-      list_snapshots ;;
+      list_snapshots $EMAILID;;
     run)
-      list_runids ;;
+      list_runids $EMAILID;;
     build)
       list_buildids $EMAILID;;
     disks)
-      list_disks ;;
+      list_disks $EMAILID;;
     *)
       echo "Invalid entity for aurora ls"
       show_ls_help ;;
