@@ -1,6 +1,14 @@
 #!/bin/bash -e
 source help.sh
 
+## The purpose of this script is to enable the developer to run scripts on gcloud instances. The instances would be created
+## using the build image created. The terminal command "aurora run" translates to running this script. The pre-requisites of
+## aurora run is that aurora init and aurora build (a build snaphot) is already run. Aurora run uses the build_id of the
+## build snapshot (required argument when running aurora run) and then further runs the script given in the parameters of
+## aurora run. Further operational details of aurora run can be seen by running "aurora run help" on the terminal.
+## aurora run is a very intergral part of the aurora utilities, mulitple utilites like aurora pipelines, aurora debug-test
+## use it complete their own respective objectives.
+
 echo "aurora_run.sh started with [aurora_run.sh  $@]"
 ARGS="$@"
 

@@ -1,6 +1,15 @@
 #!/bin/bash -e
 source help.sh
 
+# This script basically creates a snapshot image containing repositories, packages, dependencies required to run plumgrid
+# tests. The script is configurable using multiple flag/switches based on the use of the developer. Details on the switches
+# can be seen by running "aurora build help" on the terminal. The script basically creates an instance pulls all the
+# repos checks out the refspec if desired and runs build all. This leaves the instance ready to run almost each and every
+# test in the plumgrid test suite. A snapshot of this image is created and is available to the user for further action.
+# i.e. run specific tests, run a specific pipeline, run a script on an instance. All of the afore mentioned actions would
+# be completed using gcloud instances created from this snapshot.
+# The snapshot created (Build id) is printed at the end of the script.
+
 export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
 echo "aurora_build.sh started with [aurora_build.sh  $@]"
 ARGS=$@
