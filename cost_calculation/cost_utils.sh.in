@@ -189,8 +189,7 @@ function extract_pattern() {
   grep Vmimage tmp_file > $workspace$newname || true
  fi
 
- rm tmp*
- rm $filepath
+ rm tmp_file*
  echo "$workspace$newname"
 }
 
