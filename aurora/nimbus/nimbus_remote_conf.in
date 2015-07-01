@@ -1,0 +1,149 @@
+#!/bin/bash
+set -x
+NODE_TYPE=$1
+DIR_IPS=$2
+
+if [[ -z $NODE_TYPE ]]; then
+  echo "NODE_TYPE cannot be empty. Please provide \"DIR\", \"EDGE\" or \"WORKLOAD\""
+  exit 1
+fi
+
+if [[ -z $DIR_IPS ]]; then
+  echo "DIR_IPS cannot be empty. Please provide a comma separated list"
+  exit 1
+fi
+
+if [[ "$NODE_TYPE" = "WORKLOAD" ]]; then
+  SE_IPS=$3
+  if [[ -z $SE_IPS ]]; then
+    echo "SE_IPS cannot be empty. Please provide a comma separated list"
+    exit 1
+  fi
+else
+  VIRTUAL_IP=$3
+  if [[ -z $VIRTUAL_IP ]]; then
+    echo "VIRTUAL_IP cannot be empty. Please provide an ip address. For Edge type node use rest ip address"
+    exit 1
+  fi
+fi
+
+# WORKLOAD ONLY
+if [[ "$NODE_TYPE" = "WORKLOAD" ]]; then
+  space_separated_dir=$(echo $DIR_IPS | tr "," " ")
+  line_separated_dir=$(echo $DIR_IPS | tr "," "\n")
+  dir_array=($space_separated_dir)
+  echo "$space_separated_dir" > /home/plumgrid/a.nos.list
+  echo "$line_separated_dir" > /home/plumgrid/gcloud_nos.list
+  space_separated_se=$(echo $SE_IPS | tr "," " ")
+  line_separated_se=$(echo $SE_IPS | tr "," "\n")
+  se_array=($space_separated_se)
+  echo "$space_separated_se" > /home/plumgrid/a.se.list
+  echo "$line_separated_se" > /home/plumgrid/gcloud_se.list
+  /opt/pg/systest/lxc/generate_lxc_files.py --nos /home/plumgrid/a.nos.list --se /home/plumgrid/a.se.list --out /home/plumgrid/gcloud
+  cp /home/plumgrid/gcloud_nos.list /tmp
+  cp /home/plumgrid/gcloud_se.list /tmp
+  cp /home/plumgrid/gcloud.resource.json /tmp
+  /opt/pg/test/scripts/generate_physical_file.py --nos ${#dir_array[@]} --se ${#se_array[@]} --in /tmp/gcloud --out /tmp/gcloud --converged
+  sed -i 's/"platform" : "lxc"/"platform" : "aws"/g' /tmp/gcloud.resource.json
+fi
+
+# DIR ONLY
+if [[ "$NODE_TYPE" = "DIR" ]]; then
+  # NGINX  & SAL conf
+  sudo /opt/pg/test/scripts/generate_nginx_keepalived_configs.py --nos_ips="${DIR_IPS}" --virtual_ip="${VIRTUAL_IP}" --out_loc=/tmp
+  sudo cp -rf /tmp/default.conf /opt/pg/sal/nginx/conf.d/.
+  sudo cp -rf /opt/pg/sal/etc/plumgrid-sal.conf /etc/init/.
+  sudo cp -rf /opt/pg/sal/nginx/etc/nginx.conf /etc/init/.
+  sudo rm -rf /etc/keepalived/keepalived.conf
+
+  # PLUMgrid upstart conf
+  sudo cp -rf /opt/pg/etc/init/plumgrid.conf /etc/init/.
+  sudo sed -i "s/^env start_plumgrid=no/env start_plumgrid=yes/g" /etc/init/plumgrid.conf
+  sudo sed -i "s/^env plumgrid_ip=localhost/env plumgrid_ip=$DIR_IPS/g" /etc/init/plumgrid.conf
+  sudo sed -i "s/^env plumgrid_port=8000/env plumgrid_port=8001/g" /etc/init/plumgrid.conf
+  sudo sed -i "s/^env mgmt_dev=fabric/env mgmt_dev=eth0/g" /etc/init/plumgrid.conf
+
+  sudo cp -rf /opt/pg/etc/init/plumgrid-logger.conf /etc/init/.
+  sudo sed -i "s/^env mgmt_dev=fabric/env mgmt_dev=eth0/g" /etc/init/plumgrid-logger.conf
+
+  sudo cat >> /etc/logrotate.d/plumgrid-trace_collector <<DELIM__
+# PLUMgrid logrotate configuration file
+# Copyright 2013-2014 PLUMgrid Inc.
+# All rights reserved
+
+compress
+
+/opt/pg/log/trace_collector.12349.log {
+    rotate 500000
+    daily
+    postrotate
+        /usr/bin/killall -HUP launch_trace_collector || true
+    endscript
+}
+DELIM__
+
+
+
+  sudo cp -rf /opt/pg/etc/init/plumgrid-config.conf /etc/init/.
+
+  sudo mkdir -p /opt/pg/db
+  sudo chown -R postgres:postgres /opt/pg/db
+  postgres_pid_cnt=$(pgrep -c postgre)
+  if [[ "$postgres_pid_cnt" != "0" ]]; then
+    sudo service postgresql stop
+  fi
+fi
+
+# EDGE_ONLY
+if [[ "$NODE_TYPE" = "EDGE" ]]; then
+  sudo cp -rf /opt/pg/etc/init/plumgrid-kernel-module.conf /etc/init/.
+
+  sudo cp -rf /opt/pg/etc/init/plumgrid-iovisor.conf /etc/init/.
+  sudo sed -i "s/^env start_plumgrid_iovisor=no/env start_plumgrid_iovisor=yes/g" /etc/init/plumgrid-iovisor.conf
+  sudo sed -i "s/^env mgmt_dev=fabric/env mgmt_dev=eth0/g" /etc/init/plumgrid-iovisor.conf
+
+  if [[ -f /opt/pg/etc/ifcs.conf ]]; then
+    sudo rm -rf /opt/pg/etc/ifcs.conf
+  fi
+  sudo echo "eth0 = fabric_core host" > /opt/pg/etc/ifcs.conf
+
+  if [[ -f /opt/pg/etc/plumgrid.conf ]]; then
+    sudo rm -rf /opt/pg/etc/plumgrid.conf
+  fi
+  sudo cat > /opt/pg/etc/plumgrid.conf <<DELIM__
+plumgrid_ip=$DIR_IPS
+plumgrid_port=8001
+mgmt_dev=eth0
+label=`hostname`
+plumgrid_rest_addr=$VIRTUAL_IP:9180
+fabric_mode=host
+start_plumgrid_iovisor=yes
+start_plumgrid=no
+DELIM__
+
+fi
+
+if [[ "$NODE_TYPE" != "WORKLOAD" ]]; then
+  # PITAD upstart conf
+  sudo cp -rf /opt/pg/etc/init/pitad.conf /etc/init/.
+  sudo sed -i "s/^setuid plumgrid/# setuid plumgrid/g" /etc/init/pitad.conf
+  sudo sed -i "s/^setgid plumgrid/# setgid plumgrid/g" /etc/init/pitad.conf
+  sudo sed -i "s/--debug/--debug --platform aws/g" /etc/init/pitad.conf
+
+  if [[ ! -d /mnt/run ]]; then
+    sudo mkdir /mnt/run
+  fi
+
+  update-rc.d -f apache2 remove
+  sudo service apache2 status | grep -q "is NOT running"
+  if [[ $? -ne 0 ]]; then
+    sudo service apache2 stop
+  fi
+
+  sudo service pitad status | grep -q "start/running"
+  if [[ $? -eq 0 ]]; then
+    sudo service pitad stop
+  fi
+  sudo service pitad start
+fi
+

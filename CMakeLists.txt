@@ -5,6 +5,8 @@ set (Tutorial_VERSION_MAJOR 1)
 set (Tutorial_VERSION_MINOR 0)
 set (CMAKE_INSTALL_PREFIX "/opt/pg/scripts")
 
+enable_testing()
+
 add_subdirectory(aurora)
 add_subdirectory(cloud-image-builder)
 add_subdirectory(utilities)
