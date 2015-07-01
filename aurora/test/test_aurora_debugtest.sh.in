@@ -1,0 +1,40 @@
+#!/bin/bash
+
+BUILDID_FILE=${WORKSPACE}/logs/build_id
+
+TEST=$1
+BUILD_ID=$2
+PROJECT=alps
+BRANCH=master
+
+## if the build is specified it would be used, and if buildid file exists, that build id would be used,
+## otherwise  aurora build would be run
+if [[ -n ${BUILD_ID} ]]; then
+  echo "${BUILD_ID} provided as paramenter"
+elif [[ -e ${BUILDID_FILE} ]]; then
+  echo "Build id file exists, path to build id file is ${BUILDID_FILE}"
+  IFS="=" read -r id BUILD_ID<${BUILDID_FILE}
+else
+  tag=$(uuidgen | cut -d '-' -f 1)
+  TAG="atc${tag}"
+  echo "No file found with build id or build id specified creating new build with tag $TAG"
+  aurora build -p ${PROJECT} -b ${BRANCH} --tag ${TAG}
+  bld_retval=$?
+  if [[ $bld_retval -ne 0 ]]; then
+    echo "aurora build failed"
+    exit $bld_retval
+  fi
+fi
+
+echo "$BUILD_ID"
+## Run aurora deug-test utility
+## TODO: Introduce a more dynamic method to introduce tests into the debug_test_script instead of a hard code.
+echo "$TEST would be run on gcloud instances..."
+echo "$TEST" > debug_test_script
+aurora debug-test -l ${BUILD_ID} -s debug_test_script -i 2 -n 2 -W ${WORKSPACE}/logs/aurora_debug_test
+debugtest_retval=$?
+if [[ "$debugtest_retval" -eq 0 ]]; then
+  echo "PASSED"
+fi
+
+exit $debugtest_retval

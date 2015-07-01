@@ -30,12 +30,15 @@ pl_cost_code[automaton-longevity]=7
 pl_cost_code[longevity]=8
 pl_cost_code[coral]=9
 pl_cost_code[DEBUG-TEST]=10
+pl_cost_code[MISCELLANEOUS]=x
 
 show_help() {
   echo "Required Arguments:
-  -p, --pipeline            Use this option if you want to get cost for a specific pipeline. e.g. aurora cost -p smoke
+  -p, --pipeline            Use this option if you want to get cost for a specific pipeline or all pipelines.
+                            e.g. aurora cost -p smoke or aurora cost -p all
   OR
-  -U, --user                Use this option if you want to get cost for a specific user. e.g. aurora cost -U jenkins
+  -U, --user                Use this option if you want to get cost for a specific user or all users.
+                            e.g. aurora cost -U jenkins or aurora cost -U all
 
 Optional Arguments:
   -T, --duration            Use this option to specific time duration for you want the cost for. e.g. aurora cost -p smoke -T week.
@@ -142,11 +145,18 @@ function ci_report_date() {
 function download_ci_report() {
  local date=$1
  local path=$2
- file=$(gsutil ls gs://ci-bucket/ci-report* | grep ${date})
- file=${file##*/}
- gsutil cp gs://ci-bucket/${file} . &> /dev/null
- mv $file $path
- echo "$path$file"
+ #Check if the report already exists so that the script uses existing report. Othewise
+ #download from Google cloud storage.
+ existing_file="$path/ci-report_303028489312_$DATE.csv"
+ if [[ ! -e $existing_file ]]; then
+  file=$(gsutil ls gs://ci-bucket/ci-report* | grep ${date})
+  file=${file##*/}
+  gsutil cp gs://ci-bucket/${file} . &> /dev/null
+  mv $file $path
+  echo "$path$file"
+ else
+  echo "$existing_file"
+ fi
 }
 
 # ***********************************************************************************************************
@@ -168,7 +178,7 @@ function extract_pattern() {
   cat $filepath > tmp_file
  fi
  if [[ -n "$user" ]]; then
-  grep "$user" tmp_file > tmp_file1
+  grep "/$user-" tmp_file > tmp_file1
   grep Vmimage tmp_file1 > $workspace$newname
  else
   grep Vmimage tmp_file > $workspace$newname
@@ -201,4 +211,17 @@ function get_num_of_days() {
    exit 1
  esac
  echo $num_of_days
+}
+
+# *****************************************************************************
+# Function: get_users_list
+# Purpose : To get unique users list from ci-report
+# Usage   : get_users_list<ci-report path> <workspace>
+# *****************************************************************************
+function get_users_list() {
+ local filepath="$1"
+ local workspace="$2"
+ cat /dev/null > tmp_users_file.txt
+ grep Vmimage $filepath  | cut -d',' -f 5 | cut -d '/' -f 11 | cut -d '-' -f 1 | sort -u > "$workspace/"tmp_users_file.txt
+ echo "$workspace/tmp_users_file.txt"
 }

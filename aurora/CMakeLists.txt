@@ -20,5 +20,7 @@ install_programs (/ FILES ${CMAKE_CURRENT_BINARY_DIR}/aurora_infra_settings.conf
 install_programs (/ FILES ${CMAKE_CURRENT_BINARY_DIR}/cleanup.sh)
 install_programs (/ FILES ${CMAKE_CURRENT_BINARY_DIR}/aurora_load.sh)
 
-add_subdirectory(pipeline_scripts)
 add_subdirectory(init_scripts)
+add_subdirectory(test)
+add_subdirectory(nimbus)
+add_subdirectory(pipeline_scripts)
