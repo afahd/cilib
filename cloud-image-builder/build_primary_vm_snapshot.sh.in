@@ -161,7 +161,11 @@ function build_image() {
           SNAP_D2="$PRIM_INST_NAME-d2-${SN_ID}"
           echo "SNAP_D1 = [$SNAP_D1]"
           echo gcloud compute disks snapshot $PRIM_INST_NAME-d1 --snapshot-names $SNAP_D1
+          tryexec run_cmd_gci ${INSTANCE_IP} "sudo sync"
+          tryexec run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f / || true"
           gcloud compute disks snapshot $PRIM_INST_NAME-d1 --snapshot-names "$SNAP_D1"
+          tryexec run_cmd_gci ${INSTANCE_IP} "sudo sync"
+          tryexec run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f /opt || true"
           gcloud compute disks snapshot $PRIM_INST_NAME-d2 --snapshot-names "$SNAP_D2"
           ;;
       20)

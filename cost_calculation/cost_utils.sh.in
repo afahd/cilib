@@ -10,14 +10,15 @@ instance_usages[G1Small]=0
 instance_usages[F1Micro]=0
 
 declare -A instance_rates
-instance_rates[N1Standard_1]=0.055
-instance_rates[N1Standard_2]=0.110
-instance_rates[N1Standard_4]=0.220
-instance_rates[N1Highcpu_2]=0.084
-instance_rates[N1Highmem_4]=0.278
-instance_rates[N1Highmem_2]=0.139
-instance_rates[G1Small]=0.030
-instance_rates[F1Micro]=0.009
+instance_rates[N1Standard_1]=0.050
+instance_rates[N1Standard_2]=0.100
+instance_rates[N1Standard_4]=0.200
+instance_rates[N1Highcpu_2]=0.076
+instance_rates[N1Highmem_4]=0.152
+instance_rates[N1Highmem_2]=0.126
+instance_rates[G1Small]=0.027
+instance_rates[F1Micro]=0.008
+instance_rates[PreemptibleN1Standard_4]=0.060
 
 declare -A pl_cost_code
 pl_cost_code[smoke]=1
@@ -31,6 +32,9 @@ pl_cost_code[longevity]=8
 pl_cost_code[coral]=9
 pl_cost_code[DEBUG-TEST]=10
 pl_cost_code[MISCELLANEOUS]=x
+
+declare -a pipelines=('smoke' 'extended' 'unstable' 'pgui-smoke' 'omni' 'automaton' 'automaton-longevity' 'longevity' 'coral' 'DEBUG-TEST' 'MISCELLANEOUS');
+
 
 show_help() {
   echo "Required Arguments:
@@ -58,6 +62,7 @@ Optional Arguments:
 function get_time_spent() {
  local file=$1
  local path=$2
+ local code=$3
  local old_time
  local new_time
  while read line
@@ -70,13 +75,13 @@ function get_time_spent() {
  old_time="${instance_usages[$instance_type]}"
  new_time=$((old_time + time_sec))
  instance_usages[$instance_type]=$new_time
- done < $file
- cat /dev/null > tmp_time.txt
+ done < "$file"
+ cat /dev/null > tmp_time_${code}.txt
  for i in "${!instance_usages[@]}"; do
-  printf "%s%s%s\n" "$i" ":" "${instance_usages[$i]}" >> tmp_time.txt
+  printf "%s%s%s\n" "$i" ":" "${instance_usages[$i]}" >> tmp_time_${code}.txt
  done
- file=tmp_time.txt
- mv $file $path
+ file=tmp_time_${code}.txt
+ mv "$file" "$path"
  echo "$path$file"
 }
 
@@ -87,16 +92,16 @@ function get_time_spent() {
 # Usage   : get_time_spent <file>
 # *****************************************************************************
 function get_cost_spent() {
- local time_file=$1
- local total_cost=0
- while IFS=":" read -r instance_type time_sec
- do
-  rate=${instance_rates[$instance_type]}
-  h=$((time_sec/3600))
-  inst_cost=$(echo "$h*$rate" | bc -l)
-  total_cost=$(echo "$total_cost+$inst_cost" | bc -l )
- done < $time_file
- echo $total_cost
+
+  local time_file=$1
+  local total_cost=0
+  while IFS=":" read -r instance_type time_sec; do
+    rate=${instance_rates[$instance_type]}
+    h=$((time_sec/3600))
+    inst_cost=$(echo "$h*$rate" | bc)
+    total_cost=$(echo "${total_cost}+${inst_cost}" | bc)
+  done < $time_file
+  echo $total_cost
 }
 
 # *****************************************************************************
@@ -143,20 +148,20 @@ function ci_report_date() {
 # Usage   : ci_report_date <Number of days>
 # *********************************************************************************
 function download_ci_report() {
- local date=$1
- local path=$2
- #Check if the report already exists so that the script uses existing report. Othewise
- #download from Google cloud storage.
- existing_file="$path/ci-report_303028489312_$DATE.csv"
- if [[ ! -e $existing_file ]]; then
-  file=$(gsutil ls gs://ci-bucket/ci-report* | grep ${date})
-  file=${file##*/}
-  gsutil cp gs://ci-bucket/${file} . &> /dev/null
-  mv $file $path
-  echo "$path$file"
- else
-  echo "$existing_file"
- fi
+  local date=$1
+  local path=$2
+  #Check if the report already exists so that the script uses existing report. Othewise
+  #download from Google cloud storage.
+  existing_file="${path}/ci-report_303028489312_${date}.csv"
+  if [[ ! -e "$existing_file" ]]; then
+    file=$(gsutil ls gs://ci-bucket/ci-report* | grep ${date})
+    file=${file##*/}
+    gsutil cp gs://ci-bucket/${file} . &> /dev/null
+    mv $file $path
+    echo "${path}$file"
+  else
+    echo "$existing_file"
+  fi
 }
 
 # ***********************************************************************************************************
@@ -172,20 +177,113 @@ function extract_pattern() {
  local user=$5
  #Added this check to ommit pl_code as search criteria when only user is given. This will count the lines
  #where pipeline info was included in the instance name.
- if [[ -n "$pl_code" ]]; then
+ if [[ -n "$pl_code" && "$pl_code" != "all" ]]; then
   grep "$pl_code" $filepath > tmp_file
  else
   cat $filepath > tmp_file
  fi
  if [[ -n "$user" ]]; then
-  grep "/$user-" tmp_file > tmp_file1
-  grep Vmimage tmp_file1 > $workspace$newname
- else
-  grep Vmimage tmp_file > $workspace$newname
+  grep "$user" tmp_file > tmp_file1 || true
+  grep Vmimage tmp_file1 > $workspace$newname || true
+ elif [[ -z "$user" || "$user" == "all" ]]; then
+  grep Vmimage tmp_file > $workspace$newname || true
  fi
 
- rm tmp_file*
+ rm tmp*
+ rm $filepath
  echo "$workspace$newname"
+}
+
+# ***********************************************************************************************************
+# Function: convertsecs
+# Purpose : converts seconds into hour:minutes:seconds format
+# Usage   : convertsecs <time in seconds>
+# ***********************************************************************************************************
+function convertsecs() {
+  local time=$1
+    h=$(($time/3600))
+    m=$((($time/60)%60))
+    s=$((${time}%60))
+    printf "$h:$m:$s"
+}
+
+# ***********************************************************************************************************
+# Function: time_run
+# Purpose : Extracts the running time from the provided file and converting into hours:minutes:seconds format
+# Usage   : time_run <file containing time in seconds of an instance>
+# ***********************************************************************************************************
+function time_run(){
+  local time_file=$1
+  local time_total=0
+  while IFS=":" read -r instance_type time_sec; do
+    time_total=$(echo "${time_total}+${time_sec}" | bc -l )
+    ttime=$(convertsecs $time_total)
+  done < $time_file
+  echo $ttime
+}
+
+# ***********************************************************************************************************
+# Function: extract_for_all_pipelines
+# Purpose : Extracts the usage of all pipelines and writes them to the final cost report
+# Usage   : extract_for_all_pipelines <workspace> <path to ci report>
+# ***********************************************************************************************************
+function extrat_for_all_pipelines() {
+  local workspace=$1
+  local filepath=$2
+  for pl in ${pipelines[*]}; do
+    code=$(get_pl_cost_code $pl)
+    pl_code="\-p-${code}-"
+    grep "$pl_code" "$filepath" > "${workspace}tmp_file_all_pipelines" || true
+    grep "Vmimage" "${workspace}tmp_file_all_pipelines" > "${workspace}final_file_all_${code}" || true
+    total_time=$(get_time_spent "${workspace}final_file_all_${code}" "$WORKSPACE" "$code")
+    local total_cost=0
+    local time_total=0
+    while IFS=":" read -r instance_type time_sec; do
+      rate=${instance_rates[$instance_type]}
+      time_total=$(echo "${time_total}+${time_sec}" | bc -l )
+      h=$(($time_sec/3600))
+      ttime=$(convertsecs $time_total)
+      inst_cost=$(echo "$h*$rate" | bc -l)
+      total_cost=$(echo "$total_cost+$inst_cost" | bc -l )
+    done < $total_time
+    echo "Cost for $pl = \$$total_cost Approximate Duration $ttime" >> ${workspace}cost_final_report
+  done
+  # cat ${workspace}cost_final_report
+  rm -rf ${workspace}final*
+  rm -rf ${workspace}tmp*
+}
+
+# ***********************************************************************************************************
+# Function: extract_for_all_users
+# Purpose : Extracts the usage for all users and write to final cost report
+# Usage   : extract_for_all_users <ci report> <output file> <workspace> <name of user>
+# ***********************************************************************************************************
+function extract_for_all_users() {
+  local report_file=$1
+  local output_file=$2
+  local workspace=$3
+  local user_all=$4
+  local PIPELINE_CODE=""
+  grep Vmimage $report_file >> ${workspace}all_users_usage
+  user_list=$(get_users_list ${workspace}all_users_usage $workspace)
+  while read name; do
+    extracted_report=$(extract_pattern "$PIPELINE_CODE" "$report_file" "$output_file" "$workspace" "$name")
+    total_time=$(get_time_spent "$extracted_report" "$workspace" "$name")
+    local total_cost=0
+    local time_total=0
+    while IFS=":" read -r instance_type time_sec; do
+      rate=${instance_rates[$instance_type]}
+      time_total=$(echo "${time_total}+${time_sec}" | bc -l )
+      h=$(($time_sec/3600))
+      ttime=$(convertsecs $time_total)
+      inst_cost=$(echo "$h*$rate" | bc -l)
+      total_cost=$(echo "${total_cost}+${inst_cost}" | bc -l )
+    done < $total_time
+    echo "Cost for $name = \$$total_cost Approximate Duration $ttime" >> ${workspace}cost_final_report
+  done < $user_list
+  rm ${workspace}tmp*
+  rm ${workspace}all*
+  rm ${workspace}uniq_users_file.txt
 }
 
 # *****************************************************************************
@@ -221,7 +319,37 @@ function get_num_of_days() {
 function get_users_list() {
  local filepath="$1"
  local workspace="$2"
- cat /dev/null > tmp_users_file.txt
- grep Vmimage $filepath  | cut -d',' -f 5 | cut -d '/' -f 11 | cut -d '-' -f 1 | sort -u > "$workspace/"tmp_users_file.txt
- echo "$workspace/tmp_users_file.txt"
+ cat /dev/null > ${workspace}uniq_users_file.txt
+ grep Vmimage $filepath  | cut -d',' -f 5 | cut -d '/' -f 11 | cut -d '-' -f 1 | sort -u > "${workspace}"uniq_users_file.txt
+ echo "${workspace}uniq_users_file.txt"
+}
+
+# *****************************************************************************
+# Function: get_report
+# Purpose : To get the ci report for the specified day or date mentioned.
+# Usage   : get_report <day> date>
+# *****************************************************************************
+function get_report() {
+  local WORKSPACE=$1
+  local day=$2
+  local USER_DATE=$3
+
+  #Check whether user has entered a particular date. Otherwise generate date for each day in given duration.
+  if [[ -z "$USER_DATE" ]]; then
+    DATE=$(ci_report_date "$day")
+  else
+    #Convert date string entered by user to GNU date format to verify format.
+    DATE=$(date "+%Y%m%d" -d $USER_DATE)
+  fi
+  #Check if the report already exists so that the script uses existing report. Othewise
+  #download from Google cloud storage.
+  existing_file="${WORKSPACE}ci-report_303028489312_${DATE}.csv"
+
+  if [[ ! -e $existing_file ]]; then
+    downloaded_report=$(download_ci_report "$DATE" "${WORKSPACE}")
+  else
+    downloaded_report=$existing_file
+  fi
+  downloaded_report=$existing_file
+  echo $downloaded_report
 }

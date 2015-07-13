@@ -34,10 +34,10 @@ if [[ -n "$USER_DURATION" && -n "$USER_DATE" ]]; then
   echo "Incorrect usage of arguments! -T and -d cannot be used together"
   exit 1
 fi
-if [[ "$PIPELINE_NAME" == "all" && "$USER_NAME" == "all" ]]; then
-  echo "Fatal combination. Exiting Script !!!"
-  exit 1
-fi
+# if [[ "$PIPELINE_NAME" == "all" && "$USER_NAME" == "all" ]]; then
+#   echo "Fatal combination. Exiting Script !!!"
+#   # exit 1
+# fi
 if [[ -n "$USER_DURATION" ]]; then
   DURATION="$USER_DURATION"
 fi
@@ -45,133 +45,70 @@ if [[ "$DURATION" != "day" && "$DURATION" != "week" && "$DURATION" != "month" ]]
   echo "$USER_DURATION is an invalid value for -T. Valid values are 'day' 'week' 'month'"
   exit 1
 fi
-#create workspace
-mkdir -p $WORKSPACE
-#Get number of days against duration specifed by user.
-NUM_DAYS=$(get_num_of_days $DURATION)
-#This condition divides the code in two parts. The first part will run if USER_NAME is all.
-#For all other scenarios, second part of the code will run.
-if [[ "$USER_NAME" == "all" ]]; then
-  if [[ -n "$PIPELINE_NAME" ]]; then
-    PIPELINE_CODE=$(get_pl_cost_code $PIPELINE_NAME)
-    PIPELINE_CODE="\-p-$PIPELINE_CODE-"
-  fi
- for num in `seq 1 $NUM_DAYS`; do
-  if [[ -z "$USER_DATE" ]]; then
-   DATE=$(ci_report_date "$num")
-  else
-   #Convert date string entered by user to GNU date format to verify format.
-   DATE=$(date "+%Y%m%d" -d $USER_DATE)
-  fi
-  #Download Report for DATE
-  downloaded_report=$(download_ci_report "$DATE" "${WORKSPACE}")
-  #Combine all the files in one file
-  cat $downloaded_report >> "$WORKSPACE"/combined_file.csv
-  combined_file="$WORKSPACE"/combined_file.csv
- done
- #get a list of users from combined file
- users_list=$(get_users_list $combined_file $WORKSPACE)
- cat /dev/null > $WORKSPACE/tmpcost.txt
- cat /dev/null > $WORKSPACE/output.txt
- printf "%-15s %-15s \n" "COST" "USER NAME" > $WORKSPACE/output.txt
- #For each name in users list, calculate its cost
- while read name ; do
-  if [[ "$name" != "instance" ]]; then
-  #Generate another report extracted from the "downloaded report" according to given parameters.
-  extracted_report=$(extract_pattern "$PIPELINE_CODE" $combined_file "extracted_report.csv" $WORKSPACE $name)
-  #Calculate total usage time.
-  total_time=$(get_time_spent $extracted_report "${WORKSPACE}")
-  #Calulate cost according to usage time.
-  cost=$(get_cost_spent $total_time)
-  #user_cost_arr[$name]=$total_cost
-  printf "%-15s %-15s \n" "\$$cost" "$name" >> $WORKSPACE/tmpcost.txt
-  #Calulate overall cost.
-  total_cost=$(echo "$total_cost+$cost" | bc -l)
-  fi
- done < "$users_list"
- sort -k1.2 -g -r $WORKSPACE/tmpcost.txt >> $WORKSPACE/output.txt
- printf "%-15s \n" "================================" >> $WORKSPACE/output.txt
- printf "%-15s %-15s \n" "Total Cost" "\$$total_cost" >> $WORKSPACE/output.txt
- if [[ "$SEND_EMAIL" == "false" ]]; then
-  cat $WORKSPACE/output.txt
- fi
- rm $combined_file $WORKSPACE/tmpcost.txt
-#Second part of the code begins here
+#Create workspace
+if [[ -d "$WORKSPACE" ]]; then
+  rm -rf ${WORKSPACE}*
 else
- if [[ -n "$PIPELINE_NAME" && "$PIPELINE_NAME" == "all" ]]; then
-  no_of_pipelines="${#pl_cost_code[@]}"
-  p_flag="all"
- fi
- #Loop to iterate for each pipeline. If user has entered a specific pipeline's name, this loop will run only once.
- for ((i=1; i <= "$no_of_pipelines" ; i++)); do
-  #Convert pipeline name to coresponding pipeline cost code
-  if [[ "$p_flag" == "all" ]]; then
-   if [[ "$i" == 11 ]]; then
-    PIPELINE_NAME="MISCELLANEOUS"
-    PIPELINE_CODE="\-p-x-"
-   else
-    PIPELINE_NAME=$(get_pl_name $i)
-    PIPELINE_CODE=$(get_pl_cost_code $PIPELINE_NAME)
-    PIPELINE_CODE="\-p-$PIPELINE_CODE-"
-   fi
-  elif [[ -n "$PIPELINE_NAME" ]]; then
-    PIPELINE_CODE=$(get_pl_cost_code $PIPELINE_NAME)
-    PIPELINE_CODE="\-p-$PIPELINE_CODE-"
-  fi
-  #Loop to iterate for each day.
-  for num in `seq 1 $NUM_DAYS`; do
-   if [[ -z "$USER_DATE" ]]; then
-    DATE=$(ci_report_date "$num")
-   else
-    #Convert date string entered by user to GNU date format to verify format.
-    DATE=$(date "+%Y%m%d" -d $USER_DATE)
-   fi
-   #Download report for date
-   downloaded_report=$(download_ci_report "$DATE" "${WORKSPACE}")
-   #Generate another report extracted from the "downloaded report" according to given parameters.
-   extracted_report=$(extract_pattern "$PIPELINE_CODE" $downloaded_report "extracted_report.csv" $WORKSPACE $USER_NAME)
-   #Calculate total usage time.
-   total_time=$(get_time_spent $extracted_report "${WORKSPACE}")
-   #Calulate cost according to usage time.
-   cost=$(get_cost_spent $total_time)
-   #Calulate overall cost.
-   total_cost=$(echo "$total_cost+$cost" | bc -l)
-   readable_date=$(date -d $DATE +'%d-%b-%Y')
-  done
-  #Formating output
-  if [[ "$i" == 1 ]]; then
-   cat /dev/null > $WORKSPACE/tmpcost.txt
-   cat /dev/null > $WORKSPACE/output.txt
-   if [[ -n "$PIPELINE_NAME" && -n "$USER_NAME" ]]; then
-    printf "%-15s %-15s %-15s \n"  "COST" "USER NAME" "PIPELINE NAME" > $WORKSPACE/output.txt
-   elif [[ -n "$PIPELINE_NAME" && -z "$USER_NAME" ]]; then
-    printf "%-15s %-15s \n"  "COST" "PIPELINE NAME" > $WORKSPACE/output.txt
-   elif [[ -z "$PIPELINE_NAME" && -n "$USER_NAME" ]]; then
-    printf "%-15s %-15s \n"  "COST" "USER NAME" > $WORKSPACE/output.txt
-   fi
-  fi
-  if [[ -n "$PIPELINE_NAME" && -n "$USER_NAME" && "$USER_NAME" != "all" ]]; then
-   printf "%-15s %-15s %-15s \n"  "\$$total_cost" "$USER_NAME" "$PIPELINE_NAME" >> $WORKSPACE/tmpcost.txt
-  elif [[ -n "$PIPELINE_NAME" && -z "$USER_NAME" ]]; then
-   printf "%-15s %-15s \n"  "\$$total_cost" "$PIPELINE_NAME" >> $WORKSPACE/tmpcost.txt
-  elif [[ -z "$PIPELINE_NAME" && -n "$USER_NAME" && "$USER_NAME" != "all" ]]; then
-   printf "%-15s %-15s \n"  "\$$total_cost" "$USER_NAME" >> $WORKSPACE/tmpcost.txt
-  fi
-  grand_total_cost=$(echo "$grand_total_cost+$total_cost" | bc -l)
-  total_cost=0
- done
- sort -k1.2 -g -r $WORKSPACE/tmpcost.txt >> $WORKSPACE/output.txt
- if [[ "$p_flag" == "all" ]]; then
-  printf "%-15s \n" "================================" >> $WORKSPACE/output.txt
-   printf "%-15s %-15s \n"  "Total cost for last $DURATION = " "\$$grand_total_cost" >> $WORKSPACE/output.txt
- fi
- if [[ "$SEND_EMAIL" == "false" ]]; then
-  cat $WORKSPACE/output.txt
- fi
+  mkdir -p $WORKSPACE
 fi
-#Sending Email. This will only be used in cronjobs. For now the recepient is aurora.internal. It can be changed later according to need.
-if [[ "$SEND_EMAIL" == "true" && "$PIPELINE_NAME" == "all" ]]; then
-  cat $WORKSPACE/output.txt | mail -s "Aurora Pipeline Based Cost Report For $DATE" aurora.internal@plumgrid.com
-elif [[ "$SEND_EMAIL" == "true" && "$USER_NAME" == "all" ]]; then
-  cat $WORKSPACE/output.txt | mail -s "Aurora User Based Cost Report For $DATE" auorara.internal@plumgrid.com
+# Get number of days against duration specifed by user.
+cat /dev/null > ${WORKSPACE}cost_final_report
+cat /dev/null > ${WORKSPACE}the_final_log
+NUM_DAYS=$(get_num_of_days $DURATION)
+# Convert pipeline name to coresponding pipeline cost code
+for num in `seq 1 $NUM_DAYS`; do
+  report_file=$(get_report $WORKSPACE $num $USER_DATE)
+  cat $report_file >> ${WORKSPACE}the_final_log
+done
+time_total=0
+if [[ -n "$PIPELINE_NAME" && "$PIPELINE_NAME" != "all" ]]; then
+  echo "" >> ${WORKSPACE}cost_final_report
+  echo "Cost for specified pipeline is as follows: " >> ${WORKSPACE}cost_final_report
+  echo "" >> ${WORKSPACE}cost_final_report
+  PIPELINE_CODE=$(get_pl_cost_code $PIPELINE_NAME)
+  PIPELINE_CODE="\-p-$PIPELINE_CODE-"
+  extracted_report=$(extract_pattern "$PIPELINE_CODE" "${WORKSPACE}the_final_log" "pipeline_report" "$WORKSPACE" "$USER_NAME")
+  total_time=$(get_time_spent "$extracted_report" "$WORKSPACE" "$PIPELINE_CODE")
+  ttime=$(time_run $total_time)
+  cost=$(get_cost_spent $total_time)
+  total_cost=$(echo "$total_cost+$cost" | bc -l)
+  echo "Cost for $PIPELINE_NAME = \$$cost Approximate Duration $ttime" >> ${WORKSPACE}cost_final_report
+  echo "" >> ${WORKSPACE}cost_final_report
+  rm -rf ${WORKSPACE}tmp*
+  rm -rf ${WORKSPACE}pipeline_report
+
+
+
+elif [[ -n $USER_NAME && $USER_NAME != "all" && $PIPELINE_NAME != "all" ]]; then
+  echo "" >> ${WORKSPACE}cost_final_report
+  echo "Cost for specified user is as follows: " >> ${WORKSPACE}cost_final_report
+  echo "" >> ${WORKSPACE}cost_final_report
+  extracted_report=$(extract_pattern "$PIPELINE_CODE" "${WORKSPACE}the_final_log" "user_report" "$WORKSPACE" "$USER_NAME")
+  total_time=$(get_time_spent "$extracted_report" "$WORKSPACE" "$USER_NAME")
+  ttime=$(time_run $total_time)
+  cost=$(get_cost_spent $total_time)
+  total_cost=$(echo "${total_cost}+$cost" | bc -l)
+  echo "Cost for $USER_NAME = \$$cost Approximate duration $ttime" >> ${WORKSPACE}cost_final_report
+  rm -rf ${WORKSPACE}tmp*
+  rm -rf ${WORKSPACE}user_report
 fi
+
+
+if [[ "$PIPELINE_NAME" == "all" ]]; then
+  echo "" >> ${WORKSPACE}cost_final_report
+  echo "Cost for all pipelines are as follows: " >> ${WORKSPACE}cost_final_report
+  echo "" >> ${WORKSPACE}cost_final_report
+  extrat_for_all_pipelines "$WORKSPACE" "${WORKSPACE}the_final_log"
+fi
+
+if [[ -n "$USER_NAME" && $USER_NAME == "all" ]]; then
+  echo "" >> ${WORKSPACE}cost_final_report
+  echo "Cost for all users are as follows: " >> ${WORKSPACE}cost_final_report
+  echo "" >> ${WORKSPACE}cost_final_report
+  extract_for_all_users "${WORKSPACE}the_final_log" "all_user_report" "$WORKSPACE" "$USER_NAME"
+fi
+
+
+cat ${WORKSPACE}cost_final_report
+rm -rf ${WORKSPACE}the_final_log
+
