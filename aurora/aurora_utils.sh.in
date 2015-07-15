@@ -549,7 +549,7 @@ function cp_entities()
 # *****************************************************************************
 function run_debug_test() {
 echo "*** run_debug_test $@ ***"
-  local TEMP=`getopt -o W:l:i:n:s:Ka:c:e:h --long WORKSPACE:,keep-running,buildid:,test_iterations:,num_instances:,script:,local_commit:,existing_commit_hash:,alps-path:,\help -n 'aurora.sh' -- "$@"`
+  local TEMP=`getopt -o W:l:i:n:s:Ka:c:e:h --long WORKSPACE:,keep-running,buildid:,preemptible,test_iterations:,num_instances:,script:,local_commit:,existing_commit_hash:,alps-path:,\help -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 
 local TEST_ITERATIONS=1
@@ -564,6 +564,7 @@ while true ; do
     -s|--script) USER_SCRIPT=$2 ; shift 2 ;;
     -n|--num_instances) NUM_INSTANCES=$2 ; shift 2 ;;
     -K|--keep-running) KEEP_RUNNING="-K" ; shift ;;
+    --preemptible) PREEMPTIBLE="--preemptible" ; shift ;;
 #Optional argments for local changes transfer
     -c|--local_commit) LOCAL_COMMIT_HASH=$2 ; shift 2 ;;
     -e|--existing_commit_hash) EXISTING_COMMIT_HASH=$2 ; shift 2 ;;
@@ -603,13 +604,13 @@ if [[ -n "$LOCAL_COMMIT_HASH" ]]; then
   fi
     #Run with local changes
     run_pipelines.sh -P "DEBUG-TEST" --base_script_dir "@CMAKE_CURRENT_BINARY_DIR@/pipeline_scripts/alps/" -i $TEST_ITERATIONS -s $USER_SCRIPT\
- -n $NUM_INSTANCES -l $BUILD_ID -a $ALPS_PATH -c $LOCAL_COMMIT_HASH $KEEP_RUNNING
+ -n $NUM_INSTANCES -l $BUILD_ID -a $ALPS_PATH -c $LOCAL_COMMIT_HASH $KEEP_RUNNING $PREEMPTIBLE
 else
   #Run without local changes.
   # TODO: Output should be redirected to some file.
   echo "Running without local changes"
   run_pipelines.sh -P "DEBUG-TEST" --base_script_dir "@CMAKE_CURRENT_BINARY_DIR@/pipeline_scripts/alps/" -i $TEST_ITERATIONS\
-  -s $USER_SCRIPT -n $NUM_INSTANCES -l $BUILD_ID -e ${EXISTING_COMMIT_HASH} $KEEP_RUNNING
+  -s $USER_SCRIPT -n $NUM_INSTANCES -l $BUILD_ID -e ${EXISTING_COMMIT_HASH} $KEEP_RUNNING $PREEMPTIBLE
 fi
 }
 

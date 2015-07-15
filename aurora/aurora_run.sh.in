@@ -34,7 +34,7 @@ KEEP_RUNNING=0
 LOCAL_CHANGES=0
 
 # read the options
-TEMP=`getopt -o l:s:S:o:n:W:t:CKc:e:a:R:E:h --long buildid:,script:,log_dir:,src_log_dir:,runid:,WORKSPACE:,tag:,\continue,keep-running,local_commit:,existing_commit_hash:,alps-path:,cost_pipeline_code:,minor_st:,minor_end:,\help -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o l:s:S:o:n:W:t:CKc:e:a:R:E:h --long buildid:,preemptible,script:,log_dir:,src_log_dir:,runid:,WORKSPACE:,tag:,\continue,keep-running,local_commit:,existing_commit_hash:,alps-path:,cost_pipeline_code:,minor_st:,minor_end:,\help -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 while true ; do
   case "$1" in
@@ -48,6 +48,7 @@ while true ; do
     -S| --src_log_dir) LOG_SRC_DIR=$2 ; shift 2 ;;
     -C| --continue ) CONTINUE=1; shift ;;
     -K| --keep-running ) KEEP_RUNNING=1; shift ;;
+    --preemptible) PREEMPTIBLE="--preemptible" ; shift ;;
     #Local changes flags
     -c| --local_commit) COMMIT_ID=$2; shift 2;;
     -e|--existing_commit_hash) EXISTING_COMMIT_HASH=$2 ; shift 2 ;;
@@ -123,6 +124,9 @@ if [[ $EXISTING_COMMIT_HASH != "null" ]]; then
   VALID_COMMIT_HASH="true"
 fi
 
+if [[ -z "$PREEMPTIBLE" ]]; then
+  MAINTENANCE_POLICY="--maintenance-policy=MIGRATE"
+fi
 function run_test() {
   local step=$1
 
@@ -147,11 +151,10 @@ function run_test() {
     echo plumgrid:$(echo ${COMMON_KEY}) >> ${key_file}
     echo "Creating the instance[$INSTANCE_NAME] in the cloud"
     tryexec exec_gcloud_cmd instances create "${INSTANCE_NAME}" -q\
-      --machine-type "$MACHINE_TYPE" --network "$NETWORK" --maintenance-policy \
-      "MIGRATE" --scopes "$SCOPES" \
+      --machine-type "$MACHINE_TYPE" --network "$NETWORK" --scopes "$SCOPES" \
       --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
       --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip" \
-      --metadata-from-file sshKeys=$key_file
+      --metadata-from-file sshKeys=$key_file $PREEMPTIBLE $MAINTENANCE_POLICY
     rm $key_file
     record_step $step $step_file
     ;;

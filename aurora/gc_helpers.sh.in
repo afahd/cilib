@@ -330,8 +330,8 @@ function get_instance_ip() {
   local success=0
   #Retry to be safe
   for i in `seq 1 5`; do
-    internal_ip=$(timeout -k 5 ${GCLOUD_CMD_TIMEOUT} gcloud compute instances list ${INSTANCE_NAME} --zones=${ZONE} | grep ${INSTANCE_NAME} || true)
-    internal_ip=$(echo "$internal_ip" | awk '{ print $4}')
+    internal_ip=$(timeout -k 5 ${GCLOUD_CMD_TIMEOUT} gcloud compute instances list ${INSTANCE_NAME} --zones=${ZONE} --format=text | grep "networkIP: " || true)
+    internal_ip=$(echo "$internal_ip" | sed 's/.*networkIP:\ *//')
     #Break if non-empty
     if [[ -n "$internal_ip" ]];then
       success=1
