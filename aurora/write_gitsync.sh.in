@@ -22,6 +22,7 @@ branch_to_component['master']='unstable'
 branch_to_component['stable_4_0']='everest'
 branch_to_component['stable_4_1']='fuji'
 branch_to_component['stable_4_1_1']='fuji-sushi'
+branch_to_component['stable_4_1_2-amex']='fuji-sashimi'
 
 readarray -t PROJECT_LIST < ${WORKSPACE}/builder/branch_translations/repo.list
 
