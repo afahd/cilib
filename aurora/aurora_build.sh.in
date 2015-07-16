@@ -40,6 +40,7 @@ br_code[master]="1"
 br_code[stable_4_0]="2"
 br_code[stable_4_1]="3"
 br_code[stable_4_1_1]="4"
+br_code[stable_4_1_2-amex]="5"
 
 BUILD_SCRIPT=@CMAKE_BINARY_DIR@/aurora/init_scripts/run_build_all.sh
 # read the options
@@ -75,10 +76,12 @@ if [[ -z "$BRANCH" || -z "$PROJECT" ]]; then
   exit 1
 fi
 #creating branch code from branch name provided by user.
-branch_code="b-${br_code[$BRANCH]}"
+branch_code="${br_code[$BRANCH]}"
 if [[ -z "$branch_code" ]]; then
   branch_code="x"
 fi
+
+branch_code="b-${branch_code}"
 
 #keep_running equalling 1 means -k was specified, end step should be 1 less.
 if [[ $KEEP_RUNNING == "1" ]]; then
