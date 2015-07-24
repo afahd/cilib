@@ -30,7 +30,7 @@ aurora cost -U all -p all -T $DURATION -W $WORKSPACE
 echo "Hi All," >> ${WORKSPACE}email_template
 echo "The cost for aurora instances for the past $DURATION is as follows:" >> ${WORKSPACE}email_template
 echo "" >> ${WORKSPACE}email_template
-cat ${WORKSPACE}cost_final_report >> ${WORKSPACE}email_template
+cat ${WORKSPACE}sorted_cost_final_report >> ${WORKSPACE}email_template
 
 if [[ $DURATION == "day" ]];then
   subject="Aurora daily cloud resources cost report"
@@ -40,4 +40,5 @@ elif [[ $DURATION == "month" ]];then
   subject="Aurora monthly cloud resources cost report"
 fi
 
-cat ${WORKSPACE}email_template | mail -s "$subject" "aurora.internal@plumgrid.com" "fmushtaq@plumgrid.com"
+# cat ${WORKSPACE}email_template | mail -s "$subject" "aurora.internal@plumgrid.com" "fmushtaq@plumgrid.com"
+cat ${WORKSPACE}email_template | mail -s "$subject" "irfans@plumgrid.com"

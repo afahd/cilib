@@ -202,8 +202,9 @@ function convertsecs() {
   local time=$1
     h=$(($time/3600))
     m=$((($time/60)%60))
-    s=$((${time}%60))
-    printf "$h:$m:$s"
+    printf "%02d:%02d" $h $m
+    # s=$((${time}%60))
+    # printf "$h:$m"
 }
 
 # ***********************************************************************************************************
@@ -229,6 +230,7 @@ function time_run(){
 function extrat_for_all_pipelines() {
   local workspace=$1
   local filepath=$2
+  format=" %05.2f                     %-30s %-22s\n"
   for pl in ${pipelines[*]}; do
     code=$(get_pl_cost_code $pl)
     pl_code="\-p-${code}-"
@@ -245,9 +247,12 @@ function extrat_for_all_pipelines() {
       inst_cost=$(echo "$h*$rate" | bc -l)
       total_cost=$(echo "$total_cost+$inst_cost" | bc -l )
     done < $total_time
-    echo "Cost for $pl = \$$total_cost Approximate Duration $ttime" >> ${workspace}cost_final_report
+    printf "$format" "$total_cost" "$ttime" "$pl" >> ${WORKSPACE}xcost_final_report
   done
-  # cat ${workspace}cost_final_report
+  cat ${WORKSPACE}xcost_final_report | sort -k1 -n -r >> ${WORKSPACE}cost_final_report
+  echo "" >> ${WORKSPACE}cost_final_report
+
+  rm -rf ${WORKSPACE}xcost_final_report
   rm -rf ${workspace}final*
   rm -rf ${workspace}tmp*
 }
@@ -278,9 +283,12 @@ function extract_for_all_users() {
       inst_cost=$(echo "$h*$rate" | bc -l)
       total_cost=$(echo "${total_cost}+${inst_cost}" | bc -l )
     done < $total_time
-    echo "Cost for $name = \$$total_cost Approximate Duration $ttime" >> ${workspace}cost_final_report
+    printf "$format" "$total_cost" "$ttime" "$name" >> ${WORKSPACE}xcost_final_report
   done < $user_list
+  cat ${WORKSPACE}xcost_final_report | sort -k1 -n -r >> ${WORKSPACE}cost_final_report
+
   rm ${workspace}tmp*
+  rm ${workspace}xcost_final_report
   rm ${workspace}all*
   rm ${workspace}uniq_users_file.txt
 }

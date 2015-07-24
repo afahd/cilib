@@ -52,7 +52,17 @@ else
   mkdir -p $WORKSPACE
 fi
 # Get number of days against duration specifed by user.
+cat /dev/null > ${WORKSPACE}sorted_cost_final_report
 cat /dev/null > ${WORKSPACE}cost_final_report
+
+divider===============================
+divider=$divider$divider
+
+header="\n %-15s %-20s %-22s\n"
+format=" %05.2f                     %-30s %-22s\n"
+
+width=60
+
 cat /dev/null > ${WORKSPACE}the_final_log
 NUM_DAYS=$(get_num_of_days $DURATION)
 # Convert pipeline name to coresponding pipeline cost code
@@ -62,9 +72,6 @@ for num in `seq 1 $NUM_DAYS`; do
 done
 time_total=0
 if [[ -n "$PIPELINE_NAME" && "$PIPELINE_NAME" != "all" ]]; then
-  echo "" >> ${WORKSPACE}cost_final_report
-  echo "Cost for specified pipeline is as follows: " >> ${WORKSPACE}cost_final_report
-  echo "" >> ${WORKSPACE}cost_final_report
   PIPELINE_CODE=$(get_pl_cost_code $PIPELINE_NAME)
   PIPELINE_CODE="\-p-$PIPELINE_CODE-"
   extracted_report=$(extract_pattern "$PIPELINE_CODE" "${WORKSPACE}the_final_log" "pipeline_report" "$WORKSPACE" "$USER_NAME")
@@ -72,43 +79,38 @@ if [[ -n "$PIPELINE_NAME" && "$PIPELINE_NAME" != "all" ]]; then
   ttime=$(time_run $total_time)
   cost=$(get_cost_spent $total_time)
   total_cost=$(echo "$total_cost+$cost" | bc -l)
-  echo "Cost for $PIPELINE_NAME = \$$cost Approximate Duration $ttime" >> ${WORKSPACE}cost_final_report
+  printf "$format" "$total_cost" "$ttime" "$PIPELINE_NAME" >> ${WORKSPACE}cost_final_report
   echo "" >> ${WORKSPACE}cost_final_report
   rm -rf ${WORKSPACE}tmp*
   rm -rf ${WORKSPACE}pipeline_report
 
-
-
 elif [[ -n $USER_NAME && $USER_NAME != "all" && $PIPELINE_NAME != "all" ]]; then
-  echo "" >> ${WORKSPACE}cost_final_report
-  echo "Cost for specified user is as follows: " >> ${WORKSPACE}cost_final_report
-  echo "" >> ${WORKSPACE}cost_final_report
   extracted_report=$(extract_pattern "$PIPELINE_CODE" "${WORKSPACE}the_final_log" "user_report" "$WORKSPACE" "$USER_NAME")
   total_time=$(get_time_spent "$extracted_report" "$WORKSPACE" "$USER_NAME")
   ttime=$(time_run $total_time)
   cost=$(get_cost_spent $total_time)
   total_cost=$(echo "${total_cost}+$cost" | bc -l)
-  echo "Cost for $USER_NAME = \$$cost Approximate duration $ttime" >> ${WORKSPACE}cost_final_report
+  printf "$format" "$total_cost" "$ttime" "$USER_NAME" >> ${WORKSPACE}cost_final_report
   rm -rf ${WORKSPACE}tmp*
   rm -rf ${WORKSPACE}user_report
 fi
 
-
 if [[ "$PIPELINE_NAME" == "all" ]]; then
-  echo "" >> ${WORKSPACE}cost_final_report
-  echo "Cost for all pipelines are as follows: " >> ${WORKSPACE}cost_final_report
-  echo "" >> ${WORKSPACE}cost_final_report
   extrat_for_all_pipelines "$WORKSPACE" "${WORKSPACE}the_final_log"
 fi
 
 if [[ -n "$USER_NAME" && $USER_NAME == "all" ]]; then
-  echo "" >> ${WORKSPACE}cost_final_report
-  echo "Cost for all users are as follows: " >> ${WORKSPACE}cost_final_report
-  echo "" >> ${WORKSPACE}cost_final_report
   extract_for_all_users "${WORKSPACE}the_final_log" "all_user_report" "$WORKSPACE" "$USER_NAME"
 fi
 
+printf "%$width.${width}s" "$divider" >> ${WORKSPACE}sorted_cost_final_report
+printf "$header" "COST(USD)" "TIME(hh:mm)" "NAME(user/pipeline)" >> ${WORKSPACE}sorted_cost_final_report
+printf "%$width.${width}s\n" "$divider" >> ${WORKSPACE}sorted_cost_final_report
+cat ${WORKSPACE}cost_final_report >> ${WORKSPACE}sorted_cost_final_report
+printf "%$width.${width}s" "$divider" >> ${WORKSPACE}sorted_cost_final_report
+echo "" >> ${WORKSPACE}sorted_cost_final_report
 
-cat ${WORKSPACE}cost_final_report
+cat ${WORKSPACE}sorted_cost_final_report
+
 rm -rf ${WORKSPACE}the_final_log
 
