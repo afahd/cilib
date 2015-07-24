@@ -27,6 +27,7 @@ pl_code[7]="automaton-longevity"
 pl_code[8]="longevity"
 pl_code[9]="coral"
 pl_code[10]="DEBUG-TEST"
+pl_code[11]="corelib-smoke"
 pl_code['x']="MISCELLANEOUS"
 
 # Download latest daily usage report file or one supplied through arguments.

@@ -24,3 +24,4 @@ install_files (/gcloud/aurora/pipeline_scripts FILES "${CMAKE_CURRENT_BINARY_DIR
 
 add_subdirectory(alps)
 add_subdirectory(coral)
+add_subdirectory(corelib)

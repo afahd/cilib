@@ -26,8 +26,13 @@ branch_to_component['stable_4_1_2-amex']='fuji-sashimi'
 
 readarray -t PROJECT_LIST < ${WORKSPACE}/builder/branch_translations/repo.list
 
-# Convert the branch name to respective component name
-default_branch=$(translate_branch "$branch" "$project" "default" "${branch_translations_path}")
+if [[ "$project" == "corelib" ]]; then
+  default_branch="master"
+else
+  # Convert the branch name to respective component name
+  default_branch=$(translate_branch "$branch" "$project" "default" "${branch_translations_path}")
+fi
+
 for key in ${!branch_to_component[@]}; do
   if [[ "${key}" == ${default_branch} ]]; then
     APT_COMPONENT=${branch_to_component[$key]}
@@ -109,6 +114,20 @@ else
   git clone ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/\${repo} -- /home/plumgrid/work/\${repo}/
   git checkout \${branch}
 fi
+if [[ "$project" == "corelib" ]]; then
+  # corelib only exists has the master branch for now.
+  if [[ -d /home/plumgrid/work/corelib/ ]]; then
+    cd /home/plumgrid/work/corelib
+    git fetch
+    git reset --hard origin/master
+    git checkout master
+    git reset --hard origin/master
+  else
+    mkdir /home/plumgrid/work/corelib/
+    git clone ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/corelib -- /home/plumgrid/work/corelib/
+    git checkout master
+  fi
+fi
     ;;
   iovisor)
 DELIM__
@@ -162,7 +181,17 @@ sed -i "/export APT_REPO_HOST/ c\export APT_REPO_HOST=127.0.0.1 && export APT_CO
     ;;
   cmake_repos)
 DELIM__
-## Checkout the requested branch on all the projects
+## run cmake on corelib
+if [[ "$project" == "corelib" ]]; then
+    cat >> ${git_script} <<DELIM__
+mkdir -p /home/plumgrid/work/corelib/build
+cd /home/plumgrid/work/corelib/build
+export APT_COMPONENT=${APT_COMPONENT}
+export PATH="/usr/lib/ccache/:\${PATH}"
+cmake ..
+DELIM__
+fi
+
 for p in ${PROJECT_LIST[@]}; do
   # Coral does not use CMake to build, hence skipping cmake.
   if [[ $p != "coral" ]]; then

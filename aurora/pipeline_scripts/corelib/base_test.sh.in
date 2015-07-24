@@ -1,0 +1,107 @@
+#!/bin/bash
+# Script to run tests in corelib directory
+# and collect log from the failing tests
+# these are designed to work with aurora
+
+CTEST_ST=1
+CTEST_ED=25
+USER_TEST=""
+instance_no="1"
+itr=1
+PIPELINE="corelib-smoke"
+CTEST_OPT=' '
+TESTID="ctest-$CTEST_ST-$CTEST_ED"
+export EXPORT_FAILURES_DIR="/tmp/aurora_logs/$TESTID"
+export EXPORT_FAILURES_DIR_TMP="/tmp/log/$TESTID"
+rm -rf "${EXPORT_FAILURES_DIR}"
+rm -rf "${EXPORT_FAILURES_DIR_TMP}"
+mkdir -p "$EXPORT_FAILURES_DIR"
+mkdir -p "$EXPORT_FAILURES_DIR_TMP"
+mkdir -p "$EXPORT_FAILURES_DIR_TMP/xml_logs"
+#Delete the exsisting logs
+rm -rf /opt/pg/log/*
+
+cd ~/work/corelib/build
+test_tag=local
+export AURORA=1
+if [[ "$PIPELINE" == "corelib-smoke" ]]; then
+  # we're already in ~/work/corelib/build
+  export EXCLUDE_UNSTABLE=1
+fi
+
+# Run cmake ..
+cmake ..
+# Disable ipv6
+echo 1 | sudo tee /proc/sys/net/ipv6/conf/all/disable_ipv6
+
+# If this is the last instance, determine the index of the last test that needs to be run
+if [[ "x$CTEST_ED" == "x" ]] ; then
+  CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "Test " | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
+fi
+
+tests_ran=0
+
+# use a common, but hopefully unique prefix for the log destination
+formatted_date=$(date '+%Y%m%d-%H%M%S')
+for run in $(seq 1 $itr); do
+  echo  "Running iteration number: ${run}"
+  # need to recreate the directory every time, because we move it away at the end of the loop
+  for testno in $(seq $CTEST_ST $CTEST_ED); do
+    sudo pkill rsyslogd
+    sleep 0.2
+    pgrep rsyslogd >> /dev/null  || $(sudo rsyslogd &)
+    # Dtermine the test name from the test index
+    # [TODO] Add "DEBUG-TEST" support as well
+    test_name=$(ctest -N  -L ^type:$test_tag$ | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
+
+    echo "Running $test_name"
+    #Don't append iteration/instance number in case of pipeline
+    if [[ $instance_no == 1 && $itr == 1 ]]; then
+      log_file_name="${test_name}"
+    else
+      log_file_name="ctestout_inst${instance_no}_iter${run}_${test_name}"
+    fi
+    #Increment the number of tests ran
+    if [[ -n "$test_name" ]]; then
+      ((tests_ran++))
+    else
+      echo "Test $test_name not found"
+    fi
+
+    ctest --output-on-failure  -L ^type:$test_tag$ -R "^${test_name}$" -T test >& "$EXPORT_FAILURES_DIR/${log_file_name}.log"
+    result="$?"
+    #Generate the XML logs for omni pipeline and for 1 iteration
+    echo 'Finding the XML file with the results ...'
+    xml_dirname=$(cat Testing/TAG 2>/dev/null | head -1)
+    if [[ -z "$xml_dirname" ]]; then
+      echo "Empty XML dirname in Testing/TAG"
+    fi
+
+    xml_filename="Testing/${xml_dirname}/Test.xml"
+    echo "XML file located at: ${xml_filename}"
+
+    if [[ ! -f "$xml_filename" || ! -r "$xml_filename" ]]; then
+      echo "XML file $xml_filename unreadable or does not exist"
+    fi
+
+    if [[ "x$result" != "x0" ]] ; then
+      echo "                 FAILED"
+      mv "$EXPORT_FAILURES_DIR/${log_file_name}.log" "$EXPORT_FAILURES_DIR_TMP/${log_file_name}.FAILED.log"
+      test_failing_name=$(find "$EXPORT_FAILURES_DIR" -name "*.tar.gz")
+      mv ${test_failing_name} ${EXPORT_FAILURES_DIR_TMP}/$log_file_name.tar.gz
+      #Copy the xml output for downloading
+      mv "$xml_filename" ${EXPORT_FAILURES_DIR_TMP}/xml_logs/${test_name}.FAILED.xml
+    else
+      mv "$EXPORT_FAILURES_DIR/${log_file_name}.log" "$EXPORT_FAILURES_DIR_TMP/${log_file_name}.log"
+      mv "$xml_filename" ${EXPORT_FAILURES_DIR_TMP}/xml_logs/${test_name}.xml
+    fi
+    rm -rf $EXPORT_FAILURES_DIR/*
+  done
+done
+echo "$tests_ran" > $EXPORT_FAILURES_DIR_TMP/total_tests_inst${instance_no}
+#Copy logs to /opt/pg/log for get_latest_logs to copy the tests.
+mkdir -p /opt/pg/log/$TESTID
+cp -r ${EXPORT_FAILURES_DIR_TMP} /opt/pg/log/
+echo " All Logs are in :: ${EXPORT_FAILURES_DIR}"
+echo 'All done'
+

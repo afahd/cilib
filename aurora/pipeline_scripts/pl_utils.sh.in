@@ -15,6 +15,8 @@ function get_db() {
   fi
   if [[ $pipeline == "smoke" ]]; then
     db=${SMOKE_DB}
+  elif [[ $pipeline == "corelib-smoke" ]]; then
+    db=${CORELIB_SMOKE_DB}
   elif [[ $pipeline == "extended" ]]; then
     db=${EXTENDED_DB}
   elif [[ $pipeline == "unstable" ]]; then
