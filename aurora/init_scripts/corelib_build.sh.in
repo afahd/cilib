@@ -1,19 +1,7 @@
 #!/bin/bash -e
 . /opt/pg/env/alps.bashrc
-cd ~/work/pg_ui/build
-make -j 4 install
-cd ~/work/sal/build
-make -j 4 install
-cd ~/work/pkg/build
-make -j 4 install
-cd ~/work/pg_cli/build
-make -j 4 install
-cd ~/work/python-plumgridlib/build
-make -j 4 install
-cd ~/work/python-plumgridlib/lib
-sudo python setup.py install
-cd ~/work/alps/build
-make -j 4 install
+
+# corelib doesn't need to install other repos
 
 cd ~/work/corelib/build
 return_value=0

@@ -32,7 +32,7 @@ DEST_SCRIPT_DIR=0
 echo "run_pipelines.sh $@"
 ARGS=$@
 # read the options
-TEMP=`getopt -o Q:R:E:W:l:P:b:i:f:t:u:s:n:\r:d:IFKc:e:a:h --long WORKSPACE:,buildid:,pipeline:,branch:,test_iterations:,first_test:,step_size:,update_db_failure_limit:,script:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update,keep-running,cost_pipeline_code:,\help -n 'run_all_test.sh' -- "$@"`
+TEMP=`getopt -o W:l:P:b:i:f:t:u:s:n:\r:d:IFKc:h --long WORKSPACE:,buildid:,pipeline:,branch:,test_iterations:,first_test:,step_size:,update_db_failure_limit:,script:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update,keep-running,cost_pipeline_code:,\help -n 'run_all_test.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # extract options and their arguments into variables.
@@ -53,7 +53,7 @@ while true ; do
     -I|--initial_run) INITIAL_RUN="true" ; shift ;;
     -F|--db_update) DB_UPDATE="true" ; shift ;;
     -K|--keep-running) KEEP_RUNNING="-K"; shift ;;
-    --cost_pipeline_code) COST_PIPELINE_CODE="$2" ; shift 2 ;;
+    -c|--cost_pipeline_code) COST_PIPELINE_CODE="$2" ; shift 2 ;;
     -h|--help)
       show_run_tests_help
       exit 0
@@ -96,7 +96,7 @@ fi
 
 #Set the number of instances and iterations
 if [[ -z "$NUM_INSTANCES" ]]; then
-  NUM_INSTANCES=${NUM_DEFAULT_INSTANCES}
+  NUM_INSTANCES=${CORELIB_SMOKE_INSTANCES}
 fi
 
 
