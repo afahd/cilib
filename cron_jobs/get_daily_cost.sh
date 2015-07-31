@@ -3,13 +3,15 @@
 USER=plumgrid
 export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/home/${USER}/google-cloud-sdk/bin:$PATH
 
-TEMP=`getopt -o W:T: --long WORKSPACE:,duration: -n 'get_daily_cost.sh' -- "$@"`
+TEMP=`getopt -o W:T:X: --long WORKSPACE:,duration:,extra-recp: -n 'get_daily_cost.sh' -- "$@"`
 eval set -- "$TEMP"
 
+EXTRA_RECP=""
 while true ; do
   case "$1" in
     -W|--WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
     -T|--duration) export DURATION=$2 ; shift 2;;
+    -X|--extra-recp) EXTRA_RECP=$2 ; shift 2 ;;
     --) shift ; break ;;
     *)
       echo "Unrecognized option $1"
@@ -40,5 +42,4 @@ elif [[ $DURATION == "month" ]];then
   subject="Aurora monthly cloud resources cost report"
 fi
 
-# cat ${WORKSPACE}email_template | mail -s "$subject" "aurora.internal@plumgrid.com" "fmushtaq@plumgrid.com"
-cat ${WORKSPACE}email_template | mail -s "$subject" "irfans@plumgrid.com"
+cat ${WORKSPACE}email_template | mail -s "$subject" "aurora.internal@plumgrid.com" "$EXTRA_RECP"
