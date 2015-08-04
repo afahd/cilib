@@ -27,6 +27,10 @@ export AURORA=1
 if [[ "$PIPELINE" == "corelib-smoke" ]]; then
   # we're already in ~/work/corelib/build
   export EXCLUDE_UNSTABLE=1
+elif [[ "$PIPELINE" == "corelib-extended" ]]; then
+  export BUILD_NIGHTLY=1
+  export EXCLUDE_NON_NIGHTLY=1
+  export EXCLUDE_UNSTABLE=1
 fi
 
 # Run cmake ..

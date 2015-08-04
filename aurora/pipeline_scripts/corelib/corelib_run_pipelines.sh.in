@@ -81,22 +81,21 @@ log_dir=${script_dir}/logs
 untar_log_dir=${script_dir}/untar_logs
 
 echo "run_pipelines.sh $ARGS" > $log_dir/aurora_pipeline_command
-if [[ $PIPELINE == "corelib-smoke" ]]; then
-  db=$(get_db $PIPELINE $BRANCH)
-  if [[ -e $db ]]; then
-    echo "database selected = $db"
-  else
-    echo "$db does not exist!"
-    exit 1
-  fi
+db=$(get_db $PIPELINE $BRANCH)
+if [[ -e $db ]]; then
+  echo "database selected = $db"
 else
-  echo "Invalid Pipeline Specified"
+  echo "$db does not exist!"
   exit 1
 fi
 
 #Set the number of instances and iterations
 if [[ -z "$NUM_INSTANCES" ]]; then
-  NUM_INSTANCES=${CORELIB_SMOKE_INSTANCES}
+  if [[ "$PIPELINE" == "corelib-smoke" ]]; then
+    NUM_INSTANCES=${CORELIB_SMOKE_INSTANCES}
+  else
+    NUM_INSTANCES=${CORELIB_DEFAULT_INSTANCES}
+  fi
 fi
 
 
@@ -207,15 +206,14 @@ function run_test() {
     fi
     ;;
   7)
-    #Copy the XML logs for omni
-    if [[ "$PIPELINE" == "corelib-smoke" ]]; then
-      mkdir -p ${WORKSPACE}/logs/xml_logs
-      #Replace the '.FAILED' for the failing logs so failing logs take precedence
-      find ${untar_log_dir} -type f -name "*FAILED.xml" -exec  rename -f 's/.FAILED.xml/.xml/' '{}' \;
-      #Copy the xml logs
-      find ${untar_log_dir} -type f -name "*.xml" -exec mv {} ${WORKSPACE}/logs/xml_logs/ \;
-    fi
+    #Copy the XML logs
+    mkdir -p ${WORKSPACE}/logs/xml_logs
+    #Replace the '.FAILED' for the failing logs so failing logs take precedence
+    find ${untar_log_dir} -type f -name "*FAILED.xml" -exec  rename -f 's/.FAILED.xml/.xml/' '{}' \;
+    #Copy the xml logs
+    find ${untar_log_dir} -type f -name "*.xml" -exec mv {} ${WORKSPACE}/logs/xml_logs/ \;
 
+    # create dir to store test logs
     mkdir -p ${WORKSPACE}/test_logs
 
     # find all the failed files and copy them to the WORKSPACE
