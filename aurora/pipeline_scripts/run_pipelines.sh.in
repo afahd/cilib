@@ -19,20 +19,6 @@ PIPELINE_ARGUMENTS="$@"
 TEMP=`getopt -o Q:R:E:W:l:P:b:i:f:t:u:s:n:\r:d:IFKc:e:a:h --long major:,minor_start:,minor_end:,WORKSPACE:,buildid:,pipeline:,branch:,test_iterations:,first_test:,step_size:,update_db_failure_limit:,script:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update,keep-running,local_commit:,existing_commit_hash:,alps-path:,\help -n 'run_pipelines.sh' -- "$@"`
 eval set -- "$TEMP"
 
-declare -A pl_code
-pl_code[smoke]="1"
-pl_code[extended]="2"
-pl_code[unstable]="3"
-pl_code[pgui-smoke]="4"
-pl_code[omni]="5"
-pl_code[automaton]="6"
-pl_code[automaton-longevity]="7"
-pl_code[longevity]="8"
-pl_code[coral-smoke]="9"
-pl_code[DEBUG-TEST]="10"
-pl_code[corelib-smoke]="11"
-pl_code[corelib-extended]="12"
-
 # extract options and their arguments into variables.
 while true ; do
   case "$1" in
@@ -51,7 +37,7 @@ done
 # From there, we can generate cost report by using this code.
 # First: Get Branch name.
 # TODO: Need to get branch name from build id. Append this branch name in cost_code.
-cost_pipeline_code=${pl_code["$PIPELINE"]}
+cost_pipeline_code=${PL_CODE["$PIPELINE"]}
 if [[ -z "$cost_pipeline_code" ]]; then
   cost_pipeline_code="x"
 fi

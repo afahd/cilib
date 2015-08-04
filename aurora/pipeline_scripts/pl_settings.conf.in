@@ -1,3 +1,4 @@
+#Database locations
 DB_PATH=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/
 DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/smoke-master.db
 CORELIB_SMOKE_DB=@CMAKE_CURRENT_BINARY_DIR@/corelib/dbs/corelib-smoke-master.db
@@ -8,16 +9,36 @@ UNSTABLE_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/unstable-master.db
 PGUI_SMOKE_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/pgui-smoke-master.db
 PGUI_EXTENDED_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/pgui-extended-master.db
 OMNI_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/omni-master.db
+
+#Database map
+declare -A PIPELINE_DB=(
+["smoke"]=${SMOKE_DB}
+["corelib-smoke"]=${CORELIB_SMOKE_DB}
+["extended"]=${EXTENDED_DB}
+["unstable"]=${UNSTABLE_DB}
+["pgui-smoke" ]=${PGUI_SMOKE_DB}
+["omni"]=${OMNI_DB}
+["pgui-extended"]=${PGUI_EXTENDED_DB}
+["corelib-smoke"]=${CORELIB_SMOKE_DB}
+["corelib-extended"]=${CORELIB_EXTENDED_DB}
+)
+
+#Flag passing/failing variables
 FAILING_TESTS_DB=/home/$USER/failing_tests.db
 UNSTABLE_TESTS_DB=/home/$USER/unstable_tests.db
 FAILING_TESTS_TABLE=failing_tests_table
 UNSTABLE_TESTS_TABLE=unstable_tests_table
 PL_FAILING_TESTS_LIST=/home/$USER/pl_failing_tests_list
+MARK_UNSTABLE_AFTER_DAYS="4"
+MARK_STABLE_AFTER_DAYS="4"
+FLAG_NUM_INSTANCES="20"
+FLAG_TEST_ITERATIONS="5"
+
+#Pipeline variables
 BASE_SCRIPT="base_test.sh"
 INITIAL_RUN="false"
 FORCE_DB_UPDATE="false"
 PIPELINE="smoke"
-TEST_ITERATIONS=1
 EXISTING_COMMIT_HASH="null"
 VALID_COMMIT_HASH="false"
 COMMIT_HASH_FILE="none"
@@ -25,18 +46,41 @@ ALPS_PATH=/home/${USER}/work/alps
 NUM_LAST_COMMITS="10"
 FIRST_TEST=1
 STEP_SIZE=50
-NUM_DEFAULT_INSTANCES="10"
-NUM_AUTOMATON_INSTANCES="5"
-NUM_AUTOMATON_LONGEVITY_INSTANCES="7"
-NUM_LONGEVITY_INSTANCES="6"
-PGUI_NUM_INSTANCES="10"
-PGUI_EXTENDED_NUM_INSTANCES="3"
-OMNI_NUM_INSTANCES="15"
-OMNI_TEST_ITERATIONS=5
-MARK_UNSTABLE_AFTER_DAYS="4"
-MARK_STABLE_AFTER_DAYS="4"
-FLAG_NUM_INSTANCES="20"
-FLAG_TEST_ITERATIONS="5"
-CORAL_SMOKE_INSTANCES=1
-CORELIB_SMOKE_INSTANCES="2"
-CORELIB_DEFAULT_INSTANCES="4"
+
+#Iteration map
+declare -A ITERATION_COUNT=(
+['default']="1"
+['omni']="5"
+)
+
+#Instance count map
+declare -A INSTANCE_COUNT=(
+['default']="10"
+['automaton']="5"
+['automaton-longevity']="7"
+['longevity']="6"
+['pgui-smoke']="10"
+['pgui-extended']="3"
+['omni']="15"
+['coral-smoke']="1"
+['corelib-smoke']="2"
+['corelib-extended']="4"
+)
+
+#Pipeline codes for cost calculation
+declare -A PL_CODE=(
+[smoke]="1"
+[extended]="2"
+[unstable]="3"
+[pgui-smoke]="4"
+[omni]="5"
+[automaton]="6"
+[automaton-longevity]="7"
+[longevity]="8"
+[coral-smoke]="9"
+[DEBUG-TEST]="10"
+[corelib-smoke]="11"
+[corelib-extended]="12"
+[pgui-extended]="13"
+[MISCELLANEOUS]="x"
+)

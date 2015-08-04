@@ -8,32 +8,17 @@ function get_db() {
   local branch=$2
   if [[ -n "$branch" ]]; then
     local db="${DB_PATH}$pipeline-$branch.db"
+    if [[ -e "$db" ]]; then
+      echo ${db}
+      return 0
+    fi
   fi
-  if [[ -e "$db" ]]; then
-    echo ${db}
-    return 0
-  fi
-  if [[ $pipeline == "smoke" ]]; then
-    db=${SMOKE_DB}
-  elif [[ $pipeline == "corelib-smoke" ]]; then
-    db=${CORELIB_SMOKE_DB}
-  elif [[ $pipeline == "corelib-extended" ]]; then
-    db=${CORELIB_EXTENDED_DB}
-  elif [[ $pipeline == "extended" ]]; then
-    db=${EXTENDED_DB}
-  elif [[ $pipeline == "unstable" ]]; then
-    db=${UNSTABLE_DB}
-  elif [[ $pipeline == "pgui-smoke" ]]; then
-    db=${PGUI_SMOKE_DB}
-  elif [[ $pipeline == "omni" ]]; then
-    db=${OMNI_DB}
-  elif [[ $pipeline == "pgui-extended" ]]; then
-    db=${PGUI_EXTENDED_DB}
+  if [[ -n "${PIPELINE_DB[$pipeline]}" ]]; then
+    echo ${PIPELINE_DB[$pipeline]}
   else
     echo "Unknown Pipeline"
     return 1
   fi
-  echo ${db}
 }
 
 function get_script_dir() {
@@ -169,7 +154,210 @@ function check_flag_inputs() {
     echo "Branch: $branch does not exist for the project: alps"
     exit 1
   fi
+}
+
+# *****************************************************************************
+# Function: get_total_tests_run
+# Purpose : Returns the number of tests run by adding files from each instance
+#           in a given directory.
+# Usage   : get_total_tests_run <Path to downloaded logs>
+# *****************************************************************************
+function get_total_tests_run() {
+  local log_dir=$1
+
+  local test_count=$(find ${log_dir} -name "total_tests_inst*" -type f)
+  #Get total tests ran
+  local num_total_tests=0
+  for file in ${test_count[@]}; do
+    num_total_tests=$((`cat $file`+$num_total_tests))
+  done
+
+  echo "$num_total_tests"
+}
+
+# *****************************************************************************
+# Function: collect_xml_logs
+# Purpose : Collects generated XML logs to a target directory. Multiple iterations
+#           of a test are treated as a single test. Failing tests take precedence.
+# Usage   : collect_xml_logs <source log directory> <Output directory>
+# *****************************************************************************
+function collect_xml_logs() {
+  if [[ $# -ne '2' ]]; then
+    echo "Wrong number of argument \"$#\" passed, exiting."
+    exit 1
+  fi
+
+  local source_dir=$1
+  local target_dir=$2
+
+  mkdir -p ${target_dir}
+  #Replace the '.FAILED' for the failing logs so failing logs take precedence
+  find ${source_dir} -type f -name "*FAILED.xml" -exec  rename -f 's/.FAILED.xml/.xml/' '{}' \;
+  #Copy the xml logs
+  find ${source_dir} -type f -name "*.xml" -exec mv {} ${target_dir} \;
+
+}
+
+# *****************************************************************************
+# Function: get_failing_test_number
+# Purpose : Returns the number of failing tests in a given directory.
+# Usage   : get_failing_test_number <Log dir>
+# *****************************************************************************
+function get_failing_test_number() {
+  local log_dir=$1
+  echo "$(find ${log_dir} -name "*FAILED.log" | wc -l)"
+}
 
 
+# *****************************************************************************
+# Function: generate_status_report
+# Purpose : Generates the status report file for builder to consume
+# Usage   : generate_status_report <Pipeline name> <Number of failures> <Total tests ran>
+#           <Time taken> <Output file>
+# *****************************************************************************
+function generate_status_report() {
 
+  if [[ $# -ne '5' ]]; then
+    echo "Wrong number of argument \"$#\" passed, exiting."
+    exit 1
+  fi
+
+  local pipeline=$1
+  local num_failures=$2
+  local total_tests=$3
+  local time_taken=$4
+  local output_file=$5
+
+  # Write to status file in case of failures
+  if [[ ${num_failures} -gt 0 ]]; then
+    cat /dev/null > ${output_file}
+    #Write status for builder script
+    echo "$pipeline,$time_taken,${num_failures},$total_tests" > ${output_file}
+  fi
+}
+
+# *****************************************************************************
+# Function: generate_failing_list
+# Purpose : Generates the list of tests failing in the run from a given folder
+#           to be consumed by builder
+# Usage   : generate_failing_list <log dir> <Output file>
+# *****************************************************************************
+function generate_failing_list() {
+
+  if [[ $# -ne '2' ]]; then
+    echo "Wrong number of argument \"$#\" passed, exiting."
+    exit 1
+  fi
+
+  local log_dir=$1
+  local output_file=$2
+
+  local failed_list=$(find ${log_dir} -name "*FAILED.log")
+  local num_failures=$(get_failing_test_number $log_dir)
+
+  if [[ ${num_failures} -gt 0 ]]; then
+    for test_name in ${failed_list[@]}; do
+      test_name=$(basename "$test_name")
+      test_name=$(echo "$test_name" | sed 's/ctestout_inst.*_iter[0-9]\+_//' | sed 's/.FAILED.log//' )
+      echo "$test_name" >> "${output_file}"
+    done
+  fi
+}
+
+# *****************************************************************************
+# Function: generate_ctest_output
+# Purpose : Concatenates and outputs the ctest logs
+# Usage   : generate_ctest_output <log dir> <Output file>
+# *****************************************************************************
+function generate_ctest_output() {
+  if [[ $# -ne '2' ]]; then
+    echo "Wrong number of argument \"$#\" passed, exiting."
+    exit 1
+  fi
+
+  local log_dir=$1
+  local output_file=$2
+
+  #Concatenate all the log files into one file
+  for log_file in `find ${log_dir} -type f -name "*.log"` ; do
+      cat $log_file >>  ${output_file}
+      echo "--------------------------------------" >> ${output_file}
+  done
+}
+
+# *****************************************************************************
+# Function: generate_test_directories
+# Purpose : Places the failing tests and related files in their seperate folders.
+# Usage   : generate_test_directories <log dir> <Output dir>
+# *****************************************************************************
+function generate_test_directories() {
+  if [[ $# -ne '2' ]]; then
+    echo "Wrong number of argument \"$#\" passed, exiting."
+    exit 1
+  fi
+
+  local log_dir=$1
+  local out_dir=$2
+
+  #Make the output directory
+  mkdir -p ${out_dir}
+
+  # find all the failed files and copy them to the output directory
+  for file in `find ${log_dir} -type f -name "*FAILED.log" -o -type f -name "*.tar.gz"`; do
+    base_test_name=`basename $file`
+    #Remove the instance number, iteration number and extension
+    pretty_test_name=$(echo "$base_test_name" | sed 's/ctestout_inst.*_iter[0-9]\+_//' | sed 's/.FAILED.log//' | sed 's/.tar.gz//')
+    mkdir -p ${out_dir}/$pretty_test_name
+    cp $file ${out_dir}/$pretty_test_name/$base_test_name
+  done
+}
+# *****************************************************************************
+# Function: set_instance_count
+# Purpose : Returns the number of instances for a given pipeline.
+# Usage   : set_instance_count <pipeine name> <over-ride value>
+# *****************************************************************************
+function set_instance_count() {
+
+  local pipeline_name=$1
+  local override_value=$2
+  local instance_count
+  #Set the number of instances
+  if [[ -z "$override_value" ]]; then
+    #Change number instances
+    if [[ -n ${INSTANCE_COUNT[$PIPELINE]} ]]; then
+      instance_count=${INSTANCE_COUNT[$PIPELINE]}
+    else
+      instance_count=${INSTANCE_COUNT['default']}
+    fi
+  else
+      instance_count=$override_value
+  fi
+  echo "$instance_count"
+  echo "Num Instances = $instance_count" >&2
+}
+
+
+# *****************************************************************************
+# Function: set_iteration_count
+# Purpose : Returns the number of iterations for a given pipeline.
+# Usage   : set_iteration_count <pipeine name> <over-ride value>
+# *****************************************************************************
+function set_iteration_count() {
+
+  local pipeline_name=$1
+  local override_value=$2
+  local iteration_count
+  #Set the number of instances
+  if [[ -z "$override_value" ]]; then
+    #Change number instances
+    if [[ -n ${ITERATION_COUNT[$PIPELINE]} ]]; then
+      iteration_count=${ITERATION_COUNT[$PIPELINE]}
+    else
+      iteration_count=${ITERATION_COUNT['default']}
+    fi
+  else
+      iteration_count=$override_value
+  fi
+  echo "$iteration_count"
+  echo "Num Iterations = $iteration_count" >&2
 }
