@@ -31,6 +31,7 @@ pl_code[longevity]="8"
 pl_code[coral-smoke]="9"
 pl_code[DEBUG-TEST]="10"
 pl_code[corelib-smoke]="11"
+pl_code[corelib-extended]="12"
 
 # extract options and their arguments into variables.
 while true ; do
@@ -58,7 +59,7 @@ echo "cost_pipeline_code=${cost_pipeline_code}"
 if [[ $PIPELINE == "coral-smoke" ]]; then
   BASE_SCRIPT_DIR="@CMAKE_CURRENT_BINARY_DIR@/coral/"
   coral_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" --cost_pipeline_code "$cost_pipeline_code" $PIPELINE_ARGUMENTS
-elif [[ $PIPELINE == "corelib-smoke" ]]; then
+elif [[ $PIPELINE =~ "corelib-"+ ]]; then
   BASE_SCRIPT_DIR="@CMAKE_CURRENT_BINARY_DIR@/corelib/"
   corelib_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" --cost_pipeline_code "$cost_pipeline_code" $PIPELINE_ARGUMENTS
 else
