@@ -158,8 +158,7 @@ echo "Copying the branch translations"
 if [[ ! -d ${WORKSPACE}/builder/.git ]]; then
   tryexec git clone --depth=1 ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/builder ${WORKSPACE}/builder
 fi
-#Create the repo list
-readarray -t PROJECT_LIST < ${WORKSPACE}/builder/branch_translations/repo.list
+
 
 
 #Create file to ensure continue works if run/build is aborted before 1st step completes

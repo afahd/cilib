@@ -1,5 +1,4 @@
 #!/bin/bash -e
-
 ## The purpose of this script is to run specific pipelines e.g. smoke, extended etc on gcloud instances. The command on the terminal
 ## "aurora pipeline" maps to this script which then divides the script to run either alps_run_pipelines.sh or coral_run_pipelines
 ## depending upon the parameter passed. Each pipeline is essentially a group of tests, this script runs a specific group of tests
@@ -7,7 +6,7 @@
 ## on the builder side.
 
 export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/alps:\
-/opt/pg/scripts/gcloud/aurora/pipeline_scripts/coral:$PATH
+/opt/pg/scripts/gcloud/aurora/pipeline_scripts/coral:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/corelib:$PATH
 
 source /home/$USER/.aurora.conf
 source pl_utils.sh
@@ -31,6 +30,7 @@ pl_code[automaton-longevity]="7"
 pl_code[longevity]="8"
 pl_code[coral-smoke]="9"
 pl_code[DEBUG-TEST]="10"
+pl_code[corelib-smoke]="11"
 
 # extract options and their arguments into variables.
 while true ; do
@@ -58,6 +58,9 @@ echo "cost_pipeline_code=${cost_pipeline_code}"
 if [[ $PIPELINE == "coral-smoke" ]]; then
   BASE_SCRIPT_DIR="@CMAKE_CURRENT_BINARY_DIR@/coral/"
   coral_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" --cost_pipeline_code "$cost_pipeline_code" $PIPELINE_ARGUMENTS
+elif [[ $PIPELINE == "corelib-smoke" ]]; then
+  BASE_SCRIPT_DIR="@CMAKE_CURRENT_BINARY_DIR@/corelib/"
+  corelib_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" --cost_pipeline_code "$cost_pipeline_code" $PIPELINE_ARGUMENTS
 else
   BASE_SCRIPT_DIR="@CMAKE_CURRENT_BINARY_DIR@/alps/"
   alps_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" --cost_pipeline_code "$cost_pipeline_code" $PIPELINE_ARGUMENTS

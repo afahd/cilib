@@ -24,10 +24,10 @@ branch_to_component['stable_4_1']='fuji'
 branch_to_component['stable_4_1_1']='fuji-sushi'
 branch_to_component['stable_4_1_2-amex']='fuji-sashimi'
 
-readarray -t PROJECT_LIST < ${WORKSPACE}/builder/branch_translations/repo.list
 
 # Convert the branch name to respective component name
 default_branch=$(translate_branch "$branch" "$project" "default" "${branch_translations_path}")
+
 for key in ${!branch_to_component[@]}; do
   if [[ "${key}" == ${default_branch} ]]; then
     APT_COMPONENT=${branch_to_component[$key]}
@@ -162,7 +162,7 @@ sed -i "/export APT_REPO_HOST/ c\export APT_REPO_HOST=127.0.0.1 && export APT_CO
     ;;
   cmake_repos)
 DELIM__
-## Checkout the requested branch on all the projects
+
 for p in ${PROJECT_LIST[@]}; do
   # Coral does not use CMake to build, hence skipping cmake.
   if [[ $p != "coral" ]]; then

@@ -1,0 +1,11 @@
+#!/bin/bash -e
+. /opt/pg/env/alps.bashrc
+
+# corelib doesn't need to install other repos
+
+cd ~/work/corelib/build
+return_value=0
+make -k -j 4 install || return_value=$?
+
+#Need to have the last command status for run_bg_cmd
+[[ $return_value -eq 0  ]]
