@@ -23,6 +23,7 @@ branch_to_component['stable_4_0']='everest'
 branch_to_component['stable_4_1']='fuji'
 branch_to_component['stable_4_1_1']='fuji-sushi'
 branch_to_component['stable_4_1_2-amex']='fuji-sashimi'
+branch_to_component['stable_4_1_2-ericsson']='fuji-nigiri'
 
 
 # Convert the branch name to respective component name

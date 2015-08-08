@@ -41,6 +41,7 @@ br_code[stable_4_0]="2"
 br_code[stable_4_1]="3"
 br_code[stable_4_1_1]="4"
 br_code[stable_4_1_2-amex]="5"
+br_code[stable_4_1_2-ericsson]="6"
 
 BUILD_SCRIPT=@CMAKE_BINARY_DIR@/aurora/init_scripts/run_build_all.sh
 # read the options
