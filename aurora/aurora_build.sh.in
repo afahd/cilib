@@ -335,18 +335,26 @@ function build_image() {
   21)
     BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${emailid}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
-    # Flushing the disk buffers
-    tryexec run_cmd_gci ${INSTANCE_IP} "sudo sync"
-    tryexec run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f /opt || true"
+
+    # Flushing the disk buffers only if -K is not set
+    if [[ "${KEEP_RUNNING}" != "1" ]]; then
+      tryexec run_cmd_gci ${INSTANCE_IP} "sudo sync"
+      tryexec run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f /opt || true"
+    fi
+
     tryexec exec_gcloud_cmd disks snapshot ${INSTANCE_NAME}-d2 --snapshot-names ${INSTANCE_NAME}-ssd2
     record_step $step $step_file
     ;;
 
   22)
-    # Flushing the disk buffers
-    echo "Flushing the disk buffers"
-    tryexec run_cmd_gci ${INSTANCE_IP} "sudo sync"
-    tryexec run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f / || true"
+
+    # Flushing the disk buffers only if -K is not set
+    if [[ "${KEEP_RUNNING}" != "1" ]]; then
+      echo "Flushing the disk buffers"
+      tryexec run_cmd_gci ${INSTANCE_IP} "sudo sync"
+      tryexec run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f / || true"
+    fi
+
     tryexec exec_gcloud_cmd disks snapshot ${INSTANCE_NAME}-d1 --snapshot-names ${INSTANCE_NAME}-ssd1
 
     echo "BUILD-ID=${BUILD_ID}" | tee $WORKSPACE/logs/build_id
