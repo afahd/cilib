@@ -6,6 +6,13 @@
 #and email is sent to the user notifying about the outdated entities.
 #Email is extracted from the name of the entity.
 
+###########CAUTION############
+# This script DELETES Disks and
+# sends out emails. Make sure to
+# comment those parts out if this
+# is a test run
+###############################
+
 #Time elapsed since creation (seconds) for generating email for instances and snapshots
 time_diff=$1
 #Time elapsed since creation (seconds) for generating email for disks
@@ -16,6 +23,19 @@ if [[ -z "$3" ]]; then
 else
   number_snapshots=$3
 fi
+#Max hours a set of instances can run before the user is notified
+max_hours=$4
+#Max instances a user can run for a specific number of hours before they're notified
+max_instances=$5
+
+
+#Set default value incase a cmd argument is not specified
+time_diff=${time_diff:="$((10 * 60 * 60))"}
+time_diff_disks=${time_diff_disks:="$((10 * 60 * 60))"}
+max_hours=${max_hours:=$((10 * 60 * 60))}
+max_instances=${max_instances:=$((20))}
+
+
 #array for mapping emails and gerritids
 declare -A email_array
 #only get build or run instances
@@ -24,7 +44,9 @@ instance_list=$(gcloud compute instances list --format=text --sort-by=creationTi
 instance_names=($(echo "$instance_list" | grep '^name'))
 instance_creationtime=($(echo "$instance_list" | grep creationTimestamp))
 instance_state=($(echo "$instance_list" | grep status))
+
 j=0
+k=0
 for (( i = 1 ; i < ${#instance_names[@]} ; i=i+2 )) do
   current_date=$(date +"%s")
   creation_date=$(date -d ${instance_creationtime[$i]} +"%s" )
@@ -38,6 +60,17 @@ for (( i = 1 ; i < ${#instance_names[@]} ; i=i+2 )) do
       email_array[${name}]=1
     fi
     ((j++))
+  fi
+
+  #Check is the machine has been running even more than max hours
+  if [[ $time_difference -gt $time_diff && ${instance_state[$i]} == "RUNNING" && ${time_difference} -gt ${max_hours} ]]; then
+    toomany_instances[$k]="${instance_names[$i]} ${instance_creationtime[$i]:0:10}"
+    name=$(echo ${instance_names[$i]} | awk -F'-' '{print $1}' )
+    #Add to the email array if not already present
+    if [[ -z ${email_array[$name]} ]]; then
+      email_array[${name}]=1
+    fi
+    ((k++))
   fi
 done
 
@@ -122,6 +155,32 @@ for email in "${!email_array[@]}"; do
     echo "Use 'aurora rm snapshots <regex>' to delete the instances." >> email_content
     send_mail=1
   fi
+
+  if [[ $send_mail == 1 ]]; then
+    current_date=$(date +"%d %b %Y")
+    cat email_content | mail -s "Aurora Cloud Resources Usage Report ${current_date}" -c "aurora.internal@plumgrid.com" $email@plumgrid.com
+  fi
+done
+
+#Incase a user has too many instances running, Send out a different email for every unique email address
+for email in "${!email_array[@]}"; do
+  send_mail=0
+  cat /dev/null > email_content
+  echo "Hi $email," >> email_content
+
+  user_instances=$(printf '%s\n' "${toomany_instances[@]}" | grep "$email")
+  number_user_instances=$(printf '%s\n' "${toomany_instances[@]}" | grep "$email" | wc -l)
+  #user hours needs to be an integer here
+  user_hours=$(($max_hours/60/60))
+  if [[ $number_user_instances -gt $max_instances ]]; then
+    echo >> email_content
+    echo "The following "$number_user_instances" instances have been running for more than "$user_hours" hours, consider deleting them:" >> email_content
+    echo -e "Name: CreationDate:\n $user_instances" | column -t >> email_content
+    echo >> email_content
+    echo "Use 'aurora rm instances <regex>' to delete the instances." >> email_content
+    send_mail=1
+  fi
+
   if [[ $send_mail == 1 ]]; then
     current_date=$(date +"%d %b %Y")
     cat email_content | mail -s "Aurora Cloud Resources Usage Report ${current_date}" -c "aurora.internal@plumgrid.com" $email@plumgrid.com

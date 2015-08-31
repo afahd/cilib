@@ -89,15 +89,10 @@ else
   exit 1
 fi
 
-#Set the number of instances and iterations
-if [[ -z "$NUM_INSTANCES" ]]; then
-  if [[ "$PIPELINE" == "corelib-smoke" ]]; then
-    NUM_INSTANCES=${CORELIB_SMOKE_INSTANCES}
-  else
-    NUM_INSTANCES=${CORELIB_DEFAULT_INSTANCES}
-  fi
-fi
-
+#Set the number of iterations
+TEST_ITERATIONS=$(set_iteration_count $PIPELINE $TEST_ITERATIONS)
+#Set the number of instances
+NUM_INSTANCES=$(set_instance_count $PIPELINE $NUM_INSTANCES)
 
 function run_test() {
   local step=$1
@@ -161,44 +156,26 @@ function run_test() {
     ;;
 
   5)
-    # Generate failed test case report.
-    num_failures=$(find ${untar_log_dir} -name "*FAILED.log" | wc -l)
-    test_count=$(find ${untar_log_dir} -name "total_tests_inst*" -type f)
+     # Generate failed test case report.
+    num_failures=$(get_failing_test_number ${untar_log_dir})
+    echo "num_failures=$num_failures"
     #Get total tests ran
-    local num_total_tests=0
-    for file in ${test_count[@]}; do
-      num_total_tests=$((`cat $file`+$num_total_tests))
-    done
-    time_taken=$(print_time_taken $pipeline_start_time $pipeline_end_time "running $PIPELINE pipeline")
-    # Write to status file in case of failures
-    if [[ ${num_failures} -gt 0 ]]; then
-      cat /dev/null > ${WORKSPACE}/logs/failing-list.log
-      #Write status for builder script
-      echo "$PIPELINE,$time_taken,${num_failures},$num_total_tests" > ${WORKSPACE}/aurora-pipeline-status
-      failed_list=$(find ${untar_log_dir} -name "*FAILED.log")
-      for test_name in ${failed_list[@]}; do
-        test_name=$(basename "$test_name")
-        test_name=$(echo "$test_name" | sed 's/ctestout_inst.*_iter[0-9]\+_//' | sed 's/.FAILED.log//' )
-        echo "$test_name" >> "${WORKSPACE}/logs/failing-list.log"
-      done
-    fi
+    local num_total_tests=$(get_total_tests_run ${untar_log_dir})
     echo "Total number of tests run = $num_total_tests"
 
     if [[ $num_total_tests -eq 0 ]]; then
       status=1
       echo "No tests were run"
     fi
+
+    time_taken=$(print_time_taken $pipeline_start_time $pipeline_end_time "running $PIPELINE pipeline")
+    #Create Reports for builder
+    generate_status_report "$PIPELINE" "$num_failures" "$num_total_tests" "$time_taken" "${WORKSPACE}/aurora-pipeline-status"
+    generate_failing_list "${untar_log_dir}" "${WORKSPACE}/logs/failing-list.log"
     ;;
 
   6)
-    num_failures=$(find ${untar_log_dir} -name "*FAILED.log" | wc -l)
-    echo "num_failures=$num_failures"
-
-    #Concatenate all the log files into one file
-    for log_file in `find ${untar_log_dir} -type f -name "*.log"` ; do
-      cat $log_file >>  ${WORKSPACE}/logs/ctest_output.log
-      echo "--------------------------------------" >> ${WORKSPACE}/logs/ctest_output.log
-    done
+    generate_ctest_output ${untar_log_dir} ${WORKSPACE}/logs/ctest_output.log
     if [[ -e ${WORKSPACE}/logs/ctest_output.log ]]; then
       pushd ${WORKSPACE}/logs
       gzip ctest_output.log
@@ -206,24 +183,12 @@ function run_test() {
     fi
     ;;
   7)
-    #Copy the XML logs
-    mkdir -p ${WORKSPACE}/logs/xml_logs
-    #Replace the '.FAILED' for the failing logs so failing logs take precedence
-    find ${untar_log_dir} -type f -name "*FAILED.xml" -exec  rename -f 's/.FAILED.xml/.xml/' '{}' \;
-    #Copy the xml logs
-    find ${untar_log_dir} -type f -name "*.xml" -exec mv {} ${WORKSPACE}/logs/xml_logs/ \;
+    #Collect XML logs
+    collect_xml_logs "${untar_log_dir}" "${WORKSPACE}/logs/xml_logs/"
 
-    # create dir to store test logs
-    mkdir -p ${WORKSPACE}/test_logs
+    generate_test_directories ${untar_log_dir} ${WORKSPACE}/test_logs
 
-    # find all the failed files and copy them to the WORKSPACE
-    for file in `find ${untar_log_dir} -type f -name "*FAILED.log" -o -type f -name "*.tar.gz"`; do
-      base_test_name=`basename $file`
-      #Remove the instance number, iteration number and extension
-      pretty_test_name=$(echo "$base_test_name" | sed 's/ctestout_inst.*_iter[0-9]\+_//' | sed 's/.FAILED.log//' | sed 's/.tar.gz//')
-      mkdir -p $WORKSPACE/test_logs/$pretty_test_name
-      cp $file $WORKSPACE/test_logs/$pretty_test_name/$base_test_name
-    done
+
     if [[ "$num_failures" -le "$UPDATE_DB_FAILURE_LIMIT" && $DB_UPDATE == "true" ]];then
       # Update database
       echo "Update database ${db} from ${untar_log_dir}"

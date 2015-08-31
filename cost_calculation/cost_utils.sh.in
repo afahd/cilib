@@ -1,4 +1,5 @@
 #!/bin/bash -e
+source pl_settings.conf
 declare -A instance_usages
 instance_usages[N1Standard_1]=0
 instance_usages[N1Standard_2]=0
@@ -19,21 +20,6 @@ instance_rates[N1Highmem_2]=0.126
 instance_rates[G1Small]=0.027
 instance_rates[F1Micro]=0.008
 instance_rates[PreemptibleN1Standard_4]=0.060
-
-declare -A pl_cost_code
-pl_cost_code[smoke]=1
-pl_cost_code[extended]=2
-pl_cost_code[unstable]=3
-pl_cost_code[pgui-smoke]=4
-pl_cost_code[omni]=5
-pl_cost_code[automaton]=6
-pl_cost_code[automaton-longevity]=7
-pl_cost_code[longevity]=8
-pl_cost_code[coral]=9
-pl_cost_code[DEBUG-TEST]=10
-pl_cost_code[MISCELLANEOUS]=x
-
-declare -a pipelines=('smoke' 'extended' 'unstable' 'pgui-smoke' 'omni' 'automaton' 'automaton-longevity' 'longevity' 'coral' 'DEBUG-TEST' 'MISCELLANEOUS');
 
 
 show_help() {
@@ -111,7 +97,7 @@ function get_cost_spent() {
 # *****************************************************************************
 function get_pl_cost_code() {
  local pl_name="$1"
- echo ${pl_cost_code[$pl_name]}
+ echo ${PL_CODE[$pl_name]}
 }
 
 # *****************************************************************************
@@ -121,8 +107,8 @@ function get_pl_cost_code() {
 # *****************************************************************************
 function get_pl_name() {
  local pl_code="$1"
- for i in "${!pl_cost_code[@]}"; do
-  if [[ "${pl_cost_code[$i]}" == "$pl_code" ]]; then
+ for i in "${!PL_CODE[@]}"; do
+  if [[ "${PL_CODE[$i]}" == "$pl_code" ]]; then
    pl_name="$i"
   fi
  done
@@ -231,7 +217,7 @@ function extrat_for_all_pipelines() {
   local workspace=$1
   local filepath=$2
   format=" %05.2f                     %-30s %-22s\n"
-  for pl in ${pipelines[*]}; do
+  for pl in "${!PL_CODE[@]}"; do
     code=$(get_pl_cost_code $pl)
     pl_code="\-p-${code}-"
     grep "$pl_code" "$filepath" > "${workspace}tmp_file_all_pipelines" || true
