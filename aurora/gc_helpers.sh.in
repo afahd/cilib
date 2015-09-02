@@ -28,6 +28,8 @@ function init_id() {
   read emailid
   if [[ $emailid =~ ^.*\@plumgrid\.com$ ]];then
     emailid=$(echo "$emailid" | sed 's/@plumgrid.com//')
+    #remove special characters
+    emailid=${emailid//[^[:alnum:]]/}
     echo "emailid=${emailid,,}" >> ${conf_file}
   else
     echo "Wrong email format. Please enter your complete plumgrid.com email"
