@@ -63,6 +63,8 @@ if [[ "$NODE_TYPE" = "DIR" ]]; then
   sudo sed -i "s/^env plumgrid_port=8000/env plumgrid_port=8001/g" /etc/init/plumgrid.conf
   sudo sed -i "s/^env mgmt_dev=fabric/env mgmt_dev=eth0/g" /etc/init/plumgrid.conf
 
+  sudo echo "start_plumgrid=yes" > /opt/pg/etc/plumgrid.conf
+
   sudo cp -rf /opt/pg/etc/init/plumgrid-logger.conf /etc/init/.
   sudo sed -i "s/^env mgmt_dev=fabric/env mgmt_dev=eth0/g" /etc/init/plumgrid-logger.conf
 
