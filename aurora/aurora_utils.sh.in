@@ -56,6 +56,10 @@ function download_using_instance_name() {
 # *****************************************************************************
 function list_instances() {
   local EMAILID=$1
+  if [[ $EMAILID =~ ^.*\@plumgrid\.com$ ]];then
+    local EMAILID=$(echo "$EMAILID" | sed 's/@plumgrid.com//')
+    local EMAILID=${EMAILID,,}
+  fi
   echo "Listing instances for the user:$EMAILID"
   local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp  --regexp "${EMAILID}-.*" | sed -e "s/${EMAILID}-//g")
   local instance_names=($(echo "$instance_list" | grep '^name'))
@@ -79,6 +83,10 @@ function list_instances() {
 # *****************************************************************************
 function list_snapshots() {
   local EMAILID=$1
+  if [[ $EMAILID =~ ^.*\@plumgrid\.com$ ]];then
+    local EMAILID=$(echo "$EMAILID" | sed 's/@plumgrid.com//')
+    local EMAILID=${EMAILID,,}
+  fi
   echo "Listing snapshots for the user:$EMAILID"
   local snapshot_list=$(gcloud compute snapshots list --format=text --sort-by=creationTimestamp --regexp "${EMAILID}-.*" | sed -e "s/${EMAILID}-//g")
   local snapshot_names=($(echo "$snapshot_list" | grep name))
@@ -101,7 +109,10 @@ function list_snapshots() {
 # *****************************************************************************
 function list_buildids() {
   local EMAILID=$1
-
+  if [[ $EMAILID =~ ^.*\@plumgrid\.com$ ]];then
+    local EMAILID=$(echo "$EMAILID" | sed 's/@plumgrid.com//')
+    local EMAILID=${EMAILID,,}
+  fi
   echo "Listing build-ids for the user:$EMAILID"
   local snapshot_list=$(gcloud compute snapshots list --format=text --sort-by=creationTimestamp --regexp "${EMAILID}-.*-ssd2" | sed -e "s/${EMAILID}-//" | sed -e "s/-ssd2//g" )
   local snapshot_names=($(echo "$snapshot_list" | grep name))
@@ -124,17 +135,24 @@ function list_buildids() {
 # *****************************************************************************
 function list_runids() {
   local EMAILID=$1
+  if [[ $EMAILID =~ ^.*\@plumgrid\.com$ ]];then
+    local EMAILID=$(echo "$EMAILID" | sed 's/@plumgrid.com//')
+    local EMAILID=${EMAILID,,}
+  fi
   echo "Listing run-ids for the user:$EMAILID"
   local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp  --regexp "${EMAILID}-.*run-.*" | sed -e "s/${EMAILID}-//g")
   local instance_names=($(echo "$instance_list" | grep '^name'))
   local instance_status=($(echo "$instance_list" | grep status))
+  echo "--------------------------------------------------------------------"
   printf "%-15s %-40s %-10s\n" "Run-id" "Build-id-[Run-TAG]" "Status"
+  echo "--------------------------------------------------------------------"
   for (( i = 1 ; i < ${#instance_names[@]} ; i=i+2 )) do
     local runid=$(echo ${instance_names[$i]} | grep -o '[^-]*$')
     local buildid=$(echo ${instance_names[$i]} | sed -e "s/run-/bld-/")
     buildid=${buildid%-$runid}
     printf "%-15s %-40s %-10s\n" ${runid} ${buildid} "${instance_status[$i]}"
   done
+  printf "\n"
 }
 # *****************************************************************************
 # Function: list_disks
@@ -144,6 +162,10 @@ function list_runids() {
 # *****************************************************************************
 function list_disks() {
   local EMAILID=$1
+  if [[ $EMAILID =~ ^.*\@plumgrid\.com$ ]];then
+    local EMAILID=$(echo "$EMAILID" | sed 's/@plumgrid.com//')
+    local EMAILID=${EMAILID,,}
+  fi
   echo "Listing disks for the user:$EMAILID"
   # Instances
   local instance_list=$(gcloud compute instances list --format=text --sort-by=creationTimestamp --regexp ".*" | grep ${EMAILID} | sed -e "s/${EMAILID}-//g")
@@ -163,11 +185,13 @@ function list_disks() {
   fi
 
   local disk_names=($(echo "$disk_list" | grep name))
+  echo "------------------------------------------------"
   printf "%-35s %-20s\n" "Name"
+  echo "------------------------------------------------"
   for (( i = 1 ; i < ${#disk_names[@]} ; i=i+2 )) do
     printf "%-35s\n" ${disk_names[$i]}
   done
-  echo "------------------------------------------------"
+  printf "\n"
 }
 
 # *****************************************************************************
