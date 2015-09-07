@@ -1160,6 +1160,38 @@ function abbrev_to_repository() {
   return 0
 }
 # *****************************************************************************
+# Function: repository_to_abbrev
+# Purpose : Translate full repository name to repo alias
+# Usage   : repository_to_abbrev
+# *****************************************************************************
+function repository_to_abbrev() {
+  read line
+  case "$line" in
+    alps)
+      echo "alps"
+      ;;
+    pg_cli)
+      echo "pgcli"
+      ;;
+    python-plumgridlib)
+      echo "pglib"
+      ;;
+    pg_ui)
+      echo "pgui"
+      ;;
+    pkg)
+      echo "pkg"
+      ;;
+    sal)
+      echo "sal"
+      ;;
+    *)
+      echo "$line"
+      ;;
+  esac
+  return 0
+}
+# *****************************************************************************
 # Function: translate_branch
 # Purpose : translate the given branch
 # Usage   : translate_branch <project> <branch map>
@@ -1190,8 +1222,10 @@ function translate_branch() {
 
   local target_branch=
 
+  #Translate abbrev to repo name
+  local target_repo=$(echo "$target_project" | repository_to_abbrev)
   # step 1: Direct translation
-  target_branch=$(grep ^$target_project: $translation_file)
+  target_branch=$(grep ^$target_repo: $translation_file)
 
   if [[ -n "$target_branch" ]]; then
     target_branch=$(echo "$target_branch"| cut -d : -f 2)
