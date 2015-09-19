@@ -32,7 +32,7 @@ PROJECT=""
 
 MAJOR_STEPS="build"
 STEP_ST=1
-STEP_ED=23
+STEP_ED=24
 
 CONTINUE=0
 declare -A br_code
@@ -286,14 +286,20 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-
   15)
-    #run cmake on the repos
-    echo "running cmake on the repos"
-    retryexec run_cmd_gci ${INSTANCE_IP} "bash /tmp/gitsync.sh cmake_repos"
+    # Corelib build is required for alps cmake..
+    retryexec run_cmd_gci ${INSTANCE_IP} "mkdir -p /home/plumgrid/work/corelib/build && cd /home/plumgrid/work/corelib/build && cmake .. && make -j4 install"
+    record_step $step $step_file
     ;;
 
   16)
+    #run cmake on the repos
+    echo "running cmake on the repos"
+    retryexec run_cmd_gci ${INSTANCE_IP} "bash /tmp/gitsync.sh cmake_repos"
+    record_step $step $step_file
+    ;;
+
+  17)
     # Checks the elfsurgeon files
     if [[ "$PROJECT" == "alps" ]];then
       echo "make alps and check elfsurgeon files"
@@ -302,7 +308,7 @@ function build_image() {
     fi
     ;;
 
-  17)
+  18)
     # Adding polling as a separate step, so that if the connection broke at the previous step.
     if [[ "$PROJECT" == "alps" ]];then
       echo "Polling make for alps and checking elfsurgeon files (tailing \"/tmp/check_elfsurgeon.log\" for complete logs)"
@@ -312,27 +318,27 @@ function build_image() {
     fi
     ;;
 
-  18)
+  19)
      run_cmd_gci ${INSTANCE_IP} "ln -s /opt/pg/web/temp /opt/pg/var/www/"
      run_cmd_gci ${INSTANCE_IP} "sudo bash -c \"echo 'proxy=http://10.10.163.162:3128' >> /etc/yum/yum.conf\""
      record_step $step $step_file
     ;;
 
-  19)
+  20)
     echo "Running the build-init script"
     retryexec upload ${INSTANCE_IP} ${BUILD_SCRIPT} /tmp/build-init.sh
     tryexec run_bg_cmd ${INSTANCE_IP} "/tmp/build-init.sh" "/bin/bash /tmp/build-init.sh" "/tmp/build-init.log"
     record_step $step $step_file
     ;;
 
-  20)
+  21)
     echo "Poll the build-init logs (tailing \"/tmp/build-init.log\")"
     tryexec run_poll_cmd ${INSTANCE_IP} "/tmp/build-init.sh" "/tmp/build-init.log" "1"
     retryexec download ${INSTANCE_IP} "/tmp/build-init.log" "${WORKSPACE}/logs/build-init.log"
     record_step $step $step_file
     ;;
 
-  21)
+  22)
     BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${emailid}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
 
@@ -346,7 +352,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  22)
+  23)
 
     # Flushing the disk buffers only if -K is not set
     if [[ "${KEEP_RUNNING}" != "1" ]]; then
@@ -361,7 +367,7 @@ function build_image() {
     record_step $step $step_file
     ;;
 
-  23)
+  24)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     rm $step_file
