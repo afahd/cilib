@@ -122,8 +122,8 @@ cd /home/plumgrid/work/alps
 source dependencies-versions.sh
 echo \${git_dep_branch[iovisor]}
 cd /home/plumgrid/work/iovisor
-git fetch
-git reset --hard \${git_dep_branch[iovisor]}
+git fetch origin \${git_dep_branch[iovisor]}
+git reset --hard FETCH_HEAD
 DELIM__
 # Step-5: -- Checkout the required changes for the defined porject
 #         -- Build tools and iovisor
