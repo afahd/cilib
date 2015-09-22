@@ -97,18 +97,20 @@ DELIM__
 modify_git_config "\${repo}" "${gerritid}" "${git_script}"
 cat >> ${git_script} <<DELIM__
 branch=\$3
-echo "Extracting and rebuilding \${repo} for branch \${branch}"
-if [[ -d /home/plumgrid/work/\${repo}/ ]]; then
-  cd /home/plumgrid/work/\${repo}
-  git fetch
-  git reset --hard origin/\${branch}
-  git checkout \${branch}
-  git reset --hard origin/\${branch}
-else
-  mkdir /home/plumgrid/work/\${repo}/
-  cd /home/plumgrid/work/\${repo}
-  git clone ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/\${repo} -- /home/plumgrid/work/\${repo}/
-  git checkout \${branch}
+if [[ \$repo != "Balicek" || $APT_COMPONENT == "unstable" ]]; then
+  echo "Extracting and rebuilding \${repo} for branch \${branch}"
+  if [[ -d /home/plumgrid/work/\${repo}/ ]]; then
+    cd /home/plumgrid/work/\${repo}
+    git fetch
+    git reset --hard origin/\${branch}
+    git checkout \${branch}
+    git reset --hard origin/\${branch}
+  else
+    mkdir /home/plumgrid/work/\${repo}/
+    cd /home/plumgrid/work/\${repo}
+    git clone ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/\${repo} -- /home/plumgrid/work/\${repo}/
+    git checkout \${branch}
+  fi
 fi
     ;;
   iovisor)
