@@ -4,6 +4,8 @@ cd ~/work/pg_ui/build
 make -j 4 install
 cd ~/work/sal/build
 make -j 4 install
+cd ~/work/Balicek/build
+make -j 4 install
 cd ~/work/pkg/build
 make -j 4 install
 cd ~/work/pg_cli/build
