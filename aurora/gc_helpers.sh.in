@@ -437,10 +437,10 @@ function run_poll_cmd() {
   cat >> ${local_file} <<DELIM__
   #!/bin/bash
   echo "Waiting for command to finish ... (Log will be tailed below)"
-  if [[ -z \`pgrep -f ${process}\` ]]; then
-    tail -n +1 $LOG_FILE
+  if [[ -z \`pgrep -f "${process}"\` ]]; then
+    tail -n +1 "${LOG_FILE}"
   else
-    tail -n +1 -f $LOG_FILE --pid=\`pgrep -f ${process}\`
+    tail -n +1 -f "${LOG_FILE}" --pid=\`pgrep -f "${process}"\`
   fi
 DELIM__
   # If error checking is enabled checking for the return value of the script.
@@ -455,7 +455,7 @@ DELIM__
     echo "fi" >> ${local_file}
   else
     #Exit true if no error checking is enabled
-    echo "echo \"$process completely successfully, exiting\"" >> ${local_file}
+    echo "echo ${process} completely successfully, exiting" >> ${local_file}
   fi
   local instance_file=/tmp/$(basename ${local_file})
   retryexec upload ${INSTANCE_IP} ${local_file} ${instance_file}
