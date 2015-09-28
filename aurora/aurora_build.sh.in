@@ -28,6 +28,7 @@ fi
 BRANCH=""
 REFSPEC="none"
 TAG="none"
+GIT_TAG="none"
 PROJECT=""
 
 MAJOR_STEPS="build"
@@ -45,7 +46,7 @@ br_code[stable_4_1_2-amex]="5"
 
 BUILD_SCRIPT=@CMAKE_BINARY_DIR@/aurora/init_scripts/run_build_all.sh
 # read the options
-TEMP=`getopt -o Kr:t:Cb:p:W:s:R:E:h --long keep-running,refspec:,script:,WORKSPACE:,tag:,\continue,branch:,proj:,help,step_st:,step_end: -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o Kr:t:Cb:g:p:W:s:R:E:h --long keep-running,refspec:,script:,WORKSPACE:,tag:,\continue,branch:,git-tag:,proj:,help,step_st:,step_end: -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 while true ; do
   case "$1" in
@@ -55,6 +56,7 @@ while true ; do
      -t| --tag) TAG=$2 ; shift 2 ;;
      -C| --continue) CONTINUE=1 ; shift ;;
      -b| --branch) BRANCH=$2; shift 2 ;;
+     -g| --git-tag) GIT_TAG=$2; shift 2 ;;
      -p| --proj) PROJECT=$2; shift 2 ;;
      -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
 
@@ -68,12 +70,7 @@ done
 
 mkdir -p ${WORKSPACE}/logs
 
-#Check required Arguments
-if [[ -z "$BRANCH" || -z "$PROJECT" ]]; then
-  echo "Required argument -b(--branch) or -p(--project)"
-  show_build_help
-  exit 1
-fi
+
 #creating branch code from branch name provided by user.
 branch_code="${br_code[$BRANCH]}"
 if [[ -z "$branch_code" ]]; then
@@ -101,18 +98,27 @@ fi
 #Append branch code to the instance name
 INSTANCE_NAME=${INSTANCE_NAME}-${branch_code}
 #Append refspec
-if [[ $REFSPEC == "none" ]]; then
-  MOD_BRANCH=$(echo "$BRANCH" | tr _ -)
-  INSTANCE_NAME=${INSTANCE_NAME}-bld-${MOD_BRANCH}
-else
+
+
+if [[ $REFSPEC != "none" ]]; then
   MOD_REFSPEC=$(echo "$REFSPEC" | sed -e 's/refs\/changes\///')
   MOD_REFSPEC=$(echo "$MOD_REFSPEC" | tr /_ -)
   INSTANCE_NAME=${INSTANCE_NAME}-bld-${MOD_REFSPEC}
 fi
 
+if [[ $GIT_TAG != "none" ]]; then
+  MOD_TAG=${GIT_TAG//[^[:alnum:]]/}
+  INSTANCE_NAME=${INSTANCE_NAME}-bld-${MOD_TAG}
+fi
+
+if [[ $GIT_TAG == "none" && $REFSPEC == "none" ]]; then
+  MOD_BRANCH=$(echo "$BRANCH" | tr _ -)
+  INSTANCE_NAME=${INSTANCE_NAME}-bld-${MOD_BRANCH}
+fi
+
 step_file=$WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
 #Validate Inputs
-check_build_inputs $INSTANCE_NAME $PROJECT $REFSPEC $BRANCH
+check_build_inputs $INSTANCE_NAME $PROJECT $REFSPEC $BRANCH $GIT_TAG
 #Check /home/$USER/.ssh/id_rsa.pub file
 check_file_existence "/home/$USER/.ssh/id_rsa.pub"
 check_file_existence "$BUILD_SCRIPT"
@@ -235,7 +241,7 @@ function build_image() {
     echo "gitsync Step3: Fetching all the repos (${PROJECT_LIST[@]})"
     for p in ${PROJECT_LIST[@]}; do
       translated_branch=$(translate_branch "$BRANCH" "$PROJECT" "$p" "${WORKSPACE}/builder/branch_translations")
-      retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh all_repos $p $translated_branch"
+      retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh all_repos $p $translated_branch $GIT_TAG"
     done
     #Delete the cloned builder files
     rm -rf ${WORKSPACE}/builder

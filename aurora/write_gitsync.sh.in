@@ -61,6 +61,7 @@ set -e
 . /opt/pg/env/alps.bashrc
 step=\$1
 repo=\$2
+
 case \$step in
   cleanup)
 echo 'Performing cleanup'
@@ -98,6 +99,7 @@ DELIM__
 modify_git_config "\${repo}" "${gerritid}" "${git_script}"
 cat >> ${git_script} <<DELIM__
 branch=\$3
+git_tag=\$4
 if [[ \$repo != "balicek" || $APT_COMPONENT == "unstable" ]]; then
   echo "Extracting and rebuilding \${repo} for branch \${branch}"
   if [[ -d /home/plumgrid/work/\${repo}/ ]]; then
@@ -112,6 +114,10 @@ if [[ \$repo != "balicek" || $APT_COMPONENT == "unstable" ]]; then
     git clone ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/\${repo} -- /home/plumgrid/work/\${repo}/
     git checkout \${branch}
   fi
+
+  # Checkout to a given tag
+  echo "Checkout out tag \${git_tag} for \${repo}"
+  git checkout \${git_tag} || retval=$?
 fi
     ;;
   iovisor)
@@ -170,7 +176,7 @@ DELIM__
 for p in ${PROJECT_LIST[@]}; do
   # Coral does not use CMake to build, hence skipping cmake.
   if [[ $p == "coral" || ($p == "balicek" && $APT_COMPONENT != "unstable") ]]; then
-    echo "Skipping routing cmake step. project=$p and APT_COMPONNET=$APT_COMPONENT"
+    echo "Skipping cmake step. project=$p and APT_COMPONNET=$APT_COMPONENT"
   else
     cat >> ${git_script} <<DELIM__
 mkdir -p /home/plumgrid/work/${p}/build

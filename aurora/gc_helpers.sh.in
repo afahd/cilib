@@ -930,8 +930,19 @@ function check_build_inputs() {
   local PROJECT=$2
   local REFSPEC=$3
   local BRANCH=$4
+  local GIT_TAG=$5
   local RESULT=1
 
+  #Check required Arguments
+  if [[ -z "$BRANCH" || -z "$PROJECT" ]]; then
+    echo "Required argument -b(--branch) or -p(--project)"
+    show_build_help
+    exit 1
+  fi
+  if [[ "$REFSPEC" != "none" && "$GIT_TAG" != "none" ]]; then
+    echo "Both arguments -R(--refspec) and T(--git_tag) cannot be given together"
+    exit 1
+  fi
   #Check instance name length
   #GCE allows a maximum of 62 characters for disks and instances.
   #16 characters are appended when the instance a run instance is created.
@@ -969,6 +980,17 @@ function check_build_inputs() {
     echo "Branch: $BRANCH does not exist for the project: ${PROJECT}"
     show_build_help
     exit 1
+  fi
+  if [[ $GIT_TAG != "none" ]]; then
+    #check if the git-tag exists
+    for repo in ${TAGGED_REPOS[@]}; do
+      git ls-remote --tags ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/${repo} "${GIT_TAG}" | grep -q "${GIT_TAG}" || RESULT=$?
+      if [[ $RESULT -ne 0 ]];then
+        echo "Git Tag: $GIT_TAG does not exist for the project: ${repo}"
+        show_build_help
+        exit 1
+      fi
+    done
   fi
 }
 
