@@ -94,6 +94,8 @@ DELIM__
   if [[ "$postgres_pid_cnt" != "0" ]]; then
     sudo service postgresql stop
   fi
+
+  sudo modprobe bonding
 fi
 
 # EDGE_ONLY
