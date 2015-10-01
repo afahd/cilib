@@ -169,7 +169,9 @@ DELIM__
 
 for p in ${PROJECT_LIST[@]}; do
   # Coral does not use CMake to build, hence skipping cmake.
-  if [[ $p != "coral" ]]; then
+  if [[ $p == "coral" || ($p == "Balicek" && $APT_COMPONENT != "unstable") ]]; then
+    echo "Skipping routing cmake step. project=$p and APT_COMPONNET=$APT_COMPONENT"
+  else
     cat >> ${git_script} <<DELIM__
 mkdir -p /home/plumgrid/work/${p}/build
 cd /home/plumgrid/work/${p}/build
