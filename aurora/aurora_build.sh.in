@@ -44,7 +44,7 @@ br_code[stable_4_1_2-amex]="5"
 
 BUILD_SCRIPT=@CMAKE_BINARY_DIR@/aurora/init_scripts/run_build_all.sh
 # read the options
-TEMP=`getopt -o Kr:t:Cb:p:W:Q:s:R:E:Oh --long keep-running,refspec:,script:,WORKSPACE:,tag:,\continue,branch:,proj:,stop,help,major:,minor_st:,minor_end: -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o Kr:t:Cb:p:W:s:R:E:h --long keep-running,refspec:,script:,WORKSPACE:,tag:,\continue,branch:,proj:,help,step_st:,step_end: -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 while true ; do
   case "$1" in
@@ -57,10 +57,8 @@ while true ; do
      -p| --proj) PROJECT=$2; shift 2 ;;
      -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
 
-     -Q| --major ) MAJOR_STEPS="$2"; TMP_MAJOR="$2"; shift 2;;
-     -R| --minor_st ) MINOR_STEPS_ST[$TMP_MAJOR]="$2"; shift 2 ;;
-     -E| --minor_end ) MINOR_STEPS_ED[$TMP_MAJOR]="$2"; shift 2 ;;
-     -O| --stop ) STOP=1; shift ;;
+     -R| --step_st ) STEP_ST="$2"; CONTINUE=0; shift 2 ;;
+     -E| --step_end ) STEP_ED="$2"; KEEP_RUNNING=0 ; shift 2 ;;
      -h| --help ) show_build_help; exit 0; shift;;
      --) shift ; break ;;
      *) exit 1 ;;
@@ -117,6 +115,8 @@ check_build_inputs $INSTANCE_NAME $PROJECT $REFSPEC $BRANCH
 #Check /home/$USER/.ssh/id_rsa.pub file
 check_file_existence "/home/$USER/.ssh/id_rsa.pub"
 check_file_existence "$BUILD_SCRIPT"
+
+
 # If "continue" switch has been given then do following steps
 #   a. Get the last successfully completed step.
 #   b. Start the build process from step next to last completed step.
@@ -129,12 +129,11 @@ if [[ $CONTINUE == "1" ]] ; then
   # Get the last successfull step from $WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
   LAST_SUCCESSFULL_STEP=( $(<${step_file}) )
   STEP_ST=$((LAST_SUCCESSFULL_STEP+1))
+fi
 
-  #Only get the IP address if the instance has already been created.
-  if [[ $LAST_SUCCESSFULL_STEP -gt 2 ]]; then
-    #Get the IP address of the instances, needed incase continue is specified.
-    INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
-  fi
+#Only get the IP address if the instance has already been created.
+if [[ $STEP_ST -gt "3" ]]; then
+  INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
 else
   check_instance_limit
   #Check if the snapshots already exist
@@ -146,6 +145,7 @@ else
     exit 1
   fi
 fi
+
 
 # TODO: SN_ID variable should hold the "v3-d1" part as well.
 # This way we will not need to change v3 manually.

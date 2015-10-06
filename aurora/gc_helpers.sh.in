@@ -281,7 +281,9 @@ function generate_instance_name() {
   local TAG=$2
   local COST_PIPELINE_CODE=$3
   local CONTINUE=$4
-  local RUNID=$5
+  local STEP_ST=$5
+  local RUNID=$6
+
 
   UUID=`uuidgen`
   local SUUID=$(echo $UUID | awk '{print substr($0,0,5)}')
@@ -299,8 +301,8 @@ function generate_instance_name() {
   fi
   INSTANCE_NAME=${INSTANCE_NAME}-p-${COST_PIPELINE_CODE}-${SUUID} # alir-run-master-tag-ccod-x-12345
 
-  # Replace generated SUUID with RUNID in case of continue.
-  if [[ $CONTINUE == "1" ]] ; then
+  # Replace generated SUUID with RUNID in case of continue or start step.
+  if [[ $CONTINUE == "1" || $STEP_ST -gt "1" ]] ; then
     # User must give the run-id(SUUID generated during first time execution of run process.)
     # along with continue such that we can know that which "aurora run" he needs to resume.
     echo "continue=$CONTINUE and runid=$RUNID" >&2
