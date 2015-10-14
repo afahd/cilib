@@ -278,9 +278,7 @@ function run_test() {
     tar czf $script_dir.tar.gz -C $WORKSPACE/ ${script_dir#$WORKSPACE/}
     mv $script_dir.tar.gz ${WORKSPACE}/logs/aurora_infra_logs.tar.gz
 
-    if [[ $num_failures -eq 0 && -z $status ]]; then
-      status=0
-    else
+    if [[ $num_failures -ne 0 ]]; then
       status=1
     fi
 
