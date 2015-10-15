@@ -159,7 +159,7 @@ function run_test() {
       disown $echoer_pid && kill $echoer_pid
       #Copy the aurora_run logs.
       for file in `ls ${script_dir}/*.txt` ; do
-        if [[ ! `grep "Run has been completed successfully" $file > /dev/null` ]]; then
+        if [[ ! `grep -q "Run has been completed successfully" $file` ]]; then
           script_name=$(basename ${file})
           script_name=$(echo $script_name | sed 's/.txt//')
           cp ${script_dir}/$script_name ${script_dir}/preempted_instances
@@ -174,9 +174,6 @@ function run_test() {
     fi
     ;;
   4)
-    #Get a list of instances that have been preempted
-    RUN_ID=$(echo $USER_BUILD_ID | sed 's/bld/run/')
-    delete_instances "$RUN_ID" "-f"
     #If status is 1 and preemtible switch is present then check and retry the failing instances
     if [[ "$status" == 1 && -n "$PREEMPTIBLE" ]]; then
       pids=()
@@ -208,7 +205,7 @@ function run_test() {
         disown $echoer_pid && kill $echoer_pid
         #Copy the aurora_run logs.
         for file in `ls ${script_dir}/*.txt` ; do
-          if [[ ! `grep "Run has been completed successfully" $file > /dev/null` ]]; then
+          if [[ ! `grep -q "Run has been completed successfully" $file` ]]; then
             cp $file "$WORKSPACE/logs/AURORA.RUN.FAILED.`basename ${file}`"
           fi
         done
