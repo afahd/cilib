@@ -32,9 +32,10 @@ PROJECT=""
 
 MAJOR_STEPS="build"
 STEP_ST=1
-STEP_ED=24
-
+TOTAL_BUILD_STEPS=24
+STEP_ED=$TOTAL_BUILD_STEPS
 CONTINUE=0
+
 declare -A br_code
 br_code[master]="1"
 br_code[stable_4_0]="2"
@@ -172,14 +173,12 @@ function build_image() {
     echo "Creating the disk[${INSTANCE_NAME}-d1] for the instance in the cloud"
     tryexec exec_gcloud_cmd disks create "${INSTANCE_NAME}-d1" \
       --source-snapshot "${SNAP1}" --type "$DISK_TYPE" --size="$DISK1_SIZE" -q
-    record_step $step $step_file
     ;;
 
   2)
     echo "Creating the disk[${INSTANCE_NAME}-d2] for the instance in the cloud"
     tryexec exec_gcloud_cmd disks create "${INSTANCE_NAME}-d2" \
       --source-snapshot "${SNAP2}" --type "$DISK_TYPE" --size="$DISK2_SIZE" -q
-    record_step $step $step_file
     ;;
 
   3)
@@ -194,14 +193,12 @@ function build_image() {
       --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip" \
       --metadata-from-file sshKeys=$key_file
     rm $key_file
-    record_step $step $step_file
     ;;
 
   4)
     INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
     echo "Waiting for the machine to boot up and allow ssh access"
     tryexec wait_for_instance ${INSTANCE_IP}
-    record_step $step $step_file
     ;;
 
   5)
@@ -209,7 +206,6 @@ function build_image() {
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo ifconfig eth0 mtu 1400"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo bash -c 'echo \"interface \\\"eth0\\\" {supersede interface-mtu 1400;}\" >> /etc/dhcp/dhclient.conf'"
     tryexec run_cmd_gci ${INSTANCE_IP} "DT=\$(ifconfig eth0 | grep 'inet addr' | cut -d: -f2|cut -d' ' -f 1); sudo bash -c 'echo \"'\$DT'  \`hostname\`\" >> /etc/hosts'"
-    record_step $step $step_file
     ;;
 
   6)
@@ -220,21 +216,18 @@ function build_image() {
     GIT_SYNC_BASE=$(basename ${GIT_SYNC_SCRIPT} )
     tryexec run_cmd_gci ${INSTANCE_IP} "mv /tmp/${GIT_SYNC_BASE} /tmp/gitsync.sh"
     rm ${GIT_SYNC_SCRIPT}
-    record_step $step $step_file
     ;;
 
   7)
     echo "Execute the gitsynch script"
     echo "gitsync Step1: Perform cleanup on the setup"
     tryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh cleanup"
-    record_step $step $step_file
     ;;
 
   8)
     # Run Step2: Fetch tools
     echo "gitsync Step2: Fetching latest tools"
     retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh tools"
-    record_step $step $step_file
     ;;
 
   9)
@@ -246,35 +239,30 @@ function build_image() {
     done
     #Delete the cloned builder files
     rm -rf ${WORKSPACE}/builder
-    record_step $step $step_file
     ;;
 
   10)
     # Run Step4: Fetch iovisor
     echo "gitsync Step4: Fetching latest iovisor"
     retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh iovisor"
-    record_step $step $step_file
     ;;
 
   11)
     # Checkout the required changes for specified project
     echo "gitsync Step5: Checking out required code on ${PROJECT}"
     retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh checkout"
-    record_step $step $step_file
     ;;
 
   12)
     # Get the build info
     echo "Getting build info for ${PROJECT}"
     tryexec get_build_info ${INSTANCE_IP} ${PROJECT}
-    record_step $step $step_file
     ;;
 
   13)
     #Install tools and iovisor in the background
     echo "Installing tools and iovisor"
     tryexec make_tools_iovisor ${INSTANCE_IP} "/tmp/make_tools_iovisor.log"
-    record_step $step $step_file
     ;;
 
   14)
@@ -283,20 +271,17 @@ function build_image() {
     echo "Polling for tools install"
     tryexec run_poll_cmd ${INSTANCE_IP} "make_tools_iovisor.sh" "/tmp/make_tools_iovisor.log" "1"
     retryexec download ${INSTANCE_IP} "/tmp/make_tools_iovisor.log" "${WORKSPACE}/logs/"
-    record_step $step $step_file
     ;;
 
   15)
     # Corelib build is required for alps cmake..
     retryexec run_cmd_gci ${INSTANCE_IP} "mkdir -p /home/plumgrid/work/corelib/build && cd /home/plumgrid/work/corelib/build && cmake .. && make -j4 install"
-    record_step $step $step_file
     ;;
 
   16)
     #run cmake on the repos
     echo "running cmake on the repos"
     retryexec run_cmd_gci ${INSTANCE_IP} "bash /tmp/gitsync.sh cmake_repos"
-    record_step $step $step_file
     ;;
 
   17)
@@ -304,7 +289,6 @@ function build_image() {
     if [[ "$PROJECT" == "alps" ]];then
       echo "make alps and check elfsurgeon files"
       tryexec check_elfsurgeon ${INSTANCE_IP} "/tmp/check_elfsurgeon.log"
-      record_step $step $step_file
     fi
     ;;
 
@@ -314,28 +298,24 @@ function build_image() {
       echo "Polling make for alps and checking elfsurgeon files (tailing \"/tmp/check_elfsurgeon.log\" for complete logs)"
       tryexec run_poll_cmd ${INSTANCE_IP} "check_elfsurgeon.sh" "/tmp/check_elfsurgeon.log" "1"
       retryexec download ${INSTANCE_IP} "/tmp/check_elfsurgeon.log" "${WORKSPACE}/logs/"
-      record_step $step $step_file
     fi
     ;;
 
   19)
      run_cmd_gci ${INSTANCE_IP} "ln -s /opt/pg/web/temp /opt/pg/var/www/"
      run_cmd_gci ${INSTANCE_IP} "sudo bash -c \"echo 'proxy=http://10.10.163.162:3128' >> /etc/yum/yum.conf\""
-     record_step $step $step_file
     ;;
 
   20)
     echo "Running the build-init script"
     retryexec upload ${INSTANCE_IP} ${BUILD_SCRIPT} /tmp/build-init.sh
     tryexec run_bg_cmd ${INSTANCE_IP} "/tmp/build-init.sh" "/bin/bash /tmp/build-init.sh" "/tmp/build-init.log"
-    record_step $step $step_file
     ;;
 
   21)
     echo "Poll the build-init logs (tailing \"/tmp/build-init.log\")"
     tryexec run_poll_cmd ${INSTANCE_IP} "/tmp/build-init.sh" "/tmp/build-init.log" "1"
     retryexec download ${INSTANCE_IP} "/tmp/build-init.log" "${WORKSPACE}/logs/build-init.log"
-    record_step $step $step_file
     ;;
 
   22)
@@ -349,7 +329,6 @@ function build_image() {
     fi
 
     tryexec exec_gcloud_cmd disks snapshot ${INSTANCE_NAME}-d2 --snapshot-names ${INSTANCE_NAME}-ssd2
-    record_step $step $step_file
     ;;
 
   23)
@@ -364,13 +343,11 @@ function build_image() {
     tryexec exec_gcloud_cmd disks snapshot ${INSTANCE_NAME}-d1 --snapshot-names ${INSTANCE_NAME}-ssd1
 
     echo "BUILD-ID=${BUILD_ID}" | tee $WORKSPACE/logs/build_id
-    record_step $step $step_file
     ;;
 
   24)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
-    rm $step_file
     printf "\n\n *********************** BUILD-ID = ${BUILD_ID} *********************** \n\n"
     ;;
 
@@ -386,8 +363,13 @@ for STEP in `seq ${STEP_ST} ${STEP_ED}`; do
   start_time=$(date +%s)
   build_image $STEP
   end_time=$(date +%s)
+  record_step $STEP $step_file
   print_time_taken $start_time $end_time "[$STEP]"
+  if [[ $STEP == $TOTAL_BUILD_STEPS ]]; then
+    rm $step_file
+  fi
 done
+
 script_end_time=$(date +%s)
 print_time_taken $script_start_time $script_end_time "[BUILD]"
 

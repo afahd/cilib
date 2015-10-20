@@ -25,7 +25,8 @@ if [[ $1 == "help" ]]; then
 fi
 #Starting and ending steps
 STEP_ST=1
-STEP_ED=12
+TOTAL_RUN_STEPS=12
+STEP_ED=$TOTAL_RUN_STEPS
 
 LOG_SRC_DIR=/opt/pg/log
 TAG="none"
@@ -136,14 +137,12 @@ function run_test() {
     echo "Creating the disk[${INSTANCE_NAME}-d1] for the instance in the cloud from ${BUILD_ID}"
     tryexec exec_gcloud_cmd disks create "${INSTANCE_NAME}-d1" -q \
       --source-snapshot "${BUILD_ID}-ssd1" --type "$DISK_TYPE" --size="$DISK1_SIZE"
-    record_step $step $step_file
     ;;
 
   2)
     echo "Creating the disk[${INSTANCE_NAME}-d2] for the instance in the cloud from ${BUILD_ID}"
     tryexec exec_gcloud_cmd disks create "${INSTANCE_NAME}-d2" -q \
       --source-snapshot "${BUILD_ID}-ssd2" --type "$DISK_TYPE" --size="$DISK2_SIZE"
-    record_step $step $step_file
     ;;
 
   3)
@@ -157,21 +156,18 @@ function run_test() {
       --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip" \
       --metadata-from-file sshKeys=$key_file $PREEMPTIBLE $MAINTENANCE_POLICY
     rm $key_file
-    record_step $step $step_file
     ;;
 
   4)
     INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
     echo "Waiting for the machine to boot up and allow ssh access"
     tryexec wait_for_instance ${INSTANCE_IP}
-    record_step $step $step_file
     ;;
 
   5)
     echo "Changing MTU on the instance"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo ifconfig eth0 mtu 1400"
     tryexec run_cmd_gci ${INSTANCE_IP} "DT=\$(ifconfig eth0 | grep 'inet addr' | cut -d: -f2|cut -d' ' -f 1); sudo bash -c 'echo \"'\$DT'  \`hostname\`\" >> /etc/hosts'"
-    record_step $step $step_file
     ;;
 
   6)
@@ -179,7 +175,6 @@ function run_test() {
       tryexec push_local_changes ${INSTANCE_IP} ${COMMIT_ID} ${ALPS_PATH}
       tryexec make_install_alps ${INSTANCE_IP} "/tmp/make_install_alps.log"
       tryexec run_poll_cmd ${INSTANCE_IP} "make_install_alps.sh" "/tmp/make_install_alps.log" "1"
-      record_step $step $step_file
     fi
     ;;
 
@@ -196,33 +191,28 @@ function run_test() {
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo brctl delbr lxcbr0 || true"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo pkill dnsmasq || true"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo service lxc-net restart || true"
-    record_step $step $step_file
     ;;
 
   9)
     retryexec upload ${INSTANCE_IP} ${TEST_SCRIPT} /tmp/user_test_script.sh
     tryexec run_cmd_gci_bg ${INSTANCE_IP} "/bin/bash /tmp/user_test_script.sh" "/tmp/test.logs"
-    record_step $step $step_file
     ;;
 
   10)
     echo "Poll the test logs (tailing \"/tmp/test.log\")"
     tryexec run_poll_cmd ${INSTANCE_IP} "/tmp/user_test_script.sh" "/tmp/test.logs" "0"
     retryexec download ${INSTANCE_IP} "/tmp/test.logs" "${LOG_DEST_DIR}/${INSTANCE_NAME}.log"
-    record_step $step $step_file
     ;;
 
   11)
     echo "Downloading logs in ${LOG_DEST_DIR} directory"
     tryexec get_latest_logs ${INSTANCE_IP} ${INSTANCE_NAME} ${LOG_SRC_DIR} ${LOG_DEST_DIR}
     printf "\n\n********* Run has been completed successfully. Please see all logs in ${LOG_DEST_DIR} direcotry *********\n\n"
-    record_step $step $step_file
     ;;
 
   12)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
-    rm $step_file
     ;;
 
   *)
@@ -237,7 +227,12 @@ for STEP in `seq ${STEP_ST} ${STEP_ED}`; do
   start_time=$(date +%s)
   run_test $STEP
   end_time=$(date +%s)
+  record_step $STEP $step_file
   print_time_taken $start_time $end_time "[$STEP]"
+  if [[ $STEP == $TOTAL_RUN_STEPS ]]; then
+    rm $step_file
+  fi
 done
+
 script_end_time=$(date +%s)
 print_time_taken $script_start_time $script_end_time "[run]"
