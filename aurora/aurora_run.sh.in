@@ -34,7 +34,7 @@ KEEP_RUNNING=0
 LOCAL_CHANGES=0
 
 # read the options
-TEMP=`getopt -o l:s:S:o:n:W:t:CKc:e:a:R:E:h --long buildid:,script:,log_dir:,src_log_dir:,runid:,WORKSPACE:,tag:,\continue,keep-running,local_commit:,existing_commit_hash:,alps-path:,cost_pipeline_code:,minor_st:,minor_end:,\help -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o l:s:S:o:n:W:t:CKc:e:a:m:R:E:h --long buildid:,script:,log_dir:,src_log_dir:,runid:,WORKSPACE:,tag:,\continue,keep-running,local_commit:,existing_commit_hash:,alps-path:,cost_pipeline_code:,machine_type:,minor_st:,minor_end:,\help -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 while true ; do
   case "$1" in
@@ -54,6 +54,7 @@ while true ; do
     -a| --alps-path) ALPS_PATH=$2; shift 2;;
     --cost_pipeline_code) COST_PIPELINE_CODE=$2; shift 2;;
     #Start-End steps
+    -m| --machine_type) MACHINE_TYPE=$2; shift 2;;
     -R| --minor_st ) MINOR_STEPS_ST[$MAJOR_STEPS]="$2"; shift 2 ;;
     -E| --minor_end ) MINOR_STEPS_ED[$MAJOR_STEPS]="$2"; shift 2 ;;
     -h| --help ) show_run_help;exit 0; shift ;;
