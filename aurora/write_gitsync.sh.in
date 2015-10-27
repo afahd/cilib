@@ -99,7 +99,7 @@ DELIM__
 modify_git_config "\${repo}" "${gerritid}" "${git_script}"
 cat >> ${git_script} <<DELIM__
 branch=\$3
-if [[ \$repo != "Balicek" || $APT_COMPONENT == "unstable" ]]; then
+if [[ \$repo != "balicek" || $APT_COMPONENT == "unstable" ]]; then
   echo "Extracting and rebuilding \${repo} for branch \${branch}"
   if [[ -d /home/plumgrid/work/\${repo}/ ]]; then
     cd /home/plumgrid/work/\${repo}
@@ -170,7 +170,7 @@ DELIM__
 
 for p in ${PROJECT_LIST[@]}; do
   # Coral does not use CMake to build, hence skipping cmake.
-  if [[ $p == "coral" || ($p == "Balicek" && $APT_COMPONENT != "unstable") ]]; then
+  if [[ $p == "coral" || ($p == "balicek" && $APT_COMPONENT != "unstable") ]]; then
     echo "Skipping routing cmake step. project=$p and APT_COMPONNET=$APT_COMPONENT"
   else
     cat >> ${git_script} <<DELIM__
