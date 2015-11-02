@@ -195,6 +195,43 @@ DELIM__
 }
 
 # *****************************************************************************
+# Function: spawn_instance
+# Purpose : Create Instance with arbitrary OS
+# Usage   : spawn_instance <instance_name> <os_name> <instance_type>
+# *****************************************************************************
+function spawn_instance() {
+  if [[ $1 == "help" || $# -lt 2 ]]; then
+    show_spawn_help
+    exit 1
+  fi
+
+  local instance_name=$1
+  local os_name=$2
+  local instance_type=$3
+  instance_name="${emailid}"-"${instance_name}"
+
+  echo "Creating the disk[${instance_name}-d1] for the instance in the cloud"
+  tryexec exec_gcloud_cmd disks create "${instance_name}-d1" \
+    --image "$os_name" --type "$DISK_TYPE" --size="$DISK1_SIZE" -q
+
+  echo "Creating the disk[${instance_name}-d2] for the instance in the cloud"
+  tryexec exec_gcloud_cmd disks create "${instance_name}-d2" \
+    --type "$DISK_TYPE" --size="$DISK2_SIZE" -q
+
+  local key_file=$(mktemp $WORKSPACE/keys-XXXXX)
+  echo plumgrid:$(cat /home/${USER}/.ssh/id_rsa.pub) > ${key_file}
+  echo plumgrid:$(echo ${COMMON_KEY}) >> ${key_file}
+  echo "Creating the instance[$instance_name] in the cloud"
+  tryexec exec_gcloud_cmd instances create "${instance_name}"  \
+    --machine-type "$instance_type" --network "$NETWORK" --maintenance-policy \
+    "MIGRATE" --scopes "$SCOPES" \
+    --disk "name=${instance_name}-d1,mode=rw,boot=yes,auto-delete=yes" \
+    --disk "name=${instance_name}-d2,mode=rw,boot=no,auto-delete=yes" --no-address --tags "no-ip" \
+    --metadata-from-file sshKeys=$key_file
+  rm $key_file
+}
+
+# *****************************************************************************
 # Function: get_build_info
 # Purpose : Get build description of the run
 # Usage   : get_build_info INSTANCE_IP PROJECT_NAME

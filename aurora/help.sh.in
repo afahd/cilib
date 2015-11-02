@@ -21,11 +21,30 @@ COMMAND:
   rm                  Deletes the ENTITY containing value in REGEX
   login               Login to the specified INSTANCE
   load                Shows the resources used by all users.
+  spawn               Create gcloud Instance with Arbritary OS.
 
 To Get more specific help for each command, you can run "aurora <COMMAND> help"
 
 AURORAHELP
 }
+function show_spawn_help() {
+    cat << SPAWNHELP
+
+USAGE: aurora spawn <INSTANCE_NAME> <OS_NAME> <INSTANCE_TYPE>
+       Create a new gcloud instance with given OS and Instance type.
+
+Required Arguments:
+  <INSTANCE_NAME>     The name of gcloud instance being spawned
+  <OS_NAME>           Operating System which you want for the gcloud instance
+                      e.g. centos-6, ubtuntu-12-04, container-vm.
+                      For more details: https://cloud.google.com/sdk/gcloud/reference/compute/disks/create
+  <INSTANCE_TYPE>     The machine-type used for the instance e.g. n1-standard-4, n1-highcpu-16
+
+EXAMPLE:
+  aurora spawn centos-instance centos-6 n1-standard-4
+SPAWNHELP
+}
+
 function show_build_help() {
     cat << BUILDHELP
 

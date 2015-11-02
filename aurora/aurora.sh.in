@@ -55,6 +55,8 @@ case $1 in
       aurora_cost.sh ${@:2} ;;
     set_max_instances)
       set_max_instances ${@:2} ;;
+    spawn)
+      spawn_instance ${@:2} ;;
     help)
       show_aurora_help ;;
     *)
