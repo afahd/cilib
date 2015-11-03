@@ -27,7 +27,7 @@ if [[ $3 == "help" ]]; then
 fi
 BUILD_ENV_USER=${USER}
 STEP_ST=1
-STEP_ED=9
+STEP_ED=7
 DEST_SCRIPT_DIR=0
 
 echo "run_pipelines.sh $@"
@@ -57,7 +57,7 @@ while true ; do
     -I|--initial_run) INITIAL_RUN="true" ; shift ;;
     -F|--db_update) DB_UPDATE="true" ; shift ;;
     -K|--keep-running) KEEP_RUNNING="-K"; shift ;;
-    --preemptible) PREEMPTIBLE="--preemptible" ; shift ;;
+    --preemptible) PREEMPTIBLE="1" ; shift ;;
     #Optional argments for local changes transfer
     -c|--local_commit) LOCAL_COMMIT_HASH="-c $2" ; shift 2 ;;
     -e|--existing_commit_hash) EXISTING_COMMIT_HASH=$2 ; shift 2 ;;
@@ -130,16 +130,21 @@ function run_test() {
     pids=()
     echo "log_dir=$log_dir script_dir=$script_dir"
     while read -r -d $'\0'; do
-      aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -e $EXISTING_COMMIT_HASH --cost_pipeline_code $COST_PIPELINE_CODE $KEEP_RUNNING $LOCAL_COMMIT_HASH $ALPS_PATH $PREEMPTIBLE > $REPLY.txt 2>&1 &
+      if [[ -n "$PREEMPTIBLE" ]]; then
+        aurora run_preemptible -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -e $EXISTING_COMMIT_HASH --cost_pipeline_code $COST_PIPELINE_CODE $KEEP_RUNNING $LOCAL_COMMIT_HASH $ALPS_PATH> $REPLY.txt 2>&1 &
+      else
+        aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -e $EXISTING_COMMIT_HASH --cost_pipeline_code $COST_PIPELINE_CODE $KEEP_RUNNING $LOCAL_COMMIT_HASH $ALPS_PATH > $REPLY.txt 2>&1 &
+      fi
       #Get the pid of the last background command
       pids+=("$!")
     done < <(find ${script_dir} -regextype posix-extended  -regex '^.*.sh-[0-9]+$' -print0)
-    sleep 2
+    sleep 30
     ;;
 
   3)
     echo "Waiting for command to finish ..."
-    echoer_pid=$(print_background_jobs ${USER_BUILD_ID} ${log_dir})
+    print_background_jobs ${USER_BUILD_ID} ${log_dir} &
+    echoer_pid=$!
     pipeline_start_time=$(date +%s)
 
     FAIL=0
@@ -148,22 +153,13 @@ function run_test() {
     done
 
     pipeline_end_time=$(date +%s)
-
-    if [[ -n "$PREEMPTIBLE" ]]; then
-      mkdir -p ${script_dir}/preempted_instances
-    fi
-
     #Exit if any value is nonzero
     if [[ $FAIL != 0 ]]; then
       #Kill the echo while loop, suppress output
-      disown $echoer_pid && kill $echoer_pid
+      disown $echoer_pid && kill $echoer_pid || true
       #Copy the aurora_run logs.
       for file in `ls ${script_dir}/*.txt` ; do
-        if [[ ! `grep -q "Run has been completed successfully" $file` ]]; then
-          script_name=$(basename ${file})
-          script_name=$(echo $script_name | sed 's/.txt//')
-          cp ${script_dir}/$script_name ${script_dir}/preempted_instances
-        fi
+        grep "Run has been completed successfully" $file > /dev/null || cp $file "$WORKSPACE/logs/AURORA.RUN.FAILED.`basename ${file}`"
       done
       echo "Some aurora runs exited unsuccesfully."
       status=1
@@ -173,59 +169,14 @@ function run_test() {
       echo "Aurora run completed successfully."
     fi
     ;;
+
   4)
-    #If status is 1 and preemtible switch is present then check and retry the failing instances
-    if [[ "$status" == 1 && -n "$PREEMPTIBLE" ]]; then
-      pids=()
-      echo "log_dir=$log_dir script_dir=$script_dir"
-      while read -r -d $'\0'; do
-        aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -e $EXISTING_COMMIT_HASH --cost_pipeline_code $COST_PIPELINE_CODE $KEEP_RUNNING $LOCAL_COMMIT_HASH $ALPS_PATH > $REPLY.txt 2>&1 &
-        #Get the pid of the last background command
-        pids+=("$!")
-      done < <(find ${script_dir}/preempted_instances -regextype posix-extended  -regex '^.*.sh-[0-9]+$' -print0)
-      sleep 30
-    fi
-    ;;
-
-  5)
-    #If status is 1 and preemtible switch is present then check and retry the failing instances
-    if [[ "$status" == 1 && -n "$PREEMPTIBLE" ]]; then
-      echo "Waiting for command to finish ..."
-
-      echoer_pid=$(print_background_jobs ${USER_BUILD_ID} ${log_dir})
-
-      FAIL=0
-      for pid in "${pids[@]}"; do
-        wait "$pid" || FAIL=$(($? + $FAIL))
-      done
-
-      #Exit if any value is nonzero
-      if [[ $FAIL != 0 ]]; then
-        #Kill the echo while loop, suppress output
-        disown $echoer_pid && kill $echoer_pid
-        #Copy the aurora_run logs.
-        for file in `ls ${script_dir}/*.txt` ; do
-          if [[ ! `grep -q "Run has been completed successfully" $file` ]]; then
-            cp $file "$WORKSPACE/logs/AURORA.RUN.FAILED.`basename ${file}`"
-          fi
-        done
-        echo "Some aurora runs exited unsuccesfully."
-        status=1
-      else
-        #Kill the echo while loop, suppress output
-        disown $echoer_pid && kill $echoer_pid
-        echo "Aurora run completed successfully."
-        status=0
-      fi
-    fi
-    ;;
-  6)
     # Start collecting logs
     echo "Copying all logs to ${WORKSPACE}/logs directory"
     find ${log_dir} -name "*${MOD_BUILD_ID}*.tar" -type f -exec tar xf {} -C ${untar_log_dir} \; -exec rm {} \;
     ;;
 
-  7)
+  5)
     # Generate failed test case report.
     num_failures=$(get_failing_test_number ${untar_log_dir})
     echo "num_failures=$num_failures"
@@ -244,7 +195,7 @@ function run_test() {
     generate_failing_list "${untar_log_dir}" "${WORKSPACE}/logs/failing-list.log"
     ;;
 
-  8)
+  6)
     generate_ctest_output ${untar_log_dir} ${WORKSPACE}/logs/ctest_output.log
     if [[ -e ${WORKSPACE}/logs/ctest_output.log ]]; then
       pushd ${WORKSPACE}/logs
@@ -252,8 +203,7 @@ function run_test() {
       popd
     fi
     ;;
-
-  9)
+  7)
     #Collect XML logs
     if [[ "$PIPELINE" == "omni" || "$PIPELINE" == "extended" || "$PIPELINE" == "smoke" || "$PIPELINE" == "unstable" ]]; then
         collect_xml_logs "${untar_log_dir}" "${WORKSPACE}/logs/xml_logs/"
@@ -275,7 +225,9 @@ function run_test() {
     tar czf $script_dir.tar.gz -C $WORKSPACE/ ${script_dir#$WORKSPACE/}
     mv $script_dir.tar.gz ${WORKSPACE}/logs/aurora_infra_logs.tar.gz
 
-    if [[ $num_failures -ne 0 ]]; then
+    if [[ $num_failures -eq 0 && -z $status ]]; then
+      status=0
+    else
       status=1
     fi
 

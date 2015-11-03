@@ -79,23 +79,18 @@ function add_new_tests_to_db() {
 
 # *****************************************************************************
 # Function: print_background_jobs
-# Purpose : Prints the number of background processes in a loop. Returns the PID
-#           for the background loop.
+# Purpose : Prints the number of background processes in a loop.
 # Usage   : print_background_jobs <build id> <log dir>
 # *****************************************************************************
 function print_background_jobs() {
-
   local build_id=$1
   local log_dir=$2
 
   # Background loop to print the number of background processes
-  while [[ ! -z `pgrep -f "run -l ${build_id} -o ${log_dir}"` ]]; do
-    echo -n "[`pgrep -f "run -l ${build_id} -o ${log_dir}" | wc -l`] " >&2;
+  while [[ ! -z `pgrep -f "preemptible -l ${build_id} -o ${log_dir}|run -l ${build_id} -o ${log_dir}"` ]]; do
+    echo -n "[`pgrep -f "preemptible -l ${build_id} -o ${log_dir}|run -l ${build_id} -o ${log_dir}"| wc -l`] "
     sleep 30 ;
-  done &
-
-  #Return the PID for the echo job so it can be killed late
-  echo "$!"
+  done
 }
 
 # *****************************************************************************

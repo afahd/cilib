@@ -8,6 +8,7 @@ configure_file(gc_helpers.sh.in "${CMAKE_CURRENT_BINARY_DIR}/gc_helpers.sh" @ONL
 configure_file(help.sh.in "${CMAKE_CURRENT_BINARY_DIR}/help.sh" @ONLY)
 configure_file(cleanup.sh.in "${CMAKE_CURRENT_BINARY_DIR}/cleanup.sh" @ONLY)
 configure_file(aurora_load.sh.in "${CMAKE_CURRENT_BINARY_DIR}/aurora_load.sh" @ONLY)
+configure_file(aurora_run_preemptible.sh.in "${CMAKE_CURRENT_BINARY_DIR}/aurora_run_preemptible.sh" @ONLY)
 
 install_programs (/ FILES ${CMAKE_CURRENT_BINARY_DIR}/aurora)
 install_programs (/ FILES ${CMAKE_CURRENT_BINARY_DIR}/aurora_build.sh)
@@ -19,6 +20,7 @@ install_programs (/ FILES ${CMAKE_CURRENT_BINARY_DIR}/help.sh)
 install_programs (/ FILES ${CMAKE_CURRENT_BINARY_DIR}/aurora_infra_settings.conf)
 install_programs (/ FILES ${CMAKE_CURRENT_BINARY_DIR}/cleanup.sh)
 install_programs (/ FILES ${CMAKE_CURRENT_BINARY_DIR}/aurora_load.sh)
+install_programs (/ FILES ${CMAKE_CURRENT_BINARY_DIR}/aurora_run_preemptible.sh)
 
 add_subdirectory(init_scripts)
 add_subdirectory(test)

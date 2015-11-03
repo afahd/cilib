@@ -1,0 +1,8 @@
+#!/bin/bash
+
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
+
+aurora_run.sh $@ --preemptible
+if [[ $? -ne 0 ]]; then
+  aurora_run.sh $@
+fi
