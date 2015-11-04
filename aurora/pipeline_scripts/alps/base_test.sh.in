@@ -63,6 +63,12 @@ elif [[ "$PIPELINE" == "unstable" || "$PIPELINE" == "DEBUG-TEST" ]]; then
   export BUILD_NIGHTLY=1
   unset EXCLUDE_UNSTABLE
   unset EXCLUDE_NON_NIGHTLY
+elif [[ "$PIPELINE" == "falcon" ]]; then
+  test_tag=falcon
+  BUILD_ID=
+  /opt/pg/systest/tests/falcon/write_falcon_bid.sh -b $BUILD_ID
+  /opt/pg/systest/generic_remote/falcon/falcon_init.sh
+
 fi
 
 # Run cmake ..
@@ -74,7 +80,7 @@ echo 1 | sudo tee /proc/sys/net/ipv6/conf/all/disable_ipv6
 if [[ "x$CTEST_ED" == "x" ]] ; then
   if [[ "$PIPELINE" == "unstable" ]]; then
     CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "UNSTABLE" | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
-  elif [[ "$PIPELINE" == "automaton" || "$PIPELINE" == "automaton-longevity" || "$PIPELINE" == "longevity" ]]; then
+  elif [[ "$PIPELINE" == "automaton" || "$PIPELINE" == "automaton-longevity" || "$PIPELINE" == "longevity" || "$PIPELINE" == "falcon" ]]; then
     CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "Test #" | wc -l`
   else
     CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "Test " | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
@@ -95,7 +101,7 @@ for run in $(seq 1 $itr); do
     # Dtermine the test name from the test index
     if [[ "$PIPELINE" == "unstable" ]]; then
       test_name=$(ctest -N  -L ^type:$test_tag$ | grep "UNSTABLE" | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
-    elif [[ "$PIPELINE" == "automaton" || "$PIPELINE" == "automaton-longevity" || "$PIPELINE" == "longevity" ]]; then
+    elif [[ "$PIPELINE" == "falcon" || "$PIPELINE" == "automaton" || "$PIPELINE" == "automaton-longevity" || "$PIPELINE" == "longevity" ]]; then
       test_name=$(ctest -N  -L ^type:$test_tag$ | grep "Test #" | cut -d " " -f 5 | head -n "$testno" | tail -n 1)
     elif [[ "$PIPELINE" == "DEBUG-TEST" ]]; then
       test_name=${USER_TEST[$testno]}

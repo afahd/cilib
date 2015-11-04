@@ -95,8 +95,19 @@ git fetch
 git checkout master
 git reset --hard origin/master
     ;;
+  install_gcloud)
+DELIM__
+cat >> ${git_script} <<DELIM__
+git clone ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/gcloud -- /home/plumgrid/work/gcloud
+cd /home/plumgrid/work/gcloud
+mkdir build
+cd build
+cmake ..
+make install
+  ;;
   all_repos)
 DELIM__
+
 ## Checkout the requested branch on all the projects
 modify_git_config "\${repo}" "${gerritid}" "${git_script}"
 cat >> ${git_script} <<DELIM__

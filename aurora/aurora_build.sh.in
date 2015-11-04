@@ -31,10 +31,8 @@ TAG="none"
 GIT_TAG="none"
 PROJECT=""
 
-MAJOR_STEPS="build"
 STEP_ST=1
-
-TOTAL_BUILD_STEPS=24
+TOTAL_BUILD_STEPS=25
 STEP_ED=$TOTAL_BUILD_STEPS
 
 CONTINUE=0
@@ -236,12 +234,24 @@ function build_image() {
     ;;
 
   8)
+    echo "gitsync Step2: Installing gcloud on the instance"
+    tryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh install_gcloud"
+    echo "Copying aurora conf file to the instance"
+    #Adding aurora related configuration
+    upload ${INSTANCE_IP} ~/.aurora.conf /home/${_USER}/.aurora.conf
+    tryexec run_cmd_gci ${INSTANCE_IP} "gcloud config set compute/zone $ZONE"
+    tryexec run_cmd_gci ${INSTANCE_IP} "gcloud config set compute/region $REGION"
+    record_step $step $step_file
+    ;;
+
+
+  9)
     # Run Step2: Fetch tools
     echo "gitsync Step2: Fetching latest tools"
     retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh tools"
     ;;
 
-  9)
+  10)
     # Run Step3: Fetch all repos
     echo "gitsync Step3: Fetching all the repos (${PROJECT_LIST[@]})"
     for p in ${PROJECT_LIST[@]}; do
@@ -252,31 +262,31 @@ function build_image() {
     rm -rf ${WORKSPACE}/builder
     ;;
 
-  10)
+  11)
     # Run Step4: Fetch iovisor
     echo "gitsync Step4: Fetching latest iovisor"
     retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh iovisor"
     ;;
 
-  11)
+  12)
     # Checkout the required changes for specified project
     echo "gitsync Step5: Checking out required code on ${PROJECT}"
     retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh checkout"
     ;;
 
-  12)
+  13)
     # Get the build info
     echo "Getting build info for ${PROJECT}"
     tryexec get_build_info ${INSTANCE_IP} ${PROJECT}
     ;;
 
-  13)
+  14)
     #Install tools and iovisor in the background
     echo "Installing tools and iovisor"
     tryexec make_tools_iovisor ${INSTANCE_IP} "/tmp/make_tools_iovisor.log"
     ;;
 
-  14)
+  15)
     # Adding polling as a separate step, so that if the connection broke at the previous step,
     # this step can be run directly to see if the previous command is still running
     echo "Polling for tools install"
@@ -284,18 +294,18 @@ function build_image() {
     retryexec download ${INSTANCE_IP} "/tmp/make_tools_iovisor.log" "${WORKSPACE}/logs/"
     ;;
 
-  15)
+  16)
     # Corelib build is required for alps cmake..
     retryexec run_cmd_gci ${INSTANCE_IP} "mkdir -p /home/plumgrid/work/corelib/build && cd /home/plumgrid/work/corelib/build && cmake .. && make -j4 install"
     ;;
 
-  16)
+  17)
     #run cmake on the repos
     echo "running cmake on the repos"
     retryexec run_cmd_gci ${INSTANCE_IP} "bash /tmp/gitsync.sh cmake_repos"
     ;;
 
-  17)
+  18)
     # Checks the elfsurgeon files
     if [[ "$PROJECT" == "alps" ]];then
       echo "make alps and check elfsurgeon files"
@@ -303,7 +313,7 @@ function build_image() {
     fi
     ;;
 
-  18)
+  19)
     # Adding polling as a separate step, so that if the connection broke at the previous step.
     if [[ "$PROJECT" == "alps" ]];then
       echo "Polling make for alps and checking elfsurgeon files (tailing \"/tmp/check_elfsurgeon.log\" for complete logs)"
@@ -312,24 +322,24 @@ function build_image() {
     fi
     ;;
 
-  19)
+  20)
      run_cmd_gci ${INSTANCE_IP} "ln -s /opt/pg/web/temp /opt/pg/var/www/"
      run_cmd_gci ${INSTANCE_IP} "sudo bash -c \"echo 'proxy=http://10.10.163.162:3128' >> /etc/yum/yum.conf\""
     ;;
 
-  20)
+  21)
     echo "Running the build-init script"
     retryexec upload ${INSTANCE_IP} ${BUILD_SCRIPT} /tmp/build-init.sh
     tryexec run_bg_cmd ${INSTANCE_IP} "/tmp/build-init.sh" "/bin/bash /tmp/build-init.sh" "/tmp/build-init.log"
     ;;
 
-  21)
+  22)
     echo "Poll the build-init logs (tailing \"/tmp/build-init.log\")"
     tryexec run_poll_cmd ${INSTANCE_IP} "/tmp/build-init.sh" "/tmp/build-init.log" "1"
     retryexec download ${INSTANCE_IP} "/tmp/build-init.log" "${WORKSPACE}/logs/build-init.log"
     ;;
 
-  22)
+  23)
     BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${emailid}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
 
@@ -342,7 +352,7 @@ function build_image() {
     tryexec exec_gcloud_cmd disks snapshot ${INSTANCE_NAME}-d2 --snapshot-names ${INSTANCE_NAME}-ssd2
     ;;
 
-  23)
+  24)
 
     # Flushing the disk buffers only if -K is not set
     if [[ "${KEEP_RUNNING}" != "1" ]]; then
@@ -356,7 +366,7 @@ function build_image() {
     echo "BUILD-ID=${BUILD_ID}" | tee $WORKSPACE/logs/build_id
     ;;
 
-  24)
+  25)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     printf "\n\n *********************** BUILD-ID = ${BUILD_ID} *********************** \n\n"
