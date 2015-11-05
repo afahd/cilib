@@ -120,6 +120,7 @@ function run_test() {
       gen_user_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -n ${NUM_INSTANCES} -d ${script_dir} --base_script_dir ${BASE_SCRIPT_DIR} -s ${USER_SCRIPT}
     elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" || $PIPELINE == "longevity" ]]; then
       gen_automaton_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -d ${script_dir} -r $BASE_SCRIPT_DIR -p $PIPELINE -n ${NUM_INSTANCES}
+      MACHINE_TYPE="n1-standard-16"
     else
       gen_test_scripts.sh -p $PIPELINE -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -f ${FIRST_TEST} -t ${STEP_SIZE} -n ${NUM_INSTANCES} -d ${script_dir} -I ${INITIAL_RUN} --base_script_dir $BASE_SCRIPT_DIR -D ${db}
     fi
@@ -131,9 +132,9 @@ function run_test() {
     echo "log_dir=$log_dir script_dir=$script_dir"
     while read -r -d $'\0'; do
       if [[ -n "$PREEMPTIBLE" ]]; then
-        aurora run_preemptible -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -e $EXISTING_COMMIT_HASH --cost_pipeline_code $COST_PIPELINE_CODE $KEEP_RUNNING $LOCAL_COMMIT_HASH $ALPS_PATH> $REPLY.txt 2>&1 &
+        aurora run_preemptible -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -e $EXISTING_COMMIT_HASH -m $MACHINE_TYPE --cost_pipeline_code $COST_PIPELINE_CODE $KEEP_RUNNING $LOCAL_COMMIT_HASH $ALPS_PATH> $REPLY.txt 2>&1 &
       else
-        aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -e $EXISTING_COMMIT_HASH --cost_pipeline_code $COST_PIPELINE_CODE $KEEP_RUNNING $LOCAL_COMMIT_HASH $ALPS_PATH > $REPLY.txt 2>&1 &
+        aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -e $EXISTING_COMMIT_HASH -m $MACHINE_TYPE --cost_pipeline_code $COST_PIPELINE_CODE $KEEP_RUNNING $LOCAL_COMMIT_HASH $ALPS_PATH > $REPLY.txt 2>&1 &
       fi
       #Get the pid of the last background command
       pids+=("$!")

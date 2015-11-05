@@ -33,8 +33,10 @@ PROJECT=""
 
 MAJOR_STEPS="build"
 STEP_ST=1
+
 TOTAL_BUILD_STEPS=24
 STEP_ED=$TOTAL_BUILD_STEPS
+
 CONTINUE=0
 
 declare -A br_code
@@ -43,10 +45,12 @@ br_code[stable_4_0]="2"
 br_code[stable_4_1]="3"
 br_code[stable_4_1_1]="4"
 br_code[stable_4_1_2-amex]="5"
+br_code[stable_4_1_2-ericsson]="6"
 
 BUILD_SCRIPT=@CMAKE_BINARY_DIR@/aurora/init_scripts/run_build_all.sh
 # read the options
 TEMP=`getopt -o Kr:t:Cb:g:p:W:s:R:E:h --long keep-running,refspec:,script:,WORKSPACE:,tag:,\continue,branch:,git-tag:,proj:,help,step_st:,step_end: -n 'aurora.sh' -- "$@"`
+
 eval set -- "$TEMP"
 while true ; do
   case "$1" in
