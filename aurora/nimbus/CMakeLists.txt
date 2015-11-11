@@ -1,4 +1,6 @@
 configure_file(nimbus.in "${CMAKE_CURRENT_BINARY_DIR}/nimbus" @ONLY)
 configure_file(nimbus_remote_conf.in "${CMAKE_CURRENT_BINARY_DIR}/nimbus_remote_conf" @ONLY)
+configure_file(nimbus_setup_log_infra.sh.in "${CMAKE_CURRENT_BINARY_DIR}/nimbus_setup_log_infra.sh" @ONLY)
 INSTALL_PROGRAMS(/ FILES nimbus_remote_conf)
 INSTALL_PROGRAMS(/ FILES nimbus)
+INSTALL_PROGRAMS(/ FILES nimbus_setup_log_infra.sh)
