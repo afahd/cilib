@@ -125,7 +125,7 @@ for email in "${!email_array[@]}"; do
   cat /dev/null > email_content
   echo "Hi $email," >> email_content
 
-  user_instances=$(printf '%s\n' "${outdated_instances[@]}" | grep "$email")
+  user_instances=$(printf '%s\n' "${outdated_instances[@]}" | grep "^$email")
   if [[ -n $user_instances ]]; then
     echo >> email_content
     echo "The following instances are outdated consider deleting them:" >> email_content
@@ -135,7 +135,7 @@ for email in "${!email_array[@]}"; do
     send_mail=1
   fi
 
-  user_disks=$(printf '%s\n' "${outdated_disks[@]}" | grep "$email")
+  user_disks=$(printf '%s\n' "${outdated_disks[@]}" | grep "^$email")
   if [[ -n $user_disks ]]; then
     echo >> email_content
     echo "The following disks were not attached to any instance and have been deleted:" >> email_content
@@ -144,8 +144,8 @@ for email in "${!email_array[@]}"; do
     send_mail=1
   fi
 
-  user_snapshots=$(printf '%s\n' "${outdated_snapshots[@]}" | grep "$email")
-  number_user_snapshots=$(printf '%s\n' "${outdated_snapshots[@]}" | grep "$email" | wc -l)
+  user_snapshots=$(printf '%s\n' "${outdated_snapshots[@]}" | grep "^$email")
+  number_user_snapshots=$(printf '%s\n' "${outdated_snapshots[@]}" | grep "^$email" | wc -l)
   #Trigger email only if more than 2 sets of snapshots present
   if [[ $number_user_snapshots -gt "$number_snapshots" ]]; then
     echo >> email_content
@@ -168,8 +168,8 @@ for email in "${!email_array[@]}"; do
   cat /dev/null > email_content
   echo "Hi $email," >> email_content
 
-  user_instances=$(printf '%s\n' "${toomany_instances[@]}" | grep "$email")
-  number_user_instances=$(printf '%s\n' "${toomany_instances[@]}" | grep "$email" | wc -l)
+  user_instances=$(printf '%s\n' "${toomany_instances[@]}" | grep "^$email")
+  number_user_instances=$(printf '%s\n' "${toomany_instances[@]}" | grep "^$email" | wc -l)
   #user hours needs to be an integer here
   user_hours=$(($max_hours/60/60))
   if [[ $number_user_instances -gt $max_instances ]]; then

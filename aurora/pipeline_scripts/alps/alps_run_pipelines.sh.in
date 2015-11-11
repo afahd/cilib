@@ -11,6 +11,7 @@ source pl_utils.sh
 source pl_help.sh
 source pl_settings.conf
 source gc_helpers.sh
+source aurora_utils.sh
 
 #Kill child  processes, if some exist, before exiting.
 function exit_handler() {
@@ -32,7 +33,7 @@ DEST_SCRIPT_DIR=0
 echo "run_pipelines.sh $@"
 ARGS=$@
 # read the options
-TEMP=`getopt -o Q:R:E:W:l:P:b:i:f:t:u:s:n:\r:d:IFKc:e:a:h --long major:,minor_start:,minor_end:,WORKSPACE:,buildid:,pipeline:,branch:,test_iterations:,first_test:,step_size:,update_db_failure_limit:,script:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update,keep-running,local_commit:,existing_commit_hash:,alps-path:,cost_pipeline_code:,\help -n 'run_all_test.sh' -- "$@"`
+TEMP=`getopt -o Q:R:E:W:l:P:b:i:f:t:u:s:n:\r:d:IFKc:e:a:h --long major:,preemptible,minor_start:,minor_end:,WORKSPACE:,buildid:,pipeline:,branch:,test_iterations:,first_test:,step_size:,update_db_failure_limit:,script:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update,keep-running,local_commit:,existing_commit_hash:,alps-path:,cost_pipeline_code:,\help -n 'run_all_test.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # extract options and their arguments into variables.
@@ -56,6 +57,7 @@ while true ; do
     -I|--initial_run) INITIAL_RUN="true" ; shift ;;
     -F|--db_update) DB_UPDATE="true" ; shift ;;
     -K|--keep-running) KEEP_RUNNING="-K"; shift ;;
+    --preemptible) PREEMPTIBLE="1" ; shift ;;
     #Optional argments for local changes transfer
     -c|--local_commit) LOCAL_COMMIT_HASH="-c $2" ; shift 2 ;;
     -e|--existing_commit_hash) EXISTING_COMMIT_HASH=$2 ; shift 2 ;;
@@ -129,8 +131,11 @@ function run_test() {
     pids=()
     echo "log_dir=$log_dir script_dir=$script_dir"
     while read -r -d $'\0'; do
-      echo "MACHINE_TYPE=$MACHINE_TYPE"
-      aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -e $EXISTING_COMMIT_HASH -m $MACHINE_TYPE --cost_pipeline_code $COST_PIPELINE_CODE $KEEP_RUNNING $LOCAL_COMMIT_HASH $ALPS_PATH > $REPLY.txt 2>&1 &
+      if [[ -n "$PREEMPTIBLE" ]]; then
+        aurora run_preemptible -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -e $EXISTING_COMMIT_HASH -m $MACHINE_TYPE --cost_pipeline_code $COST_PIPELINE_CODE $KEEP_RUNNING $LOCAL_COMMIT_HASH $ALPS_PATH> $REPLY.txt 2>&1 &
+      else
+        aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -e $EXISTING_COMMIT_HASH -m $MACHINE_TYPE --cost_pipeline_code $COST_PIPELINE_CODE $KEEP_RUNNING $LOCAL_COMMIT_HASH $ALPS_PATH > $REPLY.txt 2>&1 &
+      fi
       #Get the pid of the last background command
       pids+=("$!")
     done < <(find ${script_dir} -regextype posix-extended  -regex '^.*.sh-[0-9]+$' -print0)
@@ -138,23 +143,21 @@ function run_test() {
     ;;
 
   3)
-    pipeline_start_time=$(date +%s)
     echo "Waiting for command to finish ..."
-    # Background loop to print the number of aurora_run processes
-    while [[ ! -z `pgrep -f "run -l ${USER_BUILD_ID} -o ${log_dir}"` ]]; do
-      echo -n "[`pgrep -f \"run -l ${USER_BUILD_ID} -o ${log_dir}\" | wc -l`] ";
-      sleep 60 ;
-    done &
+    print_background_jobs ${USER_BUILD_ID} ${log_dir} &
     echoer_pid=$!
+    pipeline_start_time=$(date +%s)
+
     FAIL=0
     for pid in "${pids[@]}"; do
       wait "$pid" || FAIL=$(($? + $FAIL))
     done
+
     pipeline_end_time=$(date +%s)
     #Exit if any value is nonzero
     if [[ $FAIL != 0 ]]; then
       #Kill the echo while loop, suppress output
-      disown $echoer_pid && kill $echoer_pid
+      disown $echoer_pid && kill $echoer_pid || true
       #Copy the aurora_run logs.
       for file in `ls ${script_dir}/*.txt` ; do
         grep "Run has been completed successfully" $file > /dev/null || cp $file "$WORKSPACE/logs/AURORA.RUN.FAILED.`basename ${file}`"

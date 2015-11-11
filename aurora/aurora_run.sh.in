@@ -25,7 +25,8 @@ if [[ $1 == "help" ]]; then
 fi
 #Starting and ending steps
 STEP_ST=1
-STEP_ED=12
+TOTAL_RUN_STEPS=12
+STEP_ED=$TOTAL_RUN_STEPS
 
 LOG_SRC_DIR=/opt/pg/log
 TAG="none"
@@ -34,7 +35,7 @@ KEEP_RUNNING=0
 LOCAL_CHANGES=0
 
 # read the options
-TEMP=`getopt -o l:s:S:o:n:W:t:CKc:e:a:m:R:E:h --long buildid:,script:,log_dir:,src_log_dir:,runid:,WORKSPACE:,tag:,\continue,keep-running,local_commit:,existing_commit_hash:,alps-path:,cost_pipeline_code:,machine_type:,minor_st:,minor_end:,\help -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o l:s:S:o:n:W:t:CKc:e:a:m:R:E:h --long buildid:,script:,log_dir:,src_log_dir:,runid:,WORKSPACE:,tag:,\continue,keep-running,local_commit:,existing_commit_hash:,alps-path:,cost_pipeline_code:,preemptible,machine_type:,step_st:,step_end:,\help -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 while true ; do
   case "$1" in
@@ -48,15 +49,16 @@ while true ; do
     -S| --src_log_dir) LOG_SRC_DIR=$2 ; shift 2 ;;
     -C| --continue ) CONTINUE=1; shift ;;
     -K| --keep-running ) KEEP_RUNNING=1; shift ;;
+    --preemptible) PREEMPTIBLE="--preemptible" ; shift ;;
     #Local changes flags
     -c| --local_commit) COMMIT_ID=$2; shift 2;;
     -e|--existing_commit_hash) EXISTING_COMMIT_HASH=$2 ; shift 2 ;;
     -a| --alps-path) ALPS_PATH=$2; shift 2;;
     --cost_pipeline_code) COST_PIPELINE_CODE=$2; shift 2;;
     #Start-End steps
+    -R| --step-st ) STEP_ST="$2"; CONTINUE=0; shift 2 ;;
+    -E| --step-end ) STEP_ED="$2";  KEEP_RUNNING=0 ; shift 2 ;;
     -m| --machine_type) MACHINE_TYPE=$2; shift 2;;
-    -R| --minor_st ) MINOR_STEPS_ST[$MAJOR_STEPS]="$2"; shift 2 ;;
-    -E| --minor_end ) MINOR_STEPS_ED[$MAJOR_STEPS]="$2"; shift 2 ;;
     -h| --help ) show_run_help;exit 0; shift ;;
     --) shift ; break ;;
     *) exit 1 ;;
@@ -90,10 +92,11 @@ check_run_inputs $BUILD_ID
 if [[ -z "$COST_PIPELINE_CODE" ]]; then
   COST_PIPELINE_CODE="x"
 fi
-INSTANCE_NAME=$(generate_instance_name ${BUILD_ID} ${TAG} ${COST_PIPELINE_CODE} ${CONTINUE} ${RUNID})
+INSTANCE_NAME=$(generate_instance_name ${BUILD_ID} ${TAG} ${COST_PIPELINE_CODE} ${CONTINUE} ${STEP_ST} ${RUNID})
 #Check /home/$USER/.ssh/id_rsa.pub file
 check_file_existence "/home/$USER/.ssh/id_rsa.pub"
 step_file=$LOG_DEST_DIR/${INSTANCE_NAME}-last-successful-step
+
 
 # If "continue" switch has been given then do following steps
 #   a. Get the RUN-ID provided by user.
@@ -108,11 +111,11 @@ if [[ $CONTINUE == "1" ]] ; then
   fi
   LAST_SUCCESSFULL_STEP=( $(<${step_file}) )
   STEP_ST=$((LAST_SUCCESSFULL_STEP+1))
-  #Only get the IP address if the instance has already been created.
-  if [[ $LAST_SUCCESSFULL_STEP -gt 2 ]]; then
-    #Get the IP address of the instances, needed incase continue is specified.
-    INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
-  fi
+fi
+
+#Only get the IP address if the instance has already been created.
+if [[ $STEP_ST -gt "3" ]]; then
+  INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
 else
   check_instance_limit
 fi
@@ -124,6 +127,9 @@ if [[ $EXISTING_COMMIT_HASH != "null" ]]; then
   VALID_COMMIT_HASH="true"
 fi
 
+if [[ -z "$PREEMPTIBLE" ]]; then
+  MAINTENANCE_POLICY="--maintenance-policy=MIGRATE"
+fi
 function run_test() {
   local step=$1
 
@@ -132,14 +138,12 @@ function run_test() {
     echo "Creating the disk[${INSTANCE_NAME}-d1] for the instance in the cloud from ${BUILD_ID}"
     tryexec exec_gcloud_cmd disks create "${INSTANCE_NAME}-d1" -q \
       --source-snapshot "${BUILD_ID}-ssd1" --type "$DISK_TYPE" --size="$DISK1_SIZE"
-    record_step $step $step_file
     ;;
 
   2)
     echo "Creating the disk[${INSTANCE_NAME}-d2] for the instance in the cloud from ${BUILD_ID}"
     tryexec exec_gcloud_cmd disks create "${INSTANCE_NAME}-d2" -q \
       --source-snapshot "${BUILD_ID}-ssd2" --type "$DISK_TYPE" --size="$DISK2_SIZE"
-    record_step $step $step_file
     ;;
 
   3)
@@ -148,27 +152,23 @@ function run_test() {
     echo plumgrid:$(echo ${COMMON_KEY}) >> ${key_file}
     echo "Creating the instance[$INSTANCE_NAME] in the cloud"
     tryexec exec_gcloud_cmd instances create "${INSTANCE_NAME}" -q\
-      --machine-type "$MACHINE_TYPE" --network "$NETWORK" --maintenance-policy \
-      "MIGRATE" --scopes "$SCOPES" \
+      --machine-type "$MACHINE_TYPE" --network "$NETWORK" --scopes "$SCOPES" \
       --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
       --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip" \
-      --metadata-from-file sshKeys=$key_file
+      --metadata-from-file sshKeys=$key_file $PREEMPTIBLE $MAINTENANCE_POLICY
     rm $key_file
-    record_step $step $step_file
     ;;
 
   4)
     INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
     echo "Waiting for the machine to boot up and allow ssh access"
     tryexec wait_for_instance ${INSTANCE_IP}
-    record_step $step $step_file
     ;;
 
   5)
     echo "Changing MTU on the instance"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo ifconfig eth0 mtu 1400"
     tryexec run_cmd_gci ${INSTANCE_IP} "DT=\$(ifconfig eth0 | grep 'inet addr' | cut -d: -f2|cut -d' ' -f 1); sudo bash -c 'echo \"'\$DT'  \`hostname\`\" >> /etc/hosts'"
-    record_step $step $step_file
     ;;
 
   6)
@@ -176,7 +176,6 @@ function run_test() {
       tryexec push_local_changes ${INSTANCE_IP} ${COMMIT_ID} ${ALPS_PATH}
       tryexec make_install_alps ${INSTANCE_IP} "/tmp/make_install_alps.log"
       tryexec run_poll_cmd ${INSTANCE_IP} "make_install_alps.sh" "/tmp/make_install_alps.log" "1"
-      record_step $step $step_file
     fi
     ;;
 
@@ -193,33 +192,28 @@ function run_test() {
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo brctl delbr lxcbr0 || true"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo pkill dnsmasq || true"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo service lxc-net restart || true"
-    record_step $step $step_file
     ;;
 
   9)
     retryexec upload ${INSTANCE_IP} ${TEST_SCRIPT} /tmp/user_test_script.sh
     tryexec run_cmd_gci_bg ${INSTANCE_IP} "/bin/bash /tmp/user_test_script.sh" "/tmp/test.logs"
-    record_step $step $step_file
     ;;
 
   10)
     echo "Poll the test logs (tailing \"/tmp/test.log\")"
     tryexec run_poll_cmd ${INSTANCE_IP} "/tmp/user_test_script.sh" "/tmp/test.logs" "0"
     retryexec download ${INSTANCE_IP} "/tmp/test.logs" "${LOG_DEST_DIR}/${INSTANCE_NAME}.log"
-    record_step $step $step_file
     ;;
 
   11)
     echo "Downloading logs in ${LOG_DEST_DIR} directory"
     tryexec get_latest_logs ${INSTANCE_IP} ${INSTANCE_NAME} ${LOG_SRC_DIR} ${LOG_DEST_DIR}
     printf "\n\n********* Run has been completed successfully. Please see all logs in ${LOG_DEST_DIR} direcotry *********\n\n"
-    record_step $step $step_file
     ;;
 
   12)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
-    rm $step_file
     ;;
 
   *)
@@ -234,7 +228,12 @@ for STEP in `seq ${STEP_ST} ${STEP_ED}`; do
   start_time=$(date +%s)
   run_test $STEP
   end_time=$(date +%s)
+  record_step $STEP $step_file
   print_time_taken $start_time $end_time "[$STEP]"
+  if [[ $STEP == $TOTAL_RUN_STEPS ]]; then
+    rm $step_file
+  fi
 done
+
 script_end_time=$(date +%s)
 print_time_taken $script_start_time $script_end_time "[run]"

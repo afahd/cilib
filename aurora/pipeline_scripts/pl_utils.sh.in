@@ -13,7 +13,6 @@ function get_db() {
       return 0
     fi
   fi
-
   if [[ -n "${PIPELINE_DB[$pipeline]}" ]]; then
     echo ${PIPELINE_DB[$pipeline]}
   else
@@ -76,6 +75,22 @@ function add_new_tests_to_db() {
       sqlite3 $TESTS_DB "insert into $UNSTABLE_TESTS_TABLE (Name, FailureProb, FirstPassingOccurence) values ('$test_name', '0', '$time')"
     fi
   fi
+}
+
+# *****************************************************************************
+# Function: print_background_jobs
+# Purpose : Prints the number of background processes in a loop.
+# Usage   : print_background_jobs <build id> <log dir>
+# *****************************************************************************
+function print_background_jobs() {
+  local build_id=$1
+  local log_dir=$2
+
+  # Background loop to print the number of background processes
+  while [[ ! -z `pgrep -f "preemptible -l ${build_id} -o ${log_dir}|run -l ${build_id} -o ${log_dir}"` ]]; do
+    echo -n "[`pgrep -f "preemptible -l ${build_id} -o ${log_dir}|run -l ${build_id} -o ${log_dir}"| wc -l`] "
+    sleep 30 ;
+  done
 }
 
 # *****************************************************************************
