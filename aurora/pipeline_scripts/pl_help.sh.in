@@ -130,7 +130,7 @@ USAGE: aurora update_db -j <project> -b <BRANCH> -P <pipeline-name> -u <acceptab
 
 Required Arguments:
   -p, --project                     Project e.g. alps, pg_ui etc.
-  -B, --branch                      Branch of the code-base e.g. master, stable_4_0, stable_4_1
+  -B, --branch                      Branch of the code-base e.g. master, stable_4_0, stable_4_1, stable_4_1_3
   -P, --pipeline                    The pipeline which you want to run.
                                     Possible values are "smoke", "extended", "unstable", "pgui-smoke", "omni".
                                     (Default is 'smoke')
