@@ -20,7 +20,7 @@ APT_COMPONENT=""
 declare -A branch_to_component
 branch_to_component['master']='unstable'
 branch_to_component['stable_4_0']='everest'
-branch_to_component['stable_4_1']='fuji-413'
+branch_to_component['stable_4_1']='fuji-414'
 branch_to_component['stable_4_1_1']='fuji-sushi'
 branch_to_component['stable_4_1_2']='fuji'
 branch_to_component['stable_4_1_2-amex']='fuji-sashimi'
