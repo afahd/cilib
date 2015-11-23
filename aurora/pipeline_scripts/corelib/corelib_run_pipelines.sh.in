@@ -188,7 +188,6 @@ function run_test() {
 
     generate_test_directories ${untar_log_dir} ${WORKSPACE}/test_logs
 
-
     if [[ "$num_failures" -le "$UPDATE_DB_FAILURE_LIMIT" && $DB_UPDATE == "true" ]];then
       # Update database
       echo "Update database ${db} from ${untar_log_dir}"
