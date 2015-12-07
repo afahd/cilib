@@ -96,7 +96,10 @@ for (( i = 1 ; i < ${#snapshot_names[@]} ; i=i+2 )) do
   fi
 done
 
-dangling_disks=$(gcloud compute disks list --format text --regexp ".*(run|bld).*" --sort-by=creationTimestamp)
+#Disks containg name of instances have to excluded from the search in order to find dangling disks
+disk_exclude_list=$(echo "${instance_names[@]} NAME" | sed -e 's/name\: //g' | tr ' ' \| )
+dangling_disks=$(gcloud compute disks list --format text --regexp ".*(run|bld).*" --sort-by=creationTimestamp | grep -E -v "${disk_exclude_list}")
+
 dangling_disks_names=($(echo "${dangling_disks}" | grep '^name:'))
 dangling_disks_creationtime=($(echo "${dangling_disks}" | grep creationTimestamp))
 
