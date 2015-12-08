@@ -433,12 +433,12 @@ function list_entities()
 # *****************************************************************************
 # Function: start_entities
 # Purpose : Parses the options for aurora start and calls the respective functions
-# Usage   : start_entities <entity type> <regex>
+# Usage   : start_entities <regex>
 # Prereq:   aurora init has been called.
 # *****************************************************************************
 function start_entities()
 {
-  if [[ $1 == "help" || $# -lt 2 ]]; then
+  if [[ $1 == "help" || $# -lt 1 ]]; then
     show_start_help
     exit 1
   fi
@@ -448,24 +448,18 @@ function start_entities()
     exit 1
   fi
 
-  case $1 in
-    instances)
-      start_instances $2 $3 ;;
-    *)
-      echo "Invalid entity for aurora start"
-      show_start_help ;;
-  esac
+  start_instances $1 $2
 }
 
 # *****************************************************************************
 # Function: shutdown_entities
 # Purpose : Parses the options for aurora shutdown and calls the respective functions
-# Usage   : shutdown_entities <entity type> <regex>
+# Usage   : shutdown_entities <regex>
 # Prereq:   aurora init has been called.
 # *****************************************************************************
 function shutdown_entities()
 {
-  if [[ $1 == "help" || $# -lt 2 ]]; then
+  if [[ $1 == "help" || $# -lt 1 ]]; then
     show_shutdown_help
     exit 1
   fi
@@ -475,13 +469,7 @@ function shutdown_entities()
     exit 1
   fi
 
-  case $1 in
-    instances)
-      shutdown_instances $2 $3 ;;
-    *)
-      echo "Invalid entity for aurora shutdown"
-      show_shutdown_help;;
-  esac
+  shutdown_instances $1 $2
 }
 
 # *****************************************************************************

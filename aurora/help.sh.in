@@ -149,11 +149,9 @@ HELP
 
 function show_start_help() {
    cat << HELP
-USAGE: aurora start <ENTITY> <REGEX> [-f --force]
-       Shuts down the ENTITY containing value in REGEX
+USAGE: aurora start <REGEX> [-f --force]
+       Starts up the instance(s) containing value in REGEX
 
-<ENTITY>              Value can be:
-                      "instances"
 <REGEX>               Regex to match. e.g "run" will start all instances
                       having 'run' as part of name.
 Options:
@@ -163,11 +161,9 @@ HELP
 
 function show_shutdown_help() {
    cat << HELP
-USAGE: aurora shutdown <ENTITY> <REGEX> [-f --force]
-       Shuts down the ENTITY containing value in REGEX
+USAGE: aurora shutdown <REGEX> [-f --force]
+       Shuts down the instance(s) containing value in REGEX
 
-<ENTITY>              Value can be:
-                      "instances"
 <REGEX>               Regex to match. e.g "run" will shutdown all instances
                       having 'run' as part of name.
 Options:
