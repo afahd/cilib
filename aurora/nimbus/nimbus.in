@@ -23,6 +23,7 @@ Optional Arguments:
                         branch.
   -D, --directors       Number of PG directors to spawn. Default is 1
   -E, --edges           Number of PG edges to spawn. Default is 2
+  -N, --neutron         To deploy neutron instance or not. Default is 0
   -Ss, --start-step     Step number to start execution at. Default is 1
   -Se, --end-step       Step numbet to end execution at. Default is 4
   --start-plumgrid      Start plumgrid services on directors and edges
@@ -34,9 +35,10 @@ BUILDHELP
 }
 
 STEP_ST=1
-STEP_ED=4
+STEP_ED=5
 NUM_DIRS=1
 NUM_EDGES=2
+NEUTRON=0
 TAG="n"
 DATE=$(date +"%Y%m%d%H%M%S")
 username="plumgrid"
@@ -49,6 +51,7 @@ while true ; do
      -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
      -D| --directors) export NUM_DIRS=$2 ; shift 2 ;;
      -E| --edges) export NUM_EDGES=$2 ; shift 2 ;;
+     -N| --neutron) export NEUTRON=1 ; shift ;;
      -Ss| --start-step) export STEP_ST=$2 ; shift 2 ;;
      -Se| --end-step) export STEP_ED=$2 ; shift 2 ;;
      --start-plumgrid) export START_PLUMGRID=1 ; shift ;;
@@ -377,7 +380,6 @@ DELIM__
 function run_step(){
   local step=$1
   case "$step" in
-
   1)
     # STEP 2 CREATE DIRECTOR VMS
     aurora ls instances | grep -q "$.*${TAG}workload"
@@ -425,7 +427,11 @@ function run_step(){
     # create file that takes in input edge number and snapshot name
     # run this file X times in parallel
     # File should create disks from snapshot and then spawn instances
-    MACHINE_TYPE=g1-small
+    MACHINE_TYPE="g1-small"
+    if [[ "$NEUTRON" = "1" ]]; then
+       MACHINE_TYPE="n1-standard-2"
+    fi
+
     launch_vm_and_conf "EDGE"
 
     edge1_instance_name=$(cat ${state_dir}/edge1_instance_name)
@@ -460,12 +466,47 @@ function run_step(){
     ssh -o StrictHostKeyChecking=no $username@$workload "sudo /opt/pg/scripts/nimbus_remote_conf \"WORKLOAD\" $directors $edges  >& /tmp/nimbus_remote_conf.log"
     ;;
 
+  5)
+    if [[ $NEUTRON = "1" ]]; then
+      # STEP 5 LAUNCH NEUTRON SNAPSHOT
+      echo "  ===LAUNCHING NEUTRON IN THE ORBIT==="
+      NUM=$TAG
 
+      #Populating Instance Name for neutron
+      INSTANCE_NAME="$emailid-$BUILD_NAME-neutron"
+
+      echo "$date_begin:: Deploying ${INSTANCE_NAME}" >> $WORKSPACE/logs/nimbus.log       #Log entry
+      echo ubuntu:$(cat /home/${USER}/.ssh/id_rsa.pub) > tmp.key                          #Creating key for Neutron
+
+      #Creating Neutron Disk Instance
+      tryexec exec_gcloud_cmd disks create "${INSTANCE_NAME}${NUM}-d1" -q \
+      --source-snapshot "neutron-snapshot" --type "$DISK_TYPE" --size="50GB"
+
+      #Creating Neutron Instance Creation
+      tryexec exec_gcloud_cmd instances create "${INSTANCE_NAME}${NUM}" -q\
+      --machine-type "g1-small" --network "$NETWORK" --maintenance-policy "MIGRATE" --scopes "$SCOPES" \
+      --disk "name=${INSTANCE_NAME}${NUM}-d1" "mode=rw" "boot=yes" "auto-delete=yes" --no-address --tags "no-ip" \
+      --metadata-from-file sshKeys="tmp.key"
+
+
+      #Modify Lualib fie in all director nodes
+      echo "  ===Modifying Directors' lualib's==="
+      directors=$(aurora ls | grep ".*director" | awk '{print $3}')
+      for ip in ${directors}; do
+        echo "Modifying LUALIB file at director IP: $ip"
+        tryexec run_cmd_gci $ip "sed -i.bak 's/servers:set(ip, 0)/--servers:set(ip, 0)/g' /opt/pg/sal/lualib/lb.lua"
+      done
+      echo "  ===NEUTRON TO EARTH: IT'S A NEW DAY!===  " >>  $WORKSPACE/logs/nimbus.log       #Log entry
+    else
+      echo "  ===NEUTRON NOT LAUNCHED!===  " >>  $WORKSPACE/logs/nimbus.log                   #Log entry
+    fi
+    ;;
   *)
     echo "NOP - $step"
     ;;
 
   esac
+
 }
 
 script_start_time=$(date +%s)
