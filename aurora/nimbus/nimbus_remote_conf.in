@@ -45,6 +45,12 @@ if [[ "$NODE_TYPE" = "WORKLOAD" ]]; then
   cp /home/plumgrid/gcloud.resource.json /tmp
   /opt/pg/test/scripts/generate_physical_file.py --nos ${#dir_array[@]} --se ${#se_array[@]} --in /tmp/gcloud --out /tmp/gcloud --converged
   sed -i 's/"platform" : "lxc"/"platform" : "aws"/g' /tmp/gcloud.resource.json
+
+  #Backing up files into /home/plumgrid to avoid the failing scenario mentioned in ticket TEST-2263
+  cp --force /tmp/gcloud.resource.json /home/plumgrid
+  cp --force /tmp/gcloud.physical.json /home/plumgrid
+
+
 fi
 
 # DIR ONLY
