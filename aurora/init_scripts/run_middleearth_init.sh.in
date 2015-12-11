@@ -1,0 +1,13 @@
+#!/bin/bash
+set -e
+
+pushd /home/plumgrid/work/middle-earth/scripts/jenkins
+# running middle-earth pre-init
+echo "************************************************"
+echo "Runnign middle-earth pre-init script: middleware-jenkins-preinit.sh "
+echo "************************************************"
+./middleware-jenkins-preinit.sh
+echo "************************************************"
+echo "Runnign middle-earth init script: middleware-jenkins-init.sh "
+echo "************************************************"
+./middleware-jenkins-init.sh
