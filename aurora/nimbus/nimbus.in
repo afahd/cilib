@@ -381,6 +381,7 @@ function run_step(){
   local step=$1
   case "$step" in
   1)
+    #verify existing insatnces, if none found launch directors.
     # STEP 2 CREATE DIRECTOR VMS
     aurora ls instances | grep -q "$.*${TAG}workload"
     if [[ $? -eq 0 ]]; then
@@ -470,10 +471,9 @@ function run_step(){
     if [[ $NEUTRON = "1" ]]; then
       # STEP 5 LAUNCH NEUTRON SNAPSHOT
       echo "  ===LAUNCHING NEUTRON IN THE ORBIT==="
-      NUM=$TAG
 
       #Populating Instance Name for neutron
-      INSTANCE_NAME="$emailid-$BUILD_NAME-neutron"
+      INSTANCE_NAME=$( echo "$emailid-$BUILD_NAME-${TAG}neutron" | sed 's/bld/run/g')
 
       echo "$date_begin:: Deploying ${INSTANCE_NAME}" >> $WORKSPACE/logs/nimbus.log       #Log entry
       echo ubuntu:$(cat /home/${USER}/.ssh/id_rsa.pub) > tmp.key                          #Creating key for Neutron
@@ -485,13 +485,13 @@ function run_step(){
       #Creating Neutron Instance Creation
       tryexec exec_gcloud_cmd instances create "${INSTANCE_NAME}${NUM}" -q\
       --machine-type "g1-small" --network "$NETWORK" --maintenance-policy "MIGRATE" --scopes "$SCOPES" \
-      --disk "name=${INSTANCE_NAME}${NUM}-d1" "mode=rw" "boot=yes" "auto-delete=yes" --no-address --tags "no-ip" \
+      --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" --no-address --tags "no-ip" \
       --metadata-from-file sshKeys="tmp.key"
 
 
       #Modify Lualib fie in all director nodes
       echo "  ===Modifying Directors' lualib's==="
-      directors=$(aurora ls | grep ".*director" | awk '{print $3}')
+      directors=$(aurora ls | grep "{$TAG}director" | awk '{print $3}')
       for ip in ${directors}; do
         echo "Modifying LUALIB file at director IP: $ip"
         tryexec run_cmd_gci $ip "sed -i.bak 's/servers:set(ip, 0)/--servers:set(ip, 0)/g' /opt/pg/sal/lualib/lb.lua"
