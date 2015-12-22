@@ -13,6 +13,7 @@ CTEST_OPT=' '
 TESTID="ctest-$CTEST_ST-$CTEST_ED"
 export EXPORT_FAILURES_DIR="/tmp/aurora_logs/$TESTID"
 export EXPORT_FAILURES_DIR_TMP="/tmp/log/$TESTID"
+export PATH="$PATH:/opt/pg/scripts/"
 rm -rf "${EXPORT_FAILURES_DIR}"
 rm -rf "${EXPORT_FAILURES_DIR_TMP}"
 mkdir -p "$EXPORT_FAILURES_DIR"
