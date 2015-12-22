@@ -6,7 +6,8 @@
 ## on the builder side.
 
 export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/alps:\
-/opt/pg/scripts/gcloud/aurora/pipeline_scripts/coral:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/corelib:$PATH
+/opt/pg/scripts/gcloud/aurora/pipeline_scripts/coral:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/corelib:\
+/opt/pg/scripts/gcloud/aurora/pipeline_scripts/nirvana:$PATH
 
 source /home/$USER/.aurora.conf
 source pl_utils.sh
@@ -48,6 +49,9 @@ if [[ $PIPELINE == "coral-smoke" ]]; then
 elif [[ $PIPELINE =~ "corelib-"+ ]]; then
   BASE_SCRIPT_DIR="@CMAKE_CURRENT_BINARY_DIR@/corelib/"
   corelib_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" --cost_pipeline_code "$cost_pipeline_code" $PIPELINE_ARGUMENTS
+elif [[ $PIPELINE == "nirvana" ]]; then
+  BASE_SCRIPT_DIR="@CMAKE_CURRENT_BINARY_DIR@/nirvana/"
+  nirvana_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" --cost_pipeline_code "$cost_pipeline_code" $PIPELINE_ARGUMENTS
 else
   BASE_SCRIPT_DIR="@CMAKE_CURRENT_BINARY_DIR@/alps/"
   alps_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" --cost_pipeline_code "$cost_pipeline_code" $PIPELINE_ARGUMENTS

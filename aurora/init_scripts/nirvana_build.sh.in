@@ -1,0 +1,19 @@
+#!/bin/bash
+
+echo "Entering Directory: /home/plumgrid/work/nirvana/setup"
+cd /home/plumgrid/work/nirvana/setup
+echo "sourcing nirvana.bashrc"
+source nirvana.bashrc
+echo "running setup_riemann_infra"
+./setup_riemann_infra.sh.in
+
+echo "Making and Installing alps"
+cd /home/plumgrid/work/alps/build
+cmake ..
+make -k -j4 install
+
+echo "Making and Installing nirvana"
+mkdir -p /home/plumgrid/work/nirvana/build/
+cd /home/plumgrid/work/nirvana/build/
+cmake ..
+make install

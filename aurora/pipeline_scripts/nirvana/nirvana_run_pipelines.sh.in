@@ -1,0 +1,159 @@
+#!/bin/bash -e
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/:$PATH
+source /home/$USER/.aurora.conf
+source pl_utils.sh
+source pl_help.sh
+source pl_settings.conf
+source gc_helpers.sh
+
+#Show help
+if [[ $3 == "help" ]]; then
+  show_pl_help
+  exit 1
+fi
+BUILD_ENV_USER=${USER}
+STEP_ST=1
+STEP_ED=5
+DEST_SCRIPT_DIR=0
+
+echo "run_pipelines.sh $@"
+ARGS=$@
+# read the options
+TEMP=`getopt -o W:l:P:i:\r:Kh --long WORKSPACE:,buildid:,pipeline:,test_iterations:,base_script_dir:,cost_pipeline_code:,keep-running,\help -n 'nirvana_run_pipelines.sh' -- "$@"`
+eval set -- "$TEMP"
+
+# extract options and their arguments into variables.
+while true ; do
+  case "$1" in
+    -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
+    -l|--buildid) USER_BUILD_ID=$2 ; shift 2 ;;
+    -P|--pipeline) PIPELINE=$2 ; shift 2 ;;
+    -i|--test_iterations) TEST_ITERATIONS=$2 ; shift 2 ;;
+    -r|--base_script_dir) BASE_SCRIPT_DIR=$2 ; shift 2;;
+    --cost_pipeline_code) COST_CODE="$2" ; shift 2 ;;
+    -K|--keep-running) KEEP_RUNNING="-K"; shift ;;
+    -h|--help)
+      show_run_tests_help
+      exit 0
+      shift ;;
+    --) shift ; break ;;
+    *)
+      echo "Unrecognized option $1"
+       exit 1 ;;
+  esac
+done
+
+mkdir -p ${WORKSPACE}/logs
+if [[ -z "$USER_BUILD_ID" ]]; then
+  echo "Please supply required "--buildid" argument"
+  show_run_tests_help
+  exit 1
+fi
+
+BUILD_ID=${emailid}-${USER_BUILD_ID}
+MOD_BUILD_ID=`echo ${BUILD_ID} | sed 's/bld/run/'`
+
+if [[ $PIPELINE != "nirvana" ]]; then
+  echo "Invalid Pipeline Specified"
+  exit 1
+fi
+
+# TODO: log/untar_log directory is defined in two locations.
+script_dir=$(get_script_dir $WORKSPACE $DEST_SCRIPT_DIR $PIPELINE $MOD_BUILD_ID)
+log_dir=${script_dir}/logs
+untar_log_dir=${script_dir}/untar_logs
+
+echo "nirvana_run_pipelines.sh $ARGS" > $log_dir/aurora_pipeline_command
+
+function run_test() {
+  local step=$1
+
+  case "$step" in
+  1)
+    # Generate scripts to be used by "aurora run"
+    echo "Going to generate test scripts"
+    cp ${BASE_SCRIPT_DIR}/$BASE_SCRIPT ${script_dir}/${BASE_SCRIPT}-1
+    ;;
+
+  2)
+    pids=()
+    echo "log_dir=$log_dir script_dir=$script_dir"
+    while read -r -d $'\0'; do
+      aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY --cost_pipeline_code ${COST_CODE} $KEEP_RUNNING -S /opt/pg/ > $REPLY.txt 2>&1 &
+      #Get the pid of the last background command
+      pids+=("$!")
+    done < <(find ${script_dir} -regextype posix-extended  -regex '^.*.sh-[0-9]+$' -print0)
+    sleep 30
+    ;;
+
+  3)
+    pipeline_start_time=$(date +%s)
+    echo "Waiting for command to finish ..."
+    # Background loop to print the number of aurora_run processes
+    while [[ ! -z `pgrep -f "run -l ${USER_BUILD_ID} -o ${log_dir}"` ]]; do
+      echo -n "[`pgrep -f \"run -l ${USER_BUILD_ID} -o ${log_dir}\" | wc -l`] ";
+      sleep 60 ;
+    done &
+    echoer_pid=$!
+    FAIL=0
+    for pid in "${pids[@]}"; do
+      wait "$pid" || FAIL=$(($? + $FAIL))
+    done
+    pipeline_end_time=$(date +%s)
+    #Exit if any value is nonzero
+    if [[ $FAIL != 0 ]]; then
+      #Kill the echo while loop, suppress output
+      disown $echoer_pid && kill $echoer_pid
+      #Copy the aurora_run logs.
+      for file in `ls ${script_dir}/*.txt` ; do
+        grep "Run has been completed successfully" $file > /dev/null || cp $file "$WORKSPACE/logs/AURORA.RUN.FAILED.`basename ${file}`"
+      done
+      echo "Some aurora runs exited unsuccesfully."
+      status=1
+    else
+      #Kill the echo while loop, suppress output
+      disown $echoer_pid && kill $echoer_pid
+      echo "Aurora run completed successfully."
+    fi
+    ;;
+
+  4)
+    # Start collecting logs
+    echo "Copying all logs to ${WORKSPACE}/logs directory"
+    find ${log_dir} -name "*${MOD_BUILD_ID}*.tar" -type f -exec tar xf {} -C ${untar_log_dir} \; -exec rm {} \;
+    ;;
+
+  5)
+    # Generate failed test case report.
+    time_taken=$(print_time_taken $pipeline_start_time $pipeline_end_time "running $PIPELINE pipeline")
+    #Copy logs for jenkins
+    find ${untar_log_dir} -name "*.xml" -type f -exec  mv {} ${WORKSPACE}/logs/ \;
+    #Find a status-message.log file
+    find ${untar_log_dir} -name "status-message.log" -type f -exec  mv {} ${WORKSPACE}/ \;
+
+    #Delete the untar folder
+    rm -rf ${untar_log_dir}
+    tar czf $script_dir.tar.gz -C $WORKSPACE/ ${script_dir#$WORKSPACE/}
+    mv $script_dir.tar.gz ${WORKSPACE}/logs/aurora_infra_logs.tar.gz
+    #Write status for builder script
+    echo "$PIPELINE,$time_taken" > ${WORKSPACE}/aurora-pipeline-status
+    #Cleanup
+    rm -rf $script_dir
+    ;;
+
+  *)
+    echo "NOP - $step"
+  ;;
+  esac
+}
+
+script_start_time=$(date +%s)
+for STEP in `seq ${STEP_ST} ${STEP_ED}`; do
+  printf "\n    === Starting STEP $STEP === \n"
+  start_time=$(date +%s)
+  run_test $STEP
+  end_time=$(date +%s)
+  print_time_taken $start_time $end_time "[$STEP]"
+done
+script_end_time=$(date +%s)
+print_time_taken $script_start_time $script_end_time "[RUN]"

@@ -66,6 +66,7 @@ declare -A INSTANCE_COUNT=(
 ['corelib-smoke']="2"
 ['corelib-extended']="4"
 ['falcon']="1"
+['nirvana']="1"
 )
 
 #Pipeline codes for cost calculation
@@ -84,5 +85,6 @@ declare -A PL_CODE=(
 [corelib-extended]="12"
 [pgui-extended]="13"
 [falcon]="14"
+[nirvana]="15"
 [MISCELLANEOUS]="x"
 )
