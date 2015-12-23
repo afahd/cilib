@@ -19,7 +19,7 @@ DEST_SCRIPT_DIR=0
 echo "run_pipelines.sh $@"
 ARGS=$@
 # read the options
-TEMP=`getopt -o W:l:P:i:\r:Kh --long WORKSPACE:,buildid:,pipeline:,test_iterations:,base_script_dir:,cost_pipeline_code:,keep-running,\help -n 'nirvana_run_pipelines.sh' -- "$@"`
+TEMP=`getopt -o W:l:P:b:i:\r:Kh --long WORKSPACE:,buildid:,pipeline:,branch:,test_iterations:,base_script_dir:,cost_pipeline_code:,keep-running,\help -n 'nirvana_run_pipelines.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # extract options and their arguments into variables.
@@ -28,6 +28,7 @@ while true ; do
     -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
     -l|--buildid) USER_BUILD_ID=$2 ; shift 2 ;;
     -P|--pipeline) PIPELINE=$2 ; shift 2 ;;
+    -b|--branch) BRANCH=$2 ; shift 2 ;;
     -i|--test_iterations) TEST_ITERATIONS=$2 ; shift 2 ;;
     -r|--base_script_dir) BASE_SCRIPT_DIR=$2 ; shift 2;;
     --cost_pipeline_code) COST_CODE="$2" ; shift 2 ;;
