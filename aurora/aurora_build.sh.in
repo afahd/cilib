@@ -263,15 +263,15 @@ function build_image() {
     ;;
 
   11)
-    # Run Step4: Fetch iovisor
-    echo "gitsync Step4: Fetching latest iovisor"
-    retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh iovisor"
+    # Run Step4: Checkout the required changes for specified project
+    echo "gitsync Step4: Checking out required code on ${PROJECT}"
+    retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh checkout"
     ;;
 
   12)
-    # Checkout the required changes for specified project
-    echo "gitsync Step5: Checking out required code on ${PROJECT}"
-    retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh checkout"
+    # Run Step5: Fetch iovisor
+    echo "gitsync Step5: Fetching latest iovisor"
+    retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh iovisor"
     ;;
 
   13)
