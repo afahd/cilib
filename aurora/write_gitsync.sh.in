@@ -113,7 +113,7 @@ modify_git_config "\${repo}" "${gerritid}" "${git_script}"
 cat >> ${git_script} <<DELIM__
 branch=\$3
 git_tag=\$4
-if [[ \$repo != "balicek" || ( $APT_COMPONENT == "unstable" || $APT_COMPONENT == "fuji-413" || $APT_COMPONENT == "fuji-414" ) ]] || [[ \$repo == "nirvana" && $APT_COMPONENT == "unstable" ]]; then
+if [[ \$repo == "balicek" &&  ( $APT_COMPONENT == "unstable" || $APT_COMPONENT == "fuji-413" || $APT_COMPONENT == "fuji-414" ) ]] || [[ \$repo == "nirvana" && $APT_COMPONENT == "unstable" ]] || [[ \$repo != "nirvana" && \$repo != "balicek" ]]; then
   echo "Extracting and rebuilding \${repo} for branch \${branch}"
   if [[ -d /home/plumgrid/work/\${repo}/ ]]; then
     cd /home/plumgrid/work/\${repo}
