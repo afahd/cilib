@@ -9,6 +9,7 @@ UNSTABLE_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/unstable-master.db
 PGUI_SMOKE_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/pgui-smoke-master.db
 PGUI_EXTENDED_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/pgui-extended-master.db
 OMNI_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/omni-master.db
+NIRVANA_DB=@CMAKE_CURRENT_BINARY_DIR@/nirvana/dbs/nirvana-master.db
 
 #Database map
 declare -A PIPELINE_DB=(
@@ -21,6 +22,7 @@ declare -A PIPELINE_DB=(
 ["pgui-extended"]=${PGUI_EXTENDED_DB}
 ["corelib-smoke"]=${CORELIB_SMOKE_DB}
 ["corelib-extended"]=${CORELIB_EXTENDED_DB}
+["nirvana"]=${NIRVANA_DB}
 )
 
 #Flag passing/failing variables

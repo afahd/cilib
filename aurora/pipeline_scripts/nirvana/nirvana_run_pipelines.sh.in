@@ -13,7 +13,7 @@ if [[ $3 == "help" ]]; then
 fi
 BUILD_ENV_USER=${USER}
 STEP_ST=1
-STEP_ED=5
+STEP_ED=7
 DEST_SCRIPT_DIR=0
 
 echo "run_pipelines.sh $@"
@@ -65,6 +65,13 @@ log_dir=${script_dir}/logs
 untar_log_dir=${script_dir}/untar_logs
 
 echo "nirvana_run_pipelines.sh $ARGS" > $log_dir/aurora_pipeline_command
+db=$(get_db $PIPELINE $BRANCH)
+if [[ -e $db ]]; then
+  echo "database selected = $db"
+else
+  echo "$db does not exist!"
+  exit 1
+fi
 
 function run_test() {
   local step=$1
@@ -126,21 +133,48 @@ function run_test() {
 
   5)
     # Generate failed test case report.
-    time_taken=$(print_time_taken $pipeline_start_time $pipeline_end_time "running $PIPELINE pipeline")
-    #Copy logs for jenkins
-    find ${untar_log_dir} -name "*.xml" -type f -exec  mv {} ${WORKSPACE}/logs/ \;
-    #Find a status-message.log file
-    find ${untar_log_dir} -name "status-message.log" -type f -exec  mv {} ${WORKSPACE}/ \;
+    num_failures=$(get_failing_test_number ${untar_log_dir})
+    echo "num_failures=$num_failures"
+    #Get total tests ran
+    local num_total_tests=$(get_total_tests_run ${untar_log_dir})
+    echo "Total number of tests run = $num_total_tests"
 
-    #Delete the untar folder
-    rm -rf ${untar_log_dir}
+    if [[ $num_total_tests -eq 0 ]]; then
+      status=1
+      echo "No tests were run"
+    fi
+
+    time_taken=$(print_time_taken $pipeline_start_time $pipeline_end_time "running $PIPELINE pipeline")
+    #Create Reports for builder
+    generate_status_report "$PIPELINE" "$num_failures" "$num_total_tests" "$time_taken" "${WORKSPACE}/aurora-pipeline-status"
+    generate_failing_list "${untar_log_dir}" "${WORKSPACE}/logs/failing-list.log"
+    ;;
+
+  6)
+    generate_ctest_output ${untar_log_dir} ${WORKSPACE}/logs/ctest_output.log
+    if [[ -e ${WORKSPACE}/logs/ctest_output.log ]]; then
+      pushd ${WORKSPACE}/logs
+      gzip ctest_output.log
+      popd
+    fi
+    ;;
+  7)
+    generate_test_directories ${untar_log_dir} ${WORKSPACE}/test_logs
+
+    mv ${WORKSPACE}/test_logs  ${WORKSPACE}/logs
     tar czf $script_dir.tar.gz -C $WORKSPACE/ ${script_dir#$WORKSPACE/}
     mv $script_dir.tar.gz ${WORKSPACE}/logs/aurora_infra_logs.tar.gz
-    #Write status for builder script
-    echo "$PIPELINE,$time_taken" > ${WORKSPACE}/aurora-pipeline-status
-    #Cleanup
+    echo "Finishing up ..."
+    if [[ $num_failures -eq 0 && -z $status ]]; then
+      status=0
+    else
+      status=1
+    fi
+
     rm -rf $script_dir
+    return $status
     ;;
+
 
   *)
     echo "NOP - $step"

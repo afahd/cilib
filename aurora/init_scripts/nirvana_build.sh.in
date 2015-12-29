@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 echo "Entering Directory: /home/plumgrid/work/nirvana/setup"
 cd /home/plumgrid/work/nirvana/setup
@@ -17,3 +17,4 @@ mkdir -p /home/plumgrid/work/nirvana/build/
 cd /home/plumgrid/work/nirvana/build/
 cmake ..
 make install
+
