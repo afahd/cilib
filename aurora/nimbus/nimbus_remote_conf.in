@@ -1,4 +1,6 @@
 #!/bin/bash
+#[TODO{Sidra}:INFRA-1072}]
+
 set -x
 NODE_TYPE=$1
 DIR_IPS=$2
@@ -29,16 +31,20 @@ fi
 
 # WORKLOAD ONLY
 if [[ "$NODE_TYPE" = "WORKLOAD" ]]; then
+  #parsing director IPs
   space_separated_dir=$(echo $DIR_IPS | tr "," " ")
   line_separated_dir=$(echo $DIR_IPS | tr "," "\n")
   dir_array=($space_separated_dir)
   echo "$space_separated_dir" > /home/plumgrid/a.nos.list
   echo "$line_separated_dir" > /home/plumgrid/gcloud_nos.list
+
+  #parsing edges IPs
   space_separated_se=$(echo $SE_IPS | tr "," " ")
   line_separated_se=$(echo $SE_IPS | tr "," "\n")
   se_array=($space_separated_se)
   echo "$space_separated_se" > /home/plumgrid/a.se.list
   echo "$line_separated_se" > /home/plumgrid/gcloud_se.list
+
   /opt/pg/systest/lxc/generate_lxc_files.py --nos /home/plumgrid/a.nos.list --se /home/plumgrid/a.se.list --out /home/plumgrid/gcloud
   cp /home/plumgrid/gcloud_nos.list /tmp
   cp /home/plumgrid/gcloud_se.list /tmp
@@ -49,7 +55,6 @@ if [[ "$NODE_TYPE" = "WORKLOAD" ]]; then
   #Backing up files into /home/plumgrid to avoid the failing scenario mentioned in ticket TEST-2263
   cp --force /tmp/gcloud.resource.json /home/plumgrid
   cp --force /tmp/gcloud.physical.json /home/plumgrid
-
 
 fi
 
@@ -102,6 +107,14 @@ DELIM__
   fi
 
   sudo modprobe bonding
+
+  #Configuration of blocking timeouts for Falcon execution
+  sed -i "/.*Deactivating server.*/{n;s/.*/      --servers:set(ip, 0)/g}" /opt/pg/sal/lualib/lb.lua
+
+  #Configuration of GC_Thresholds to support GC timeouts for Falcon
+  echo 10 | sudo tee --append /proc/sys/net/ipv4/neigh/default/gc_thresh1 &&  echo 150000 | sudo tee --append /proc/sys/net/ipv4/neigh/default/gc_thresh2 && echo 150000 | sudo  tee --append  /proc/sys/net/ipv4/neigh/default/gc_thresh3
+  echo "Done configuring workaround (a.k.a. way-around, walk-around, step-around) for Virtual IPs & scale on Directors."
+
 fi
 
 # EDGE_ONLY

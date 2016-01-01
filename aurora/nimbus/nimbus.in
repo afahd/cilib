@@ -1,5 +1,6 @@
 #!/bin/bash
 #set -x
+#[TODO{Sidra}:INFRA-1072}]
 
 source /home/$USER/.aurora.conf
 . /opt/pg/scripts/gc_helpers.sh
@@ -470,32 +471,28 @@ function run_step(){
   5)
     if [[ $NEUTRON = "1" ]]; then
       # STEP 5 LAUNCH NEUTRON SNAPSHOT
-      echo "  ===LAUNCHING NEUTRON IN THE ORBIT==="
+      echo "  ===LAUNCHING NEUTRON IN THE ORBIT===">> $WORKSPACE/logs/nimbus.log
 
       #Populating Instance Name for neutron
-      INSTANCE_NAME=$( echo "$emailid-$BUILD_NAME-${TAG}neutron" | sed 's/bld/run/g')
+      neutron_user="ubuntu"
+      INSTANCE_NAME=$( echo "${emailid}-${BUILD_NAME}-${TAG}neutron" | sed 's/bld/run/g')
 
-      echo "$date_begin:: Deploying ${INSTANCE_NAME}" >> $WORKSPACE/logs/nimbus.log       #Log entry
-      echo ubuntu:$(cat /home/${USER}/.ssh/id_rsa.pub) > tmp.key                          #Creating key for Neutron
+      echo "$date_begin:: Deploying ${INSTANCE_NAME}" >> $WORKSPACE/logs/nimbus.log                            #Log entry
+      mkdir "$state_dir/neutron_keys"
+      echo ${neutron_user}:$(cat /home/${USER}/.ssh/id_rsa.pub) > $state_dir/neutron_keys/tmp.key              #Creating key for Neutron
 
       #Creating Neutron Disk Instance
-      tryexec exec_gcloud_cmd disks create "${INSTANCE_NAME}${NUM}-d1" -q \
-      --source-snapshot "neutron-snapshot" --type "$DISK_TYPE" --size="50GB"
+      tryexec exec_gcloud_cmd disks create "${INSTANCE_NAME}-d1" -q \
+      --source-snapshot "neutron-snapshot2" --type "$DISK_TYPE" --size="50GB"
 
       #Creating Neutron Instance Creation
-      tryexec exec_gcloud_cmd instances create "${INSTANCE_NAME}${NUM}" -q\
+      tryexec exec_gcloud_cmd instances create "${INSTANCE_NAME}" -q\
       --machine-type "g1-small" --network "$NETWORK" --maintenance-policy "MIGRATE" --scopes "$SCOPES" \
       --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" --no-address --tags "no-ip" \
-      --metadata-from-file sshKeys="tmp.key"
+      --metadata-from-file sshKeys="$state_dir/neutron_keys/tmp.key"
 
-
-      #Modify Lualib fie in all director nodes
-      echo "  ===Modifying Directors' lualib's==="
-      directors=$(aurora ls | grep "{$TAG}director" | awk '{print $3}')
-      for ip in ${directors}; do
-        echo "Modifying LUALIB file at director IP: $ip"
-        tryexec run_cmd_gci $ip "sed -i.bak 's/servers:set(ip, 0)/--servers:set(ip, 0)/g' /opt/pg/sal/lualib/lb.lua"
-      done
+      neutron_ip=$(get_instance_ip ${INSTANCE_NAME})
+      echo ${neutron_ip} > "$state_dir/neutron_ips"
       echo "  ===NEUTRON TO EARTH: IT'S A NEW DAY!===  " >>  $WORKSPACE/logs/nimbus.log       #Log entry
     else
       echo "  ===NEUTRON NOT LAUNCHED!===  " >>  $WORKSPACE/logs/nimbus.log                   #Log entry
