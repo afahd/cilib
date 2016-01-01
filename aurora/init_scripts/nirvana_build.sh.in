@@ -5,7 +5,7 @@ cd /home/plumgrid/work/nirvana/setup
 echo "sourcing nirvana.bashrc"
 source nirvana.bashrc
 echo "running setup_riemann_infra"
-./setup_riemann_infra.sh.in
+./setup_riemann_infra.sh
 
 echo "Making and Installing alps"
 cd /home/plumgrid/work/alps/build
