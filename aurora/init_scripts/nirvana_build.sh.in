@@ -1,20 +1,39 @@
 #!/bin/bash -e
-
+TEMP=`getopt -o :b --long block_alps,\help -n 'nirvana_build.sh' -- "$@"`
+eval set -- "$TEMP"
+while true ; do
+  case "$1" in
+     -b| --block_alps ) BLOCK_ALPS=1; shift ;;
+     --) shift ; break ;;
+     *) exit 1 ;;
+  esac
+done
+echo "*************************"
 echo "Entering Directory: /home/plumgrid/work/nirvana/setup"
+echo "*************************"
 cd /home/plumgrid/work/nirvana/setup
+echo "*************************"
 echo "sourcing nirvana.bashrc"
+echo "*************************"
 source nirvana.bashrc
+echo "*************************"
 echo "running setup_riemann_infra"
+echo "*************************"
 ./setup_riemann_infra.sh --no-ide
 
-echo "Making and Installing alps"
-cd /home/plumgrid/work/alps/build
-cmake ..
-make -k -j4 install
-
+# BLOCK_ALPS ensures alps does not install more than once
+if [[ "$BLOCK_ALPS" -ne 1 ]]; then
+  echo "*************************"
+  echo "Making and Installing alps"
+  echo "*************************"
+  cd /home/plumgrid/work/alps/build
+  cmake ..
+  make -k -j4 install
+fi
+echo "*************************"
 echo "Making and Installing nirvana"
+echo "*************************"
 mkdir -p /home/plumgrid/work/nirvana/build/
 cd /home/plumgrid/work/nirvana/build/
 cmake ..
 make install
-

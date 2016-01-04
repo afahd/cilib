@@ -12,6 +12,8 @@ cd ~/work/python-plumgridlib/build
 make -j 4 install
 cd ~/work/python-plumgridlib/lib
 sudo python setup.py install
+cd ~/work/gcloud/build/aurora/init_scripts
+./nirvana_build.sh --block_alps
 cd ~/work/corelib/build
 make -j 4 install
 cd ~/work/alps/build
