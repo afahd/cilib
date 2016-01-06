@@ -10,7 +10,7 @@ if [[ $1 == "help" ]]; then
   exit 1
 fi
 
-TEMP=`getopt -o l:p:W:Ki:b:n:D:R:E:\h --long buildid:,pl_failing_tests_list:,WORKSPACE:,branch:,keep-running,test_iterations:,num_instances:,db:,minor_st:,minor_end:,\help -n 'aurora.sh' -- "$@"`
+TEMP=`getopt -o l:p:W:Ki:b:n:D:R:E:\h --long buildid:,pl_failing_tests_list:,WORKSPACE:,branch:,keep-running,test_iterations:,num_instances:,db:,minor_st:,minor_end:,preemptible,\help -n 'aurora.sh' -- "$@"`
 eval set -- "$TEMP"
 
 STEP_ST=1
@@ -29,6 +29,7 @@ while true ; do
     -D|--db) FAILING_TESTS_DB=$2 ; shift 2 ;;
     -R| --minor_st ) STEP_ST="$2"; shift 2 ;;
     -E| --minor_end ) STEP_ED="$2"; shift 2 ;;
+    --preemptible) PREEMPTIBLE="--preemptible" ; shift ;;
     -h| --help) show_flag_help; exit 0; shift ;;
     --) shift ; break ;;
     *)
@@ -95,7 +96,7 @@ function flag_failing_tests() {
   5)
     echo "Running aurora debug test. Run each test $((FLAG_TEST_ITERATIONS*FLAG_NUM_INSTANCES)) number of times"
     retval=0
-    aurora debug-test -W ${WORKSPACE} $KEEP_RUNNING -l $BUILD_ID -i $FLAG_TEST_ITERATIONS -n $FLAG_NUM_INSTANCES -s ${all_failing_tests_list} || retval=$?
+    aurora debug-test -W ${WORKSPACE} $KEEP_RUNNING -l $BUILD_ID -i $FLAG_TEST_ITERATIONS -n $FLAG_NUM_INSTANCES -s ${all_failing_tests_list} $PREEMPTIBLE || retval=$?
     echo "Debug-test Return value:$retval"
     ;;
 
