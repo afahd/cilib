@@ -130,7 +130,7 @@ function push_local_changes() {
   local INSTANCE_IP=$1
   local COMMIT_ID=$2
   local ALPS_PATH=$3
-  INSTANCE_ALPS_PATH=${4:=$INSTANCE_ALPS_PATH}
+  INSTANCE_ALPS_PATH=${4:-$INSTANCE_ALPS_PATH}
 
   cd $ALPS_PATH
   #Get branch name from commit
