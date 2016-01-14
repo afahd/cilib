@@ -18,6 +18,7 @@ GCLOUD_CMD_TIMEOUT=360
 COMMON_KEY='ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDeHGNQlrU33cLh19C5Cy4Rae6QSIvHJ4wPr2y+n/g2b3CexaUVWBHqfq36dkds54XhOyU5VOlv8uPpU3GvYqnyxC/LUrGuB+SG5Ok0bUFZysp5zug7CHkLd9nkWnJhCAPp3V3hJ77c9h+aMtnrEHQDghhlcEbfay3ZXH8puWdDaz3EkC6n6ACZPKCpQ8Vs4jr105tmxmL7o9jSjUsPr/AWTLj0bTg9YUqonlPAW3mrxQFXoNPb6dmivUzK4VdN+SUtZW0Eb3pSrRKt42xwmB6B0NKRKnJu3L0S0SspLk+kYf6Un8mQ1cwN9HBzGLEVSlWBISmTqPfV84gR6B35/GZl plumgrid@pgdev'
 PROJECT_LIST=("balicek" "pkg" "pg_cli" "pg_ui" "sal" "corelib" "alps" "python-plumgridlib" "coral" "middle-earth" "nirvana")
 TAGGED_REPOS=("balicek" "pkg" "pg_cli" "pg_ui" "sal" "alps" "python-plumgridlib")
+
 declare -A BR_CODE=(
 ['master']="1"
 ['stable_4_0']="2"
@@ -30,4 +31,13 @@ declare -A BR_CODE=(
 ['stable_4_1_3-ntt']="9"
 ['stable_4_3']="10"
 ['stable_5_0']="11"
+)
+
+declare -A INIT_SCRIPT=(
+['default']="@CMAKE_BINARY_DIR@/aurora/init_scripts/run_build_all.sh"
+['coral']="@CMAKE_BINARY_DIR@/aurora/init_scripts/coral_build.sh"
+['corelib']="@CMAKE_BINARY_DIR@/aurora/init_scripts/corelib_build.sh"
+['nirvana']="@CMAKE_BINARY_DIR@/aurora/init_scripts/nirvana_build.sh"
+['falcon']="@CMAKE_BINARY_DIR@/aurora/init_scripts/falcon_build.sh"
+['middle-earth']="@CMAKE_BINARY_DIR@/aurora/init_scripts/run_middleearth_init.sh"
 )

@@ -67,6 +67,17 @@ done
 
 mkdir -p ${WORKSPACE}/logs
 
+#Assign the default build script for the project
+if [[ -z "$BUILD_SCRIPT" ]]; then
+  BUILD_SCRIPT="${INIT_SCRIPT[$PROJECT]}"
+fi
+#If the project build script does not exist, assign global default
+if [[ -z "$BUILD_SCRIPT" ]]; then
+  BUILD_SCRIPT="${INIT_SCRIPT['default']}"
+fi
+
+echo "The Following BUILD_SCRIPT would be used : $BUILD_SCRIPT"
+
 #creating branch code from branch name provided by user.
 branch_code="${BR_CODE[$BRANCH]}"
 
