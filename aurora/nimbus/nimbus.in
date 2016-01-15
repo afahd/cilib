@@ -474,7 +474,7 @@ function run_step(){
       echo "  ===LAUNCHING NEUTRON IN THE ORBIT===">> $WORKSPACE/logs/nimbus.log
 
       #Populating Instance Name for neutron
-      neutron_user="ubuntu"
+      neutron_user="plumgrid"
       INSTANCE_NAME=$( echo "${emailid}-${BUILD_NAME}-${TAG}neutron" | sed 's/bld/run/g')
 
       echo "$date_begin:: Deploying ${INSTANCE_NAME}" >> $WORKSPACE/logs/nimbus.log                            #Log entry
@@ -483,7 +483,7 @@ function run_step(){
 
       #Creating Neutron Disk Instance
       tryexec exec_gcloud_cmd disks create "${INSTANCE_NAME}-d1" -q \
-      --source-snapshot "neutron-snapshot2" --type "$DISK_TYPE" --size="50GB"
+      --source-snapshot "neutron-kilo-snapshot" --type "$DISK_TYPE" --size="10GB"
 
       #Creating Neutron Instance Creation
       tryexec exec_gcloud_cmd instances create "${INSTANCE_NAME}" -q\
