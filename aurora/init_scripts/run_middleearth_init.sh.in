@@ -1,16 +1,19 @@
 #!/bin/bash
-set -e
+#set -e
 
-mkdir -p /home/plumgrid/work/middle-earth/build
+. /opt/pg/scripts/gc_helpers.sh
 
-pushd /home/plumgrid/work/middle-earth/build/
-cmake ..
+tryexec mkdir -p /home/plumgrid/work/middle-earth/build
+tryexec pushd /home/plumgrid/work/middle-earth/build/
+tryexec cmake ..
+echo "Making Middleware Debian"
+tryexec make deb-middleware
 # running middle-earth pre-init
 echo "************************************************"
-echo "Runnign middle-earth pre-init script: middleware-jenkins-preinit.sh "
+echo "Running middle-earth pre-init script: middleware-jenkins-preinit.sh "
 echo "************************************************"
-./scripts/jenkins/middleware-jenkins-preinit.sh
+tryexec ./scripts/jenkins/middleware-jenkins-preinit.sh
 echo "************************************************"
-echo "Runnign middle-earth init script: middleware-jenkins-init.sh "
+echo "Running middle-earth init script: middleware-jenkins-init.sh "
 echo "************************************************"
-./scripts/jenkins/middleware-jenkins-init.sh
+tryexec ./scripts/jenkins/middleware-jenkins-init.sh

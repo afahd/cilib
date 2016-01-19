@@ -29,6 +29,9 @@ else
   fi
 fi
 
+MW_IP=$4
+echo "===MW_IP=${MW_IP}==="
+
 # WORKLOAD ONLY
 if [[ "$NODE_TYPE" = "WORKLOAD" ]]; then
   #parsing director IPs
@@ -61,7 +64,11 @@ fi
 # DIR ONLY
 if [[ "$NODE_TYPE" = "DIR" ]]; then
   # NGINX  & SAL conf
-  sudo /opt/pg/test/scripts/generate_nginx_keepalived_configs.py --nos_ips="${DIR_IPS}" --virtual_ip="${VIRTUAL_IP}" --out_loc=/tmp
+  if [ ! -z "$MW_IP" ]; then
+    #add mw argument
+    mw_arg="--middleware_ip=${MW_IP}"
+  fi
+  sudo /opt/pg/test/scripts/generate_nginx_keepalived_configs.py --nos_ips="${DIR_IPS}" --virtual_ip="${VIRTUAL_IP}" $mw_arg --out_loc=/tmp
   sudo cp -rf /tmp/default.conf /opt/pg/sal/nginx/conf.d/.
   sudo cp -rf /opt/pg/sal/etc/plumgrid-sal.conf /etc/init/.
   sudo cp -rf /opt/pg/sal/nginx/etc/nginx.conf /etc/init/.
@@ -150,6 +157,14 @@ if [[ "$NODE_TYPE" != "WORKLOAD" ]]; then
   sudo sed -i "s/^setuid plumgrid/# setuid plumgrid/g" /etc/init/pitad.conf
   sudo sed -i "s/^setgid plumgrid/# setgid plumgrid/g" /etc/init/pitad.conf
   sudo sed -i "s/--debug/--debug --platform aws/g" /etc/init/pitad.conf
+
+  # rsyslog conf for forwarding logs to middleware
+  if [ ! -z "$MW_IP" ]; then
+    echo "Writing rsyslog config file"
+    str=$'$template ls_json,"{%timestamp:::date-rfc3339,jsonf:@timestamp%,%source:::jsonf:@source_host%,%msg:::json%}"\n:syslogtag,isequal,"pg:" @'$MW_IP':6000;ls_json'
+    sudo echo "$str" > /etc/rsyslog.d/pg-mw.conf
+    sudo service rsyslog restart
+  fi
 
   if [[ ! -d /mnt/run ]]; then
     sudo mkdir /mnt/run

@@ -1,0 +1,21 @@
+#!/bin/bash
+# This scripts runs build all and then builds coral and mw too.
+
+. /opt/pg/scripts/gc_helpers.sh
+
+tryexec cd /home/plumgrid/work/gcloud/build/aurora/init_scripts
+tryexec ./run_build_all.sh
+echo "Build_all done"
+
+tryexec cd /home/plumgrid/work/gcloud/build/aurora/init_scripts
+tryexec ./coral_build.sh
+echo "Coral_build done"
+
+tryexec cd /home/plumgrid/work/middle-earth
+tryexec mkdir -p build
+tryexec cd build
+echo "Running cmake"
+tryexec cmake ..
+echo "Making Middleware Debian"
+tryexec make deb-middleware
+echo "Middleware debian built"

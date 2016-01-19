@@ -6,3 +6,4 @@ configure_file(run_automaton_init.sh.in "${CMAKE_CURRENT_BINARY_DIR}/run_automat
 configure_file(falcon_build.sh.in "${CMAKE_CURRENT_BINARY_DIR}/falcon_build.sh" @ONLY)
 configure_file(nirvana_build.sh.in "${CMAKE_CURRENT_BINARY_DIR}/nirvana_build.sh" @ONLY)
 configure_file(run_middleearth_init.sh.in "${CMAKE_CURRENT_BINARY_DIR}/run_middleearth_init.sh" @ONLY)
+configure_file(apex_build.sh.in "${CMAKE_CURRENT_BINARY_DIR}/apex_build.sh" @ONLY)

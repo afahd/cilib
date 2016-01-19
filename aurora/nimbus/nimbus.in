@@ -25,6 +25,7 @@ Optional Arguments:
   -D, --directors       Number of PG directors to spawn. Default is 1
   -E, --edges           Number of PG edges to spawn. Default is 2
   -N, --neutron         To deploy neutron instance or not. Default is 0
+  -A, --apex            To deploy CloudApex or not. Default is 0
   -Ss, --start-step     Step number to start execution at. Default is 1
   -Se, --end-step       Step numbet to end execution at. Default is 4
   --start-plumgrid      Start plumgrid services on directors and edges
@@ -40,6 +41,7 @@ STEP_ED=5
 NUM_DIRS=1
 NUM_EDGES=2
 NEUTRON=0
+APEX=0
 TAG="n"
 DATE=$(date +"%Y%m%d%H%M%S")
 username="plumgrid"
@@ -53,6 +55,7 @@ while true ; do
      -D| --directors) export NUM_DIRS=$2 ; shift 2 ;;
      -E| --edges) export NUM_EDGES=$2 ; shift 2 ;;
      -N| --neutron) export NEUTRON=1 ; shift ;;
+     -A| --apex) export APEX=1 ; shift ;;
      -Ss| --start-step) export STEP_ST=$2 ; shift 2 ;;
      -Se| --end-step) export STEP_ED=$2 ; shift 2 ;;
      --start-plumgrid) export START_PLUMGRID=1 ; shift ;;
@@ -220,6 +223,17 @@ function launch_vm_and_conf() {
     cat > $local_file <<DELIM__
 #!/bin/bash
 set -x
+function copy_wk_key_to_MW(){
+  echo "COPYING WORKLOAD KEY TO MW"
+  /usr/bin/expect <<EOD
+set timeout 30
+spawn ssh -o StrictHostKeyChecking=no plumgrid@\$middleware_ip "echo \"\$workload_key\" >> ~/.ssh/authorized_keys"
+expect "password:"
+send "plumgrid\n"
+expect eof
+EOD
+}
+
 for i in {1..$NUM}; do
   $aurora_run_command -t ${TAG}director >& $local_log_file.dir\$i.log &
 done
@@ -300,11 +314,17 @@ scp -o StrictHostKeyChecking=no $state_dir/workload_keys/* $username@\$wlip:~/.s
 wait
 
 for i in "\${directors_array[@]}"; do
-  ssh -o StrictHostKeyChecking=no $username@\$i "sudo /opt/pg/scripts/nimbus_remote_conf \"DIR\" \$dir_ips \$virtual_ip >& /tmp/nimbus_remote_conf.log" &
+  ssh -o StrictHostKeyChecking=no $username@\$i "sudo /opt/pg/scripts/nimbus_remote_conf \"DIR\" \$dir_ips \$virtual_ip $middleware_ip >& /tmp/nimbus_remote_conf.log" &
   ssh -o StrictHostKeyChecking=no $username@\$i "echo \"\$workload_key\" >> ~/.ssh/authorized_keys" &
 done
-ssh -o StrictHostKeyChecking=no $username@\$edgeip "sudo /opt/pg/scripts/nimbus_remote_conf \"EDGE\" \$dir_ips \$virtual_ip >& /tmp/nimbus_remote_conf.log" &
+ssh -o StrictHostKeyChecking=no $username@\$edgeip "sudo /opt/pg/scripts/nimbus_remote_conf \"EDGE\" \$dir_ips \$virtual_ip $middleware_ip >& /tmp/nimbus_remote_conf.log" &
 ssh -o StrictHostKeyChecking=no $username@\$edgeip "echo \"\$workload_key\" >> ~/.ssh/authorized_keys" &
+
+#Copy workload key to middleware vm
+if [[ "$APEX" -eq "1" ]]; then
+  echo "COPYING WORKLOAD KEY TO MW"
+  copy_wk_key_to_MW
+fi
 wait
 if [[ \$? -ne 0 ]]; then
   echo "$date_begin:: Unable to configure directors and master edge1 with ${TAG} tag" >> $WORKSPACE/logs/nimbus.log
@@ -378,6 +398,53 @@ DELIM__
 
 }
 
+function launch_middleware(){
+  # Create Middleware VM if apex flag is checked
+  echo "  ===CREATING MIDDLEWARE INSTANCE===" >> $WORKSPACE/logs/nimbus.log
+
+  #Populating Instance name for Middlware VM
+  INSTANCE_NAME=$( echo "${emailid}-${BUILD_NAME}-${TAG}middleware" | sed 's/bld/run/g')
+  mkdir "$state_dir/middleware_keys"
+  echo plumgrid:$(cat /home/${USER}/.ssh/id_rsa.pub) > $state_dir/middleware_keys/tmp.key
+  echo "$date_begin:: Deploying ${INSTANCE_NAME}" >> $WORKSPACE/logs/nimbus.log
+
+  #Creating Middleware Instance
+  tryexec exec_gcloud_cmd instances create "${INSTANCE_NAME}" -q \
+  --image "mw-image" --machine-type "n1-standard-2" --network "$NETWORK" \
+  --metadata-from-file sshKeys="$state_dir/middleware_keys/tmp.key"
+
+  export middleware_ip=$(get_instance_ip ${INSTANCE_NAME})
+  echo ${middleware_ip} > "$state_dir/middleware_ip"
+  echo " ===MIDDLEWARE VM LAUNCHED with IP:${middleware_ip}===" >> $WORKSPACE/logs/nimbus.log
+}
+
+function install_middleware_deb(){
+  # Create a script that will run on the workload vm
+  # It will copy the MW deb to MW vm and then install it.
+  mw_install_script_path=$(mktemp ${WORKSPACE}/mw-install-XXXXX.sh)
+  mw_script_name=$(basename $mw_install_script_path)
+  cat > $mw_install_script_path <<DELIM__
+#!/bin/bash
+set -x
+echo "removing nginx symlinks"
+ssh -o StrictHostKeyChecking=no plumgrid@$middleware_ip "sudo rm -f /etc/nginx/sites-enabled/elk*"
+echo "removing stale nginx confs"
+ssh -o StrictHostKeyChecking=no plumgrid@$middleware_ip "sudo rm -f /etc/nginx/sites-available/elk*"
+echo "Copy MW deb to VM"
+scp -o StrictHostKeyChecking=no /home/plumgrid/work/middle-earth/build/plumgrid-middleware*.deb plumgrid@$middleware_ip:
+echo "Middleware deb copied to VM"
+echo "stop middleware service"
+ssh -o StrictHostKeyChecking=no plumgrid@$middleware_ip "sudo service plumgrid-middleware stop"
+echo "force install deb pkg"
+ssh -o StrictHostKeyChecking=no plumgrid@$middleware_ip "sudo dpkg -i --force-all /home/plumgrid/plumgrid-middleware*.deb"
+echo "start middleware service"
+ssh -o StrictHostKeyChecking=no  plumgrid@$middleware_ip "sudo service plumgrid-middleware start"
+DELIM__
+
+  scp -o StrictHostKeyChecking=no $mw_install_script_path $username@$workload:/tmp/. >& /tmp/mw_install_script.log
+  ssh -o StrictHostKeyChecking=no $username@$workload "bash /tmp/$mw_script_name >& /tmp/mw_install_script.log"
+}
+
 function run_step(){
   local step=$1
   case "$step" in
@@ -398,6 +465,11 @@ function run_step(){
     if [[ $? -eq 0 ]]; then
       echo "Director already exists"
       exit 1
+    fi
+
+    if [[ $APEX = "1" ]]; then
+      echo " ===APEX FLAG CHECKED===" >> $WORKSPACE/logs/nimbus.log
+      launch_middleware
     fi
 
     launch_vm_and_conf "DIR" $TAG $NUM_DIRS
@@ -465,7 +537,13 @@ function run_step(){
     fi
     edges=$(cat $state_dir/edge_ips)
     scp -o StrictHostKeyChecking=no /opt/pg/scripts/nimbus_remote_conf $username@$workload:/opt/pg/scripts/. >& /tmp/nimbus_remote_conf.log
-    ssh -o StrictHostKeyChecking=no $username@$workload "sudo /opt/pg/scripts/nimbus_remote_conf \"WORKLOAD\" $directors $edges  >& /tmp/nimbus_remote_conf.log"
+    ssh -o StrictHostKeyChecking=no $username@$workload "sudo /opt/pg/scripts/nimbus_remote_conf \"WORKLOAD\" $directors $edges $middleware_ip >& /tmp/nimbus_remote_conf.log"
+
+    #Install latest MW deb on the MW VM
+    if [[ $APEX = "1" ]]; then
+      echo "Installing middleware deb" >> $WORKSPACE/logs/nimbus.log
+      install_middleware_deb
+    fi
     ;;
 
   5)
