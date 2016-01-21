@@ -12,7 +12,7 @@ BUILD_ENV_USER=${USER}
 
 MAJOR_STEPS="build"
 MINOR_STEPS_ST[build]=1
-MINOR_STEPS_ED[build]=22
+MINOR_STEPS_ED[build]=26
 
 # forward to subshells
 trap "kill 0" SIGINT
@@ -154,16 +154,36 @@ function build_image() {
           ;;
 
       19)
-          echo "Checking out stable_4_2 for the projects"
-          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_checkout_branch.sh stable_4_2'"
+          echo "Cleaning up stuff"
+          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash /home/plumgrid/work/alps/scripts/system_cleanup.sh'"
           ;;
 
       20)
-          echo "Building the rest for stable_4_2"
-          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_setup_all.sh'"
+          echo "Checking out stable_4_1_3-meli for the projects"
+          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_checkout_branch.sh stable_4_1_3-meli'"
           ;;
 
       21)
+          echo "Building the rest for stable_4_1_3-meli"
+          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_setup_all.sh'"
+          ;;
+
+      22)
+          echo "Cleaning up stuff"
+          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash /home/plumgrid/work/alps/scripts/system_cleanup.sh'"
+          ;;
+
+      23)
+          echo "Checking out stable_5_0 for the projects"
+          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_checkout_branch.sh stable_5_0'"
+          ;;
+
+      24)
+          echo "Building the rest for stable_5_0"
+          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_setup_all.sh'"
+          ;;
+
+      25)
           echo "Making a snapshot of the VM"
           SN_ID=`date +%s`
           SNAP_D1="$PRIM_INST_NAME-d1-${SN_ID}"
@@ -177,7 +197,7 @@ function build_image() {
           tryexec run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f / || true"
           gcloud compute disks snapshot $PRIM_INST_NAME-d1 --snapshot-names "$SNAP_D1"
           ;;
-      22)
+      26)
           echo "Shutting down the Instance $PRIM_INST_NAME"
           gcloud compute instances delete $PRIM_INST_NAME --delete-disks all  -q
           ;;
