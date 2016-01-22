@@ -88,14 +88,12 @@ compress
 
 /opt/pg/log/trace_collector.12349.log {
     rotate 500000
-    daily
+    size 100M
     postrotate
         /usr/bin/killall -HUP launch_trace_collector || true
     endscript
 }
 DELIM__
-
-
 
   sudo cp -rf /opt/pg/etc/init/plumgrid-config.conf /etc/init/.
 
