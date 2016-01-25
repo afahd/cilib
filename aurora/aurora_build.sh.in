@@ -32,24 +32,15 @@ GIT_TAG="none"
 PROJECT=""
 
 STEP_ST=1
-TOTAL_BUILD_STEPS=25
+
+TOTAL_BUILD_STEPS=26
 STEP_ED=$TOTAL_BUILD_STEPS
+
+GIVEN_ST=0
+GIVEN_ED=0
 
 CONTINUE=0
 
-declare -A br_code
-br_code[master]="1"
-br_code[stable_4_0]="2"
-br_code[stable_4_1]="3"
-br_code[stable_4_1_1]="4"
-br_code[stable_4_1_2-amex]="5"
-br_code[stable_4_1_2-ericsson]="6"
-br_code[stable_4_1_3]="7"
-br_code[stable_4_1_3-meli]="8"
-br_code[stable_4_3]="9"
-br_code[stable_5_0]="10"
-
-BUILD_SCRIPT=@CMAKE_BINARY_DIR@/aurora/init_scripts/run_build_all.sh
 # read the options
 TEMP=`getopt -o Kr:t:Cb:g:p:W:s:R:E:h --long keep-running,refspec:,script:,WORKSPACE:,tag:,\continue,branch:,git-tag:,proj:,help,step_st:,step_end: -n 'aurora.sh' -- "$@"`
 
@@ -66,8 +57,8 @@ while true ; do
      -p| --proj) PROJECT=$2; shift 2 ;;
      -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
 
-     -R| --step_st ) STEP_ST="$2"; CONTINUE=0; shift 2 ;;
-     -E| --step_end ) STEP_ED="$2"; KEEP_RUNNING=0 ; shift 2 ;;
+     -R| --step_st ) STEP_ST="$2"; GIVEN_ST=1; shift 2 ;;
+     -E| --step_end ) STEP_ED="$2"; GIVEN_ED=1; shift 2 ;;
      -h| --help ) show_build_help; exit 0; shift;;
      --) shift ; break ;;
      *) exit 1 ;;
@@ -76,51 +67,17 @@ done
 
 mkdir -p ${WORKSPACE}/logs
 
-
 #creating branch code from branch name provided by user.
-branch_code="${br_code[$BRANCH]}"
+branch_code="${BR_CODE[$BRANCH]}"
+
 if [[ -z "$branch_code" ]]; then
   branch_code="x"
 fi
 
 branch_code="b-${branch_code}"
 
-#keep_running equalling 1 means -k was specified, end step should be 1 less.
-if [[ $KEEP_RUNNING == "1" ]]; then
-  # STEPS_ED=STEP_ED-1
-  STEP_ED=`expr $STEP_ED - 1`
-fi
 
-#Generating Instance name piece by piece
-INSTANCE_NAME=${emailid}
-#Append tag if provided
-if [[ $TAG != "none" ]]; then
-  #Only keeping alphanumeric characters
-  TAG=${TAG//[^[:alnum:]]/}
-  #Converting to lowercase since instance name cannot contain uppercase characters
-  TAG=${TAG,,}
-  INSTANCE_NAME=${INSTANCE_NAME}-${TAG}
-fi
-#Append branch code to the instance name
-INSTANCE_NAME=${INSTANCE_NAME}-${branch_code}
-#Append refspec
-
-
-if [[ $REFSPEC != "none" ]]; then
-  MOD_REFSPEC=$(echo "$REFSPEC" | sed -e 's/refs\/changes\///')
-  MOD_REFSPEC=$(echo "$MOD_REFSPEC" | tr /_ -)
-  INSTANCE_NAME=${INSTANCE_NAME}-bld-${MOD_REFSPEC}
-fi
-
-if [[ $GIT_TAG != "none" ]]; then
-  MOD_TAG=${GIT_TAG//[^[:alnum:]]/}
-  INSTANCE_NAME=${INSTANCE_NAME}-bld-${MOD_TAG}
-fi
-
-if [[ $GIT_TAG == "none" && $REFSPEC == "none" ]]; then
-  MOD_BRANCH=$(echo "$BRANCH" | tr _ -)
-  INSTANCE_NAME=${INSTANCE_NAME}-bld-${MOD_BRANCH}
-fi
+INSTANCE_NAME=$(generate_build_instance_name ${emailid} ${TAG} ${branch_code} ${REFSPEC} ${GIT_TAG} ${BRANCH})
 
 step_file=$WORKSPACE/logs/${INSTANCE_NAME}-last-successful-step
 #Validate Inputs
@@ -133,7 +90,7 @@ check_file_existence "$BUILD_SCRIPT"
 # If "continue" switch has been given then do following steps
 #   a. Get the last successfully completed step.
 #   b. Start the build process from step next to last completed step.
-if [[ $CONTINUE == "1" ]] ; then
+if [[ $GIVEN_ST == "0" && $CONTINUE == "1" ]] ; then
   #Continue only if file exists
   if [[ ! -f $step_file ]]; then
     echo "No last successful step, cannot resume. Exiting"
@@ -159,6 +116,13 @@ else
   fi
 fi
 
+# If "step-end" switch has NOT been given then do the following steps
+#   a. Decrement step-end by 1 if KEEP_RUNNING switch has been used
+if [[ $GIVEN_ED == "0" && $KEEP_RUNNING == "1" ]]; then
+  #keep_running equalling 1 means -k was specified, end step should be 1 less.
+  STEP_ED=`expr $STEP_ED - 1`
+
+fi
 
 # TODO: SN_ID variable should hold the "v3-d1" part as well.
 # This way we will not need to change v3 manually.
@@ -201,8 +165,8 @@ function build_image() {
     tryexec exec_gcloud_cmd instances create "${INSTANCE_NAME}" \
       --machine-type "$MACHINE_TYPE" --network "$NETWORK" --maintenance-policy \
       "MIGRATE" --scopes "$SCOPES" -q \
-      --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
-      --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip" \
+      --disk "name=${INSTANCE_NAME}-d1,mode=rw,boot=yes,auto-delete=yes" \
+      --disk "name=${INSTANCE_NAME}-d2,mode=rw,boot=no,auto-delete=yes" --no-address --tags "no-ip" \
       --metadata-from-file sshKeys=$key_file
     rm $key_file
     ;;
@@ -299,16 +263,24 @@ function build_image() {
 
   16)
     # Corelib build is required for alps cmake..
-    retryexec run_cmd_gci ${INSTANCE_IP} "mkdir -p /home/plumgrid/work/corelib/build && cd /home/plumgrid/work/corelib/build && cmake .. && make -j4 install"
+    echo "Corelib Build Step"
+    tryexec corelib_build ${INSTANCE_IP} "/tmp/corelib_build.log"
     ;;
 
   17)
+    #Polling for corelib buil step
+    echo "Polling for corelib build"
+    tryexec run_poll_cmd ${INSTANCE_IP} "corelib_build.sh" "/tmp/corelib_build.log" "1"
+    retryexec download ${INSTANCE_IP} "/tmp/corelib_build.log" "${WORKSPACE}/logs/"
+    ;;
+
+  18)
     #run cmake on the repos
     echo "running cmake on the repos"
     retryexec run_cmd_gci ${INSTANCE_IP} "bash /tmp/gitsync.sh cmake_repos"
     ;;
 
-  18)
+  19)
     # Checks the elfsurgeon files
     if [[ "$PROJECT" == "alps" ]];then
       echo "make alps and check elfsurgeon files"
@@ -316,7 +288,7 @@ function build_image() {
     fi
     ;;
 
-  19)
+  20)
     # Adding polling as a separate step, so that if the connection broke at the previous step.
     if [[ "$PROJECT" == "alps" ]];then
       echo "Polling make for alps and checking elfsurgeon files (tailing \"/tmp/check_elfsurgeon.log\" for complete logs)"
@@ -325,24 +297,24 @@ function build_image() {
     fi
     ;;
 
-  20)
+  21)
      run_cmd_gci ${INSTANCE_IP} "ln -s /opt/pg/web/temp /opt/pg/var/www/"
      run_cmd_gci ${INSTANCE_IP} "sudo bash -c \"echo 'proxy=http://10.10.163.162:3128' >> /etc/yum/yum.conf\""
     ;;
 
-  21)
+  22)
     echo "Running the build-init script"
     retryexec upload ${INSTANCE_IP} ${BUILD_SCRIPT} /tmp/build-init.sh
     tryexec run_bg_cmd ${INSTANCE_IP} "/tmp/build-init.sh" "/bin/bash /tmp/build-init.sh" "/tmp/build-init.log"
     ;;
 
-  22)
+  23)
     echo "Poll the build-init logs (tailing \"/tmp/build-init.log\")"
     tryexec run_poll_cmd ${INSTANCE_IP} "/tmp/build-init.sh" "/tmp/build-init.log" "1"
     retryexec download ${INSTANCE_IP} "/tmp/build-init.log" "${WORKSPACE}/logs/build-init.log"
     ;;
 
-  23)
+  24)
     BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${emailid}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
 
@@ -355,7 +327,7 @@ function build_image() {
     tryexec exec_gcloud_cmd disks snapshot ${INSTANCE_NAME}-d2 --snapshot-names ${INSTANCE_NAME}-ssd2
     ;;
 
-  24)
+  25)
 
     # Flushing the disk buffers only if -K is not set
     if [[ "${KEEP_RUNNING}" != "1" ]]; then
@@ -369,7 +341,7 @@ function build_image() {
     echo "BUILD-ID=${BUILD_ID}" | tee $WORKSPACE/logs/build_id
     ;;
 
-  25)
+  26)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     printf "\n\n *********************** BUILD-ID = ${BUILD_ID} *********************** \n\n"

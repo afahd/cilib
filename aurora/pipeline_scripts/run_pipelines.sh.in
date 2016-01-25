@@ -46,9 +46,6 @@ echo "cost_pipeline_code=${cost_pipeline_code}"
 if [[ $PIPELINE == "coral-smoke" ]]; then
   BASE_SCRIPT_DIR="@CMAKE_CURRENT_BINARY_DIR@/coral/"
   coral_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" --cost_pipeline_code "$cost_pipeline_code" $PIPELINE_ARGUMENTS
-elif [[ $PIPELINE == "middle-earth" ]]; then
-  BASE_SCRIPT_DIR="@CMAKE_CURRENT_BINARY_DIR@/middle-earth/"
-  middleearth_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" --cost_pipeline_code "$cost_pipeline_code" $PIPELINE_ARGUMENTS
 elif [[ $PIPELINE =~ "corelib-"+ ]]; then
   BASE_SCRIPT_DIR="@CMAKE_CURRENT_BINARY_DIR@/corelib/"
   corelib_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" --cost_pipeline_code "$cost_pipeline_code" $PIPELINE_ARGUMENTS
