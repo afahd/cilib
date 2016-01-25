@@ -11,7 +11,9 @@ if [[ $1 == "help" ]]; then
   exit 1
 fi
 
-TEMP=`getopt -o p:W:P:b:l:u:t:\h --long project:,WORKSPACE:,pipeline:,branch:,build_id:,update_db_failure_limit:,tag:,\help -n 'update_db.sh' -- "$@"`
+INITIAL_RUN="false"
+
+TEMP=`getopt -o p:W:P:b:l:u:It:\h --long project:,WORKSPACE:,pipeline:,branch:,build_id:,update_db_failure_limit:,initial_run,tag:,\help -n 'update_db.sh' -- "$@"`
 eval set -- "$TEMP"
 
 while true ; do
@@ -23,6 +25,7 @@ while true ; do
     -l|--build_id) BUILD_ID=$2 ; shift 2 ;;
     -u|--update_db_failure_limit) UPDATE_DB_FAILURE_LIMIT=$2 ; shift 2 ;;
     -t|--tag) TAG=$2 ; shift 2 ;;
+    -I|--initial_run) INITIAL_RUN="true" ; shift ;;
     -h| --help) show_db_update_help; exit 0; shift ;;
     --) shift ; break ;;
     *)
@@ -42,7 +45,7 @@ PIPELINE_WORKSPACE=${WORKSPACE}/pl-${PIPELINE}-${BRANCH}
 ## if build id is provided by user as parameter, that would be used by the script
 ## if build id is not provided, the build_id file would be checked, if present, that build_id would be used
 
-if [[ -z "$BUILD_ID" ]]; then
+if [[ -z "$BUILD_ID" && -e "${BUILDID_FILE}" ]]; then
   IFS="=" read -r id BUILD_ID<${BUILDID_FILE}
 elif [[ -z "${BUILD_ID}" && ! -e "${BUILDID_FILE}" ]]; then
   echo "NO BUILD ID PROVIDED BY USER"
@@ -72,7 +75,13 @@ for pipeline in "${pl[@]}"; do
   echo "========================================================="
   PIPELINE_WORKSPACE=${WORKSPACE}/pl-${pipeline}-${BRANCH}
   create_dir_or_remove_contents ${PIPELINE_WORKSPACE}
-  aurora pipeline -l ${BUILD_ID} -P ${pipeline} -b ${BRANCH} -W ${PIPELINE_WORKSPACE} -u ${UPDATE_DB_FAILURE_LIMIT} -F || true
+  if [[ $INITIAL_RUN == "true" ]]; then
+    echo "aurora pipeline -l ${BUILD_ID} -P ${pipeline} -b ${BRANCH} -W ${PIPELINE_WORKSPACE} -u ${UPDATE_DB_FAILURE_LIMIT} -i 1 -I -F || true"
+    aurora pipeline -l ${BUILD_ID} -P ${pipeline} -b ${BRANCH} -W ${PIPELINE_WORKSPACE} -u ${UPDATE_DB_FAILURE_LIMIT} -i 1 -I -F || true
+  else
+    echo "aurora pipeline -l ${BUILD_ID} -P ${pipeline} -b ${BRANCH} -W ${PIPELINE_WORKSPACE} -u ${UPDATE_DB_FAILURE_LIMIT} -i 1 -F || true"
+    aurora pipeline -l ${BUILD_ID} -P ${pipeline} -b ${BRANCH} -W ${PIPELINE_WORKSPACE} -u ${UPDATE_DB_FAILURE_LIMIT} -i 1 -F || true
+  fi
   if [[ -s "${PIPELINE_WORKSPACE}/logs/failing-list.log" ]]; then
     echo "aurora pipeline failed, something went wrong... "
     ## Jumping to next pipeline (if more than one comma seperated pipeline is provided)
