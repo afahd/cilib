@@ -60,7 +60,7 @@ Optional Arguments:
   -r, --refspec       Gerrit RefSpec or dev branch. e.g. refs/changes/20/11020/1 or bob_dev.
                       Not specifying a refspec will build an instance without any changes
                       on the specified branch.
-  -g, --git-tag       Git tag on the given branch. All projects will be checked out on the given tag.
+  -T, --git-tag       Git tag on the given branch. All projects will be checked out on the given tag.
                       Will fail if the git-tag does not exist in all projects except corelib,
                       coral and Balicek. e.g v4.1.2-b3
   -C, --continue      --continue option will resume the script from the point where it
@@ -69,11 +69,7 @@ Optional Arguments:
                       It is also useful in case script hits some failures. Rather than running
                       whole script from scratch, --continue switch will make sure to run only those
                       steps which had hit failures or had not been run at all.
-  -R, --start-step    Start the script from a given step. Works like -C but starts from an arbitrary
-                      step instead of the last successful step.
-  -E, --end-step      End the script after a given step. For example one could run aurora build until
-                      step 4.
-  -K, --keep-running  Instance will be left running after aurora build ends. Does not work if -E is used.
+  -K, --keep-running  Instance will be left running after aurora run ends.
   -t, --tag           Add a tag to the instance name. Useful if multiple build instances for the
                       same refspec are required.
   -s, --script        Script to run to setup the build enviroment. By defult build-all.sh is ran.
@@ -93,17 +89,13 @@ Optional Arguments:
   -W, --WORKSPACE       Set the workspace where all the logs will be stored.
                         Logs will be place in ${WORKSPACE}/logs
   -s, --script          Absolute path to the test script which you want to run (please see sample_test1.sh to get further idea)
-  -K, --keep-running    Instance will be left running after aurora run ends. Does not work if -E is used.
+  -K, --keep-running    Instance will be left running after aurora run ends.
   -C, --continue        --continue option will resume the script from the point where it
                         stopped (because of broken ssh connection or simply because you powered-off
                         your machine).
                         It is also useful in case script hits some failures. Rather than running
                         whole script from scratch, --continue switch will make sure to run only those
                         steps which had hit failures or had not been run at all.
-  -R, --start-step      Start the script from a given step. Works like -C but starts from an arbitrary
-                        step instead of the last successful step.
-  -E, --end-step        End the script after a given step. For example one could run aurora build until
-                        step 4.
   -n, --runid           To use along with --continue:
                         12 digit identifier for specific run (e.g e992a1fffaf8).
                         It is being printed out on screen immediately after you kick off the "aurora run"

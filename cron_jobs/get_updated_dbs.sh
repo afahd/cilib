@@ -11,7 +11,7 @@ source /home/${USER}/.aurora.conf
 TEST_FAILURES_ACCEPTABLE=10
 TEST_FAILURES_ACCEPTABLE_UNSTABLE=42
 
-TEMP=`getopt -o W: --long WORKSPACE: -n 'get_updated_dbs.sh' -- "$@"`
+TEMP=`getopt -o W: --long WORKSPACE: -n 'get_updated_db.sh' -- "$@"`
 eval set -- "$TEMP"
 
 while true ; do
@@ -35,28 +35,16 @@ trap "cleanup ${BUILD_ID}" EXIT
 
 create_dir_or_remove_contents $WORKSPACE
 
-declare -a branches=('master' 'stable_4_1');
+declare -a branches=('master' 'stable_4_0');
 declare -a pipelines=('smoke' 'extended' 'omni' 'unstable' 'pgui-smoke');
 
 GCLOUD_PATH=${WORKSPACE}/gcloud
 git clone ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/gcloud.git ${GCLOUD_PATH}
 scp -p -P ${GERRIT_PORT} ${gerritid}@${GERRIT_IP}:hooks/commit-msg ${GCLOUD_PATH}/.git/hooks/
 
-mkdir ${WORKSPACE}/dbs
-
-function check_db_existance() {
-  local db=$1
-  if [[ -e ${DB_PATH}${db} ]]; then
-    echo ${DB_PATH}${db}
-  else
-    echo "error"
-  fi
-}
-
 
 for BRANCH in ${branches[*]}; do
   echo "$BRANCH"
-  initial_run=0
   for PIPELINE in ${pipelines[*]}; do
     tag="dbalps"
     project="alps"
@@ -69,65 +57,43 @@ for BRANCH in ${branches[*]}; do
     fi
     # this build id would be created, the variable BUILD_ID is for cleanup, since we do not have any information about the build.
     BUILD_ID=${tag}-bld-${BRANCH}
-    if [[ $BRANCH == "stable_4_1" ]]; then
-      BUILD_ID="${tag}-bld-stable-4-1"
+    if [[ $BRANCH == "stable_4_0" ]]; then
+      BUILD_ID="${tag}-bld-stable-4-0"
     fi
-    curr_db="${PIPELINE}-${BRANCH}.db"
-    check_db=$(check_db_existance $curr_db)
-    echo $check_db
-    if [[ $check_db == "error" ]];then
-      echo "${DB_PATH}${curr_db}"
-      sqlite3 ${DB_PATH}${curr_db} "create table tests (Name STRING PRIMARY KEY, ID INTEGER, RunTime REAL, Status TEXT);"
-      initial_run=1
-    fi
-    # echo $initial_run
-
     PIPELINE_WORKSPACE=${WORKSPACE}/pl-${PIPELINE}-${BRANCH}
-    if [[ $initial_run == "1" ]]; then
-      echo "aurora update_db -p ${project} -P ${PIPELINE} -b ${BRANCH} -W ${WORKSPACE} -u ${acceptable_test_failures} -t ${tag} -I"
-      aurora update_db -p ${project} -P ${PIPELINE} -b ${BRANCH} -W ${WORKSPACE} -u ${acceptable_test_failures} -t ${tag} -I
-    else
-      echo "aurora update_db -p ${project} -P ${PIPELINE} -b ${BRANCH} -W ${WORKSPACE} -u ${acceptable_test_failures} -t ${tag}"
-      aurora update_db -p ${project} -P ${PIPELINE} -b ${BRANCH} -W ${WORKSPACE} -u ${acceptable_test_failures} -t ${tag}
-    fi
+    aurora update_db -p ${project} -P ${PIPELINE} -b ${BRANCH} -W ${WORKSPACE} -u ${acceptable_test_failures} -t ${tag}
     # After the end of run pipelines, after the updation of db, the db is copied into the workspace of the pipelines in a dir dbs
     if [[ $? -eq 0 ]]; then
       # Get the path to the db that has been created
       path_to_created_db=$(get_db $PIPELINE $BRANCH)
-      #copying db to central location to commit them together.
-      cp $path_to_created_db ${WORKSPACE}/dbs/
+      pushd ${GCLOUD_PATH}
+      git reset --hard origin/master
+      echo ${GCLOUD_PATH}/aurora/pipeline_scripts/alps/dbs
+      # Remove the previous db in the newly pulled repo.
+      if [[ -e "${GCLOUD_PATH}/aurora/pipeline_scripts/alps/dbs/${PIPELINE}-${BRANCH}.db" ]]; then
+        rm ${GCLOUD_PATH}/aurora/pipeline_scripts/alps/dbs/${PIPELINE}-${BRANCH}.db
+      fi
+      # Copy new db to the dbs directory in the newly pulled gcloud repo to commit.
+      echo "copying ${path_to_created_db} *** to *** ${GCLOUD_PATH}/aurora/pipeline_scripts/alps/dbs/"
+      cp ${path_to_created_db} ${GCLOUD_PATH}/aurora/pipeline_scripts/alps/dbs/
+      git status
+      cat /dev/null > commit_msg_file
+
+      echo "Updating db for $PIPELINE Pipeline on Branch $BRANCH" >> commit_msg_file
+      echo >> commit_msg_file
+
+      cat commit_msg_file
+
+      # Commit the file
+      git commit -s -o -F commit_msg_file aurora/pipeline_scripts/alps/dbs/${PIPELINE}-${BRANCH}.db
+      # Push the commit
+      git push origin HEAD:refs/for/master
+      rm commit_msg_file
     else
       continue
     fi
   done
   # cleaning up the instances that were used for the previous db update
-  echo "cleaning up instances related to $BUILD_ID"
+  echo "cleaning up instances related to ${BUILD_ID}"
   cleanup $BUILD_ID
 done
-
-pushd ${GCLOUD_PATH}
-git reset --hard origin/master
-# Deleting the already present dbs in the newly cloned gcloud repository
-rm -rf ${GCLOUD_PATH}/aurora/pipeline_scripts/alps/dbs/*.db
-# Checking if the directory $WORKSPACE/dbs actually has any dbs or is empty, if empty we exit.
-if [[ $(ls -A ${WORKSPACE}/dbs) ]]; then
-  # Copying the newly created dbs to their location
-  ls -a "${WORKSPACE}/dbs/"
-  cp ${WORKSPACE}/dbs/* "${GCLOUD_PATH}/aurora/pipeline_scripts/alps/dbs/"
-else
-  exit 1
-fi
-
-cat /dev/null > commit_msg_file
-echo "Updating dbs for Pipelines" >> commit_msg_file
-echo >> commit_msg_file
-cat commit_msg_file
-for db in "${GCLOUD_PATH}/aurora/pipeline_scripts/alps/dbs"; do
-  # Stage the file
-  git add $db
-done
-# commit the file
-git commit -s -F commit_msg_file
-# Push the commit
-git push origin HEAD:refs/for/master
-rm commit_msg_file

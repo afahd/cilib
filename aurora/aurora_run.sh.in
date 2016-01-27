@@ -28,9 +28,6 @@ STEP_ST=1
 TOTAL_RUN_STEPS=12
 STEP_ED=$TOTAL_RUN_STEPS
 
-GIVEN_ST=0
-GIVEN_ED=0
-
 LOG_SRC_DIR=/opt/pg/log
 TAG="none"
 CONTINUE=0
@@ -52,7 +49,6 @@ while true ; do
     -S| --src_log_dir) LOG_SRC_DIR=$2 ; shift 2 ;;
     -C| --continue ) CONTINUE=1; shift ;;
     -K| --keep-running ) KEEP_RUNNING=1; shift ;;
-    -m| --machine_type) MACHINE_TYPE=$2; shift 2;;
     --preemptible) PREEMPTIBLE="--preemptible" ; shift ;;
     #Local changes flags
     -c| --local_commit) COMMIT_ID=$2; shift 2;;
@@ -60,8 +56,9 @@ while true ; do
     -a| --alps-path) ALPS_PATH=$2; shift 2;;
     --cost_pipeline_code) COST_PIPELINE_CODE=$2; shift 2;;
     #Start-End steps
-    -R| --step-st ) STEP_ST="$2"; GIVEN_ST=1; shift 2 ;;
-    -E| --step-end ) STEP_ED="$2"; GIVEN_ED=1; shift 2 ;;
+    -R| --step-st ) STEP_ST="$2"; CONTINUE=0; shift 2 ;;
+    -E| --step-end ) STEP_ED="$2";  KEEP_RUNNING=0 ; shift 2 ;;
+    -m| --machine_type) MACHINE_TYPE=$2; shift 2;;
     -h| --help ) show_run_help;exit 0; shift ;;
     --) shift ; break ;;
     *) exit 1 ;;
@@ -79,6 +76,15 @@ fi
 mkdir -p $LOG_DEST_DIR
 echo "Logs will be stored in $LOG_DEST_DIR"
 
+if [[ $KEEP_RUNNING == "1" ]]; then
+  STEP_ED=`expr $STEP_ED - 1`
+fi
+#Check test script file
+if [[ -n $TEST_SCRIPT ]]; then
+  check_file_existence $TEST_SCRIPT
+else
+  STEP_ED=8
+fi
 
 BUILD_ID=${emailid}-${BUILD_ID}
 #Validate Inputs
@@ -86,8 +92,7 @@ check_run_inputs $BUILD_ID
 if [[ -z "$COST_PIPELINE_CODE" ]]; then
   COST_PIPELINE_CODE="x"
 fi
-INSTANCE_NAME=$(generate_run_instance_name ${BUILD_ID} ${TAG} ${COST_PIPELINE_CODE} ${CONTINUE} ${STEP_ST} ${RUNID})
-
+INSTANCE_NAME=$(generate_instance_name ${BUILD_ID} ${TAG} ${COST_PIPELINE_CODE} ${CONTINUE} ${STEP_ST} ${RUNID})
 #Check /home/$USER/.ssh/id_rsa.pub file
 check_file_existence "/home/$USER/.ssh/id_rsa.pub"
 step_file=$LOG_DEST_DIR/${INSTANCE_NAME}-last-successful-step
@@ -97,7 +102,7 @@ step_file=$LOG_DEST_DIR/${INSTANCE_NAME}-last-successful-step
 #   a. Get the RUN-ID provided by user.
 #   b. Get the last successfully completed step.
 #   c. Start the run process from step next to last completed step.
-if [[ $GIVEN_ST == 0 && $CONTINUE == "1" ]] ; then
+if [[ $CONTINUE == "1" ]] ; then
   step_file=$LOG_DEST_DIR/${INSTANCE_NAME}-last-successful-step
   #Continue only if file exists
   if [[ ! -f $step_file ]]; then
@@ -113,22 +118,6 @@ if [[ $STEP_ST -gt "3" ]]; then
   INSTANCE_IP=$(get_instance_ip ${INSTANCE_NAME})
 else
   check_instance_limit
-fi
-
-# If "step-end" switch has NOT been given then do the following steps
-#   a. Decrement step-end by 1 if KEEP_RUNNING switch has been used
-#   b. Check if the test file exists, otherwise step step-end to 8
-if [[ $GIVEN_ED == 0 ]]; then
-  if [[ $KEEP_RUNNING == "1" ]]; then
-    #keep_running equalling 1 means -k was specified, end step should be 1 less.
-    STEP_ED=`expr $STEP_ED - 1`
-  fi
-  #Check test script file
-  if [[ -n $TEST_SCRIPT ]]; then
-    check_file_existence $TEST_SCRIPT
-  else
-    STEP_ED=8
-  fi
 fi
 
 #Create file to ensure continue works if run/build is aborted before 1st step completes
@@ -164,8 +153,8 @@ function run_test() {
     echo "Creating the instance[$INSTANCE_NAME] in the cloud"
     tryexec exec_gcloud_cmd instances create "${INSTANCE_NAME}" -q\
       --machine-type "$MACHINE_TYPE" --network "$NETWORK" --scopes "$SCOPES" \
-      --disk "name=${INSTANCE_NAME}-d1,mode=rw,boot=yes,auto-delete=yes" \
-      --disk "name=${INSTANCE_NAME}-d2,mode=rw,boot=no,auto-delete=yes" --no-address --tags "no-ip" \
+      --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
+      --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip" \
       --metadata-from-file sshKeys=$key_file $PREEMPTIBLE $MAINTENANCE_POLICY
     rm $key_file
     ;;

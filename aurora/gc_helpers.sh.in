@@ -39,8 +39,6 @@ function init_id() {
   gcloud config set project $GCLOUD_PROJECT
   gcloud config set compute/zone $ZONE
   gcloud config set compute/region $REGION
-  gcloud config set component_manager/fixed_sdk_version 0.9.81
-  gcloud components -q update
 }
 
 # *****************************************************************************
@@ -311,11 +309,11 @@ function get_latest_snapshot_id() {
 }
 
 # *****************************************************************************
-# Function: generate_run_instance_name
+# Function: generate_instance_name
 # Purpose : Generate instance name for "aurora run" instance.
-# Usage   : generate_run_instance_name <build_id> <tag> <pipeline_code> <continue_option> <start_step> <run_id>
+# Usage   : generate_instance_name <BuildID> <TAG> <PIPELINE_CODE>
 # *****************************************************************************
-function generate_run_instance_name() {
+function generate_instance_name() {
 
   local BUILD_ID=$1
   local TAG=$2
@@ -360,51 +358,7 @@ function generate_run_instance_name() {
     return 1
   fi
 }
-# *****************************************************************************
-# Function: generate_build_instance_name
-# Purpose : Generate instance name for "aurora build" instance.
-# Usage   : generate_build_instance_name <email_id> <tag> <branch_code> <refspec> <git_tag_to_checkout> <branch>
-# *****************************************************************************
-function generate_build_instance_name() {
 
-  local emailid=$1
-  local tag=$2
-  local branch_code=$3
-  local refspec=$4
-  local git_tag=$5
-  local branch=$6
-
-  #Generating Instance name piece by piece
-  local instance_name=${emailid}
-  #Append tag if provided
-  if [[ $tag != "none" ]]; then
-    #Only keeping alphanumeric characters
-    tag=${tag//[^[:alnum:]]/}
-    #Converting to lowercase since instance name cannot contain uppercase characters
-    tag=${tag,,}
-    instance_name=${instance_name}-${tag}
-  fi
-  #Append branch code to the instance name
-  instance_name=${instance_name}-${branch_code}
-  #Append refspec
-
-  if [[ $refspec != "none" ]]; then
-    local mod_refspec=$(echo "$refspec" | sed -e 's/refs\/changes\///')
-    mod_refspec=$(echo "$mod_refspec" | tr /_ -)
-    instance_name=${instance_name}-bld-${mod_refspec}
-  fi
-
-  if [[ $git_tag != "none" ]]; then
-    local mod_tag=${git_tag//[^[:alnum:]]/}
-    instance_name=${instance_name}-bld-${mod_tag}
-  fi
-
-  if [[ $git_tag == "none" && $refspec == "none" ]]; then
-    local mod_branch=$(echo "$branch" | tr _ -)
-    instance_name=${instance_name}-bld-${mod_branch}
-  fi
-  echo ${instance_name}
-}
 # *****************************************************************************
 # Function: get_instance_ip
 # Purpose : Gets the internal IP address of the instance.
@@ -632,35 +586,6 @@ DELIM__
   rm ${local_file}
   tryexec run_bg_cmd ${INSTANCE_IP} "${renamed_file}" "/bin/bash ${renamed_file}" "$LOG_FILE"
 }
-
-# ******************************************************************************
-# Function: corelib_build
-# Purpose : Creates a script which makes and installs corelib build, uploads
-#           and runs the script.The return value for the script is echoed to
-#           check for failure.
-# Usage   : corelib_build <cloud_instance_ip> <log file>
-# ******************************************************************************
-function corelib_build() {
-  local INSTANCE_IP=$1
-  local LOG_FILE=$2
-  local local_file=$(mktemp $WORKSPACE/corelib_build.sh-XXXXX)
-  cat /dev/null > ${local_file}
-  cat >> ${local_file} <<DELIM__
-set -e
-mkdir -p /home/plumgrid/work/corelib/build
-cd /home/plumgrid/work/corelib/build
-cmake ..
-make -j4 install
-DELIM__
-  #File name needs to be constant for continue functionality, thus renaming.
-  local instance_file=/tmp/$(basename ${local_file})
-  local renamed_file=/tmp/corelib_build.sh
-  retryexec upload ${INSTANCE_IP} ${local_file} ${instance_file}
-  tryexec run_cmd_gci ${INSTANCE_IP} "mv ${instance_file} ${renamed_file}"
-  rm ${local_file}
-  tryexec run_bg_cmd ${INSTANCE_IP} "${renamed_file}" "/bin/bash $renamed_file" "$LOG_FILE"
-}
-
 # ******************************************************************************
 # Function: check_elfsurgeon
 # Purpose : Creates a script which makes alps, checks the elfsurgeon files, uploads
