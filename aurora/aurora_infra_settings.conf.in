@@ -26,7 +26,7 @@ declare -A BR_CODE=(
 ['stable_4_1_2-amex']="5"
 ['stable_4_1_2-ericsson']="6"
 ['stable_4_1_3']="7"
-[stable_4_1_3-meli]="8"
-[stable_4_3]="9"
-[stable_5_0]="10"
+['stable_4_1_3-meli']="8"
+['stable_4_3']="9"
+['stable_5_0']="10"
 )
