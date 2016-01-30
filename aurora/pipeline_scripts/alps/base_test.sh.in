@@ -72,6 +72,9 @@ elif [[ "$PIPELINE" == "falcon" ]]; then
   if [[ $? -ne 0 ]]; then
     mv ${EXPORT_FAILURES_DIR_TMP}/falcon-init.PASSED.log ${EXPORT_FAILURES_DIR_TMP}/falcon-init.FAILED.log
     cp -r ${EXPORT_FAILURES_DIR_TMP} /opt/pg/log/
+    echo "mkdir -p /opt/pg/log/nlogs"
+    mkdir -p /opt/pg/log/nlogs
+    cp -r /tmp/nlogs/* /opt/pg/log/nlogs/
     exit 1
   fi
 
