@@ -16,7 +16,7 @@ GERRIT_IP=192.168.10.77
 GERRIT_PORT=29418
 GCLOUD_CMD_TIMEOUT=360
 COMMON_KEY='ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDeHGNQlrU33cLh19C5Cy4Rae6QSIvHJ4wPr2y+n/g2b3CexaUVWBHqfq36dkds54XhOyU5VOlv8uPpU3GvYqnyxC/LUrGuB+SG5Ok0bUFZysp5zug7CHkLd9nkWnJhCAPp3V3hJ77c9h+aMtnrEHQDghhlcEbfay3ZXH8puWdDaz3EkC6n6ACZPKCpQ8Vs4jr105tmxmL7o9jSjUsPr/AWTLj0bTg9YUqonlPAW3mrxQFXoNPb6dmivUzK4VdN+SUtZW0Eb3pSrRKt42xwmB6B0NKRKnJu3L0S0SspLk+kYf6Un8mQ1cwN9HBzGLEVSlWBISmTqPfV84gR6B35/GZl plumgrid@pgdev'
-PROJECT_LIST=("balicek" "pkg" "pg_cli" "pg_ui" "sal" "corelib" "alps" "python-plumgridlib" "coral" "middle-earth" "nirvana")
+PROJECT_LIST=("balicek" "pkg" "pg_cli" "pg_ui" "sal" "corelib" "alps" "python-plumgridlib" "coral" "middle-earth" "nirvana" "pkg-common")
 TAGGED_REPOS=("balicek" "pkg" "pg_cli" "pg_ui" "sal" "alps" "python-plumgridlib")
 
 declare -A BR_CODE=(

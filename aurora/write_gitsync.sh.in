@@ -117,7 +117,7 @@ modify_git_config "\${repo}" "${gerritid}" "${git_script}"
 cat >> ${git_script} <<DELIM__
 branch=\$3
 git_tag=\$4
-if [[ \$repo == "balicek" && ( $APT_COMPONENT == "unstable" || $APT_COMPONENT == "fuji-413" || $APT_COMPONENT == "fuji-413-chirashi" || $APT_COMPONENT == "fuji-413-maki" || $APT_COMPONENT == "fuji-414" || $APT_COMPONENT == "godwin-430" || $APT_COMPONENT == "halfdome-500" ) ]] || [[ ( \$repo == "nirvana" || \$repo == "middle-earth" ) && $APT_COMPONENT == "unstable" ]] || [[ \$repo != "nirvana" && \$repo != "balicek" && \$repo != "middle-earth" ]]; then
+if [[ \$repo == "pkg-common" && ( $APT_COMPONENT == "halfdome-500" || $APT_COMPONENT == "godwin-430" || $APT_COMPONENT == "unstable" ) ]] || [[ \$repo == "balicek" && ( $APT_COMPONENT == "unstable" || $APT_COMPONENT == "fuji-413" || $APT_COMPONENT == "fuji-413-chirashi" || $APT_COMPONENT == "fuji-413-maki" || $APT_COMPONENT == "fuji-414" || $APT_COMPONENT == "godwin-430" || $APT_COMPONENT == "halfdome-500" ) ]] || [[ ( \$repo == "nirvana" || \$repo == "middle-earth" ) && $APT_COMPONENT == "unstable" ]] || [[ \$repo != "nirvana" && \$repo != "balicek" && \$repo != "middle-earth" ]]; then
   echo "Extracting and rebuilding \${repo} for branch \${branch}"
   if [[ -d /home/plumgrid/work/\${repo}/ ]]; then
     cd /home/plumgrid/work/\${repo}
@@ -192,7 +192,7 @@ DELIM__
 
 for p in ${PROJECT_LIST[@]}; do
   # Coral does not use CMake to build, hence skipping cmake.
-  if [[ $p == "coral" || ($p == "balicek" && $APT_COMPONENT != "unstable" && $APT_COMPONENT != "fuji-413" && $APT_COMPONENT != "fuji-413-chirashi" && $APT_COMPONENT != "fuji-413-maki" && $APT_COMPONENT != "fuji-414" && $APT_COMPONENT != "godwin-430" && $APT_COMPONENT != "halfdome-500" ) || $p == "nirvana" || $p == "middle-earth" ]]; then
+  if [[ ( $p == "pkg-common" && $APT_COMPONENT != "halfdome-500" && $APT_COMPONENT != "godwin-430" && $APT_COMPONENT != "unstable" ) || $p == "coral" || ( $p == "balicek" && $APT_COMPONENT != "unstable" && $APT_COMPONENT != "fuji-413" && $APT_COMPONENT != "fuji-413-chirashi" && $APT_COMPONENT != "fuji-413-maki" && $APT_COMPONENT != "fuji-414" && $APT_COMPONENT != "godwin-430" && $APT_COMPONENT != "halfdome-500" ) || $p == "nirvana" || $p == "middle-earth" ]]; then
     echo "Skipping cmake step. project=$p and APT_COMPONNET=$APT_COMPONENT"
   else
     cat >> ${git_script} <<DELIM__
