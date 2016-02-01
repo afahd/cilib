@@ -118,11 +118,11 @@ function run_test() {
     if [[ $PIPELINE == "DEBUG-TEST" ]]; then
       echo "pipeline is debug-test"
       gen_user_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -n ${NUM_INSTANCES} -d ${script_dir} --base_script_dir ${BASE_SCRIPT_DIR} -s ${USER_SCRIPT}
-    elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" || $PIPELINE == "longevity" ]]; then
-      gen_automaton_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -d ${script_dir} -r $BASE_SCRIPT_DIR -p $PIPELINE -n ${NUM_INSTANCES}
+    elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" || $PIPELINE == "longevity" || $PIPELINE == "falcon" ]]; then
+      gen_automaton_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -d ${script_dir} -r $BASE_SCRIPT_DIR -p $PIPELINE -n ${NUM_INSTANCES} -l ${USER_BUILD_ID}
       MACHINE_TYPE="n1-standard-16"
     else
-      gen_test_scripts.sh -p $PIPELINE -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -f ${FIRST_TEST} -t ${STEP_SIZE} -n ${NUM_INSTANCES} -d ${script_dir} -l ${USER_BUILD_ID} -I ${INITIAL_RUN} --base_script_dir $BASE_SCRIPT_DIR -D ${db}
+      gen_test_scripts.sh -p $PIPELINE -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -f ${FIRST_TEST} -t ${STEP_SIZE} -n ${NUM_INSTANCES} -d ${script_dir} -I ${INITIAL_RUN} --base_script_dir $BASE_SCRIPT_DIR -D ${db}
     fi
 
     ;;

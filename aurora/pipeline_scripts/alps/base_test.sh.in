@@ -10,6 +10,7 @@ instance_no="1"
 itr=2
 PIPELINE="smoke"
 CTEST_OPT=' '
+RUN_TESTS="0"
 TESTID="ctest-$CTEST_ST-$CTEST_ED"
 export EXPORT_FAILURES_DIR="/tmp/aurora_logs/$TESTID"
 export EXPORT_FAILURES_DIR_TMP="/tmp/log/$TESTID"
@@ -67,102 +68,122 @@ elif [[ "$PIPELINE" == "unstable" || "$PIPELINE" == "DEBUG-TEST" ]]; then
 elif [[ "$PIPELINE" == "falcon" ]]; then
   test_tag=falcon
   BUILD_ID=
-  /opt/pg/systest/tests/falcon/write_falcon_bid.sh -b $BUILD_ID
-  /opt/pg/systest/generic_remote/falcon/falcon_init.sh &> ${EXPORT_FAILURES_DIR_TMP}/falcon-init.PASSED.log
-  if [[ $? -ne 0 ]]; then
-    mv ${EXPORT_FAILURES_DIR_TMP}/falcon-init.PASSED.log ${EXPORT_FAILURES_DIR_TMP}/falcon-init.FAILED.log
-    cp -r ${EXPORT_FAILURES_DIR_TMP} /opt/pg/log/
-    echo "mkdir -p /opt/pg/log/nlogs"
-    mkdir -p /opt/pg/log/nlogs
-    cp -r /tmp/nlogs/* /opt/pg/log/nlogs/
-    exit 1
-  fi
+  TOTAL_CTESTS=`ctest -N -L ^type:falcon | grep Test.*#.* | wc -l`
+  echo "[TOTAL_CTESTS: $TOTAL_CTESTS]"
+  echo "[CTEST_ST: $CTEST_ST]"
 
-fi
-
-# Run cmake ..
-cmake ..
-# Disable ipv6
-echo 1 | sudo tee /proc/sys/net/ipv6/conf/all/disable_ipv6
-
-# If this is the last instance, determine the index of the last test that needs to be run
-if [[ "x$CTEST_ED" == "x" ]] ; then
-  if [[ "$PIPELINE" == "unstable" ]]; then
-    CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "UNSTABLE" | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
-  elif [[ "$PIPELINE" == "automaton" || "$PIPELINE" == "automaton-longevity" || "$PIPELINE" == "longevity" || "$PIPELINE" == "falcon" ]]; then
-    CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "Test #" | wc -l`
+  # Dont run falcon init, if no tests are going to be run
+  if [[ "$CTEST_ST" -le "$TOTAL_CTESTS" ]]; then
+    /opt/pg/systest/tests/falcon/write_falcon_bid.sh -b $BUILD_ID
+    /opt/pg/systest/generic_remote/falcon/falcon_init.sh &> ${EXPORT_FAILURES_DIR_TMP}/falcon-init.PASSED.log
+    if [[ $? -ne 0 ]]; then
+      mv ${EXPORT_FAILURES_DIR_TMP}/falcon-init.PASSED.log ${EXPORT_FAILURES_DIR_TMP}/falcon-init.FAILED.log
+      cp -r ${EXPORT_FAILURES_DIR_TMP} /opt/pg/log/
+      echo "mkdir -p /opt/pg/log/nlogs"
+      mkdir -p /opt/pg/log/nlogs
+      cp -r /tmp/nlogs/* /opt/pg/log/nlogs/
+      exit 1
+    fi
   else
-    CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "Test " | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
+    echo "No Tests will be run on this instance, no need to run falcon-init"
+    RUN_TESTS="1"
   fi
+
 fi
 
-tests_ran=0
+if [[ "$RUN_TESTS" -eq "0" ]]; then
+  # Run cmake ..
+  cmake ..
+  # Disable ipv6
+  echo 1 | sudo tee /proc/sys/net/ipv6/conf/all/disable_ipv6
 
-# use a common, but hopefully unique prefix for the log destination
-formatted_date=$(date '+%Y%m%d-%H%M%S')
-for run in $(seq 1 $itr); do
-  echo  "Running iteration number: ${run}"
-  # need to recreate the directory every time, because we move it away at the end of the loop
-  for testno in $(seq $CTEST_ST $CTEST_ED); do
-    sudo pkill rsyslogd
-    sleep 0.2
-    pgrep rsyslogd >> /dev/null  || $(sudo rsyslogd &)
-    # Dtermine the test name from the test index
+  # If this is the last instance, determine the index of the last test that needs to be run
+  if [[ "x$CTEST_ED" == "x" ]] ; then
     if [[ "$PIPELINE" == "unstable" ]]; then
-      test_name=$(ctest -N  -L ^type:$test_tag$ | grep "UNSTABLE" | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
-    elif [[ "$PIPELINE" == "falcon" || "$PIPELINE" == "automaton" || "$PIPELINE" == "automaton-longevity" || "$PIPELINE" == "longevity" ]]; then
-      test_name=$(ctest -N  -L ^type:$test_tag$ | grep "Test #" | cut -d " " -f 5 | head -n "$testno" | tail -n 1)
-    elif [[ "$PIPELINE" == "DEBUG-TEST" ]]; then
-      test_name=${USER_TEST[$testno]}
-      test_name=$(ctest -N  -L ^type:$test_tag$ | grep -o " $test_name\$" | tr -d ' ')
+      CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "UNSTABLE" | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
+    elif [[ "$PIPELINE" == "automaton" || "$PIPELINE" == "automaton-longevity" || "$PIPELINE" == "longevity" || "$PIPELINE" == "falcon" ]]; then
+      CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "Test #" | wc -l`
     else
-      test_name=$(ctest -N  -L ^type:$test_tag$ | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
+      CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "Test " | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
     fi
-    echo "Running $test_name"
-    #Don't append iteration/instance number in case of pipeline
-    if [[ $instance_no == 1 && $itr == 1 ]]; then
-      log_file_name="${test_name}"
-    else
-      log_file_name="ctestout_inst${instance_no}_iter${run}_${test_name}"
-    fi
-    #Increment the number of tests ran
-    if [[ -n "$test_name" ]]; then
-      ((tests_ran++))
-    else
-      echo "Test $test_name not found"
-    fi
+  fi
 
-    ctest --output-on-failure  -L ^type:$test_tag$ -R "^${test_name}$" -T test >& "$EXPORT_FAILURES_DIR/${log_file_name}.log"
-    result="$?"
-    #Generate the XML logs for omni pipeline and for 1 iteration
-    if [[ "$PIPELINE" == "omni" || "$PIPELINE" == "extended" || "$PIPELINE" == "smoke" || "$PIPELINE" == "unstable" ]]; then
-      echo 'Finding the XML file with the results ...'
-      xml_dirname=$(cat Testing/TAG 2>/dev/null | head -1)
-      if [[ -z "$xml_dirname" ]]; then
-        echo "Empty XML dirname in Testing/TAG"
-      fi
+  tests_ran=0
 
-      xml_filename="Testing/${xml_dirname}/Test.xml"
-      echo "XML file located at: ${xml_filename}"
+  # use a common, but hopefully unique prefix for the log destination
+  formatted_date=$(date '+%Y%m%d-%H%M%S')
+    for run in $(seq 1 $itr); do
+      echo  "Running iteration number: ${run}"
+      # need to recreate the directory every time, because we move it away at the end of the loop
+      for testno in $(seq $CTEST_ST $CTEST_ED); do
+        sudo pkill rsyslogd
+        sleep 0.2
+        pgrep rsyslogd >> /dev/null  || $(sudo rsyslogd &)
+        # Dtermine the test name from the test index
+        if [[ "$PIPELINE" == "unstable" ]]; then
+          test_name=$(ctest -N  -L ^type:$test_tag$ | grep "UNSTABLE" | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
+        elif [[ "$PIPELINE" == "falcon" || "$PIPELINE" == "automaton" || "$PIPELINE" == "automaton-longevity" || "$PIPELINE" == "longevity" ]]; then
+          test_name=$(ctest -N  -L ^type:$test_tag$ | grep "Test #" | cut -d " " -f 5 | head -n "$testno" | tail -n 1)
+        elif [[ "$PIPELINE" == "DEBUG-TEST" ]]; then
+          test_name=${USER_TEST[$testno]}
+          test_name=$(ctest -N  -L ^type:$test_tag$ | grep -o " $test_name\$" | tr -d ' ')
+        else
+          test_name=$(ctest -N  -L ^type:$test_tag$ | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
+        fi
+        echo "Running $test_name"
+        #Don't append iteration/instance number in case of pipeline
+        if [[ $instance_no == 1 && $itr == 1 ]]; then
+          log_file_name="${test_name}"
+        else
+          log_file_name="ctestout_inst${instance_no}_iter${run}_${test_name}"
+        fi
+        #Increment the number of tests ran
+        if [[ -n "$test_name" ]]; then
+          ((tests_ran++))
+        else
+          echo "Test $test_name not found"
+        fi
 
-      if [[ ! -f "$xml_filename" || ! -r "$xml_filename" ]]; then
-        echo "XML file $xml_filename unreadable or does not exist"
-      fi
+        ctest --output-on-failure  -L ^type:$test_tag$ -R "^${test_name}$" -T test >& "$EXPORT_FAILURES_DIR/${log_file_name}.log"
+
+        result="$?"
+        #Generate the XML logs for omni pipeline and for 1 iteration
+        if [[ "$PIPELINE" == "omni" || "$PIPELINE" == "extended" || "$PIPELINE" == "smoke" || "$PIPELINE" == "unstable" ]]; then
+          echo 'Finding the XML file with the results ...'
+          xml_dirname=$(cat Testing/TAG 2>/dev/null | head -1)
+          if [[ -z "$xml_dirname" ]]; then
+            echo "Empty XML dirname in Testing/TAG"
+          fi
+
+          xml_filename="Testing/${xml_dirname}/Test.xml"
+          echo "XML file located at: ${xml_filename}"
+
+          if [[ ! -f "$xml_filename" || ! -r "$xml_filename" ]]; then
+            echo "XML file $xml_filename unreadable or does not exist"
+          fi
+        fi
+        if [[ "x$result" != "x0" ]] ; then
+          echo "                 FAILED"
+          mv "$EXPORT_FAILURES_DIR/${log_file_name}.log" "$EXPORT_FAILURES_DIR_TMP/${log_file_name}.FAILED.log"
+          test_failing_name=$(find "$EXPORT_FAILURES_DIR" -name "*.tar.gz")
+          mv ${test_failing_name} ${EXPORT_FAILURES_DIR_TMP}/$log_file_name.tar.gz
+          #Copy the xml output for downloading
+          mv "$xml_filename" ${EXPORT_FAILURES_DIR_TMP}/xml_logs/${test_name}.FAILED.xml
+        else
+          mv "$EXPORT_FAILURES_DIR/${log_file_name}.log" "$EXPORT_FAILURES_DIR_TMP/${log_file_name}.log"
+          mv "$xml_filename" ${EXPORT_FAILURES_DIR_TMP}/xml_logs/${test_name}.xml
+        fi
+        rm -rf $EXPORT_FAILURES_DIR/*
+      done
+    done
+
+    # Falcon needs a special cleanup because it creates further instances
+    if [[ "$test_tag" == "falcon" && "$RUN_TESTS" -eq "0" ]]; then
+      echo "No more tests to run, cleaning up falcon instances"
+      /opt/pg/systest/generic_remote/falcon/falcon_local_cleanup.sh
     fi
-    if [[ "x$result" != "x0" ]] ; then
-      echo "                 FAILED"
-      mv "$EXPORT_FAILURES_DIR/${log_file_name}.log" "$EXPORT_FAILURES_DIR_TMP/${log_file_name}.FAILED.log"
-      test_failing_name=$(find "$EXPORT_FAILURES_DIR" -name "*.tar.gz")
-      mv ${test_failing_name} ${EXPORT_FAILURES_DIR_TMP}/$log_file_name.tar.gz
-      #Copy the xml output for downloading
-      mv "$xml_filename" ${EXPORT_FAILURES_DIR_TMP}/xml_logs/${test_name}.FAILED.xml
-    else
-      mv "$EXPORT_FAILURES_DIR/${log_file_name}.log" "$EXPORT_FAILURES_DIR_TMP/${log_file_name}.log"
-      mv "$xml_filename" ${EXPORT_FAILURES_DIR_TMP}/xml_logs/${test_name}.xml
-    fi
-    rm -rf $EXPORT_FAILURES_DIR/*
-  done
-done
+fi
+
 echo "$tests_ran" > $EXPORT_FAILURES_DIR_TMP/total_tests_inst${instance_no}
 #Copy logs to /opt/pg/log for get_latest_logs to copy the tests.
 mkdir -p /opt/pg/log/$TESTID

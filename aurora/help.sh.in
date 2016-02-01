@@ -251,7 +251,7 @@ Required Arguments:
 
 Optional Arguments:
 -P, --pipeline        [OPTIONAL] The pipeline which you want to run.
-                      Possible values are "smoke", "extended", "unstable", "pgui-smoke", "omni" "automaton" and "automaton-longevity".
+                      Possible values are "smoke", "extended", "unstable", "pgui-smoke", "omni", "falcon", "automaton" and "automaton-longevity".
                       Default is 'smoke'.
 -b, --branch          [OPTIONAL] The branch that you want to run your pipeline on. Currently this feature is only available for omni
                       pipeline. Possible value for this flag is "stable_4_0". If you do not use this the default value would be taken as "master"

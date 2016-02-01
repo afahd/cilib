@@ -12,7 +12,7 @@ source pl_settings.conf
 # run_tests.sh-1..10 with the splits to run the tests in 10 vm's for the specified number of iterations.
 
 # read the options
-TEMP=`getopt -o b:i:f:t:n:\r:d:l:I:p:D:h --long base_script:,buildid:,test_iterations:,first_test:,step_size:,num_instances:,base_script_dir:,dest_script_dir:,initial_run:,db:,pipeline:,\help -n 'gen_test_script.sh' -- "$@"`
+TEMP=`getopt -o b:i:f:t:n:\r:d:I:p:D:h --long base_script:,test_iterations:,first_test:,step_size:,num_instances:,base_script_dir:,dest_script_dir:,initial_run:,db:,pipeline:,\help -n 'gen_test_scripts.sh' -- "$@"`
 eval set -- "$TEMP"
 
 #Default value for iterations.
@@ -33,8 +33,6 @@ while true ; do
       NUM_INSTANCES=$2 ; shift 2 ;;
     -r|--base_script_dir)
       BASE_SCRIPT_DIR=$2 ; shift 2 ;;
-    -l|--buildid)
-      BUILD_ID=$2 ; shift 2 ;;
     -d|--dest_script_dir)
       DEST_SCRIPT_DIR=$2 ; shift 2 ;;
     -I|--initial_run)
@@ -119,7 +117,6 @@ else
         cp ${BASE_SCRIPT_DIR}/$ScriptName ${DEST_SCRIPT_DIR}/$DScript
         sed -i 's/PIPELINE=.*/PIPELINE='${PIPELINE}'/' ${DEST_SCRIPT_DIR}/$DScript
         sed -i 's/CTEST_ST=[0-9]*/CTEST_ST='${CurrentTest}'/' ${DEST_SCRIPT_DIR}/$DScript
-        sed -i 's/BUILD_ID=/BUILD_ID='${BUILD_ID}'/' ${DEST_SCRIPT_DIR}/$DScript
         if [[ $ITR == $SPLIT ]] ; then
           sed -i 's/CTEST_ED=[0-9]*/CTEST_ED=/' ${DEST_SCRIPT_DIR}/${DScript}
         else
