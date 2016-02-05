@@ -292,6 +292,7 @@ Required Arguments:
 
 Optional Arguments:
   -W, --WORKSPACE             Set the workspace where all the logs will be stored.
+  -p, --project               Specify the name of the project, Default=alps
   -K, --keep-running          Instance will be left running after aurora run ends.
   -i, --test_iterations       Specify the number of iterations for the tests.
                               Default=1

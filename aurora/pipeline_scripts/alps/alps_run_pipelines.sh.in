@@ -29,11 +29,12 @@ BUILD_ENV_USER=${USER}
 STEP_ST=1
 STEP_ED=7
 DEST_SCRIPT_DIR=0
+PROJECT="alps"
 
 echo "run_pipelines.sh $@"
 ARGS=$@
 # read the options
-TEMP=`getopt -o Q:R:E:W:l:P:b:i:f:t:u:s:n:\r:d:IFKc:e:a:h --long major:,preemptible,minor_start:,minor_end:,WORKSPACE:,buildid:,pipeline:,branch:,test_iterations:,first_test:,step_size:,update_db_failure_limit:,script:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update,keep-running,local_commit:,existing_commit_hash:,alps-path:,cost_pipeline_code:,\help -n 'run_all_test.sh' -- "$@"`
+TEMP=`getopt -o Q:R:E:W:l:P:b:i:f:t:u:s:n:\r:d:IFKc:e:a:p:h --long major:,preemptible,minor_start:,minor_end:,WORKSPACE:,buildid:,pipeline:,branch:,test_iterations:,first_test:,step_size:,update_db_failure_limit:,script:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update,keep-running,local_commit:,existing_commit_hash:,project:,alps-path:,cost_pipeline_code:,\help -n 'run_all_test.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # extract options and their arguments into variables.
@@ -45,6 +46,7 @@ while true ; do
     -W|--WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
     -l|--buildid) USER_BUILD_ID=$2 ; shift 2 ;;
     -P|--pipeline) PIPELINE=$2 ; shift 2 ;;
+    -p|--project) PROJECT=$2 ; shift 2 ;;
     -b|--branch) BRANCH=$2 ; shift 2 ;;
     -i|--test_iterations) TEST_ITERATIONS=$2 ; shift 2 ;;
     -f|--first_test) FIRST_TEST=$2 ; shift 2 ;;
@@ -90,6 +92,11 @@ log_dir=${script_dir}/logs
 untar_log_dir=${script_dir}/untar_logs
 
 echo "run_pipelines.sh $ARGS" > $log_dir/aurora_pipeline_command
+if [[ $PROJECT != "alps" ]]; then
+  echo "Invalid Project Selected"
+  exit 1
+fi
+
 if [[ $PIPELINE == "smoke" || $PIPELINE == "extended" || $PIPELINE == "unstable" || $PIPELINE == "pgui-smoke" || $PIPELINE == "omni" || $PIPELINE == "pgui-extended" ]]; then
   db=$(get_db $PIPELINE $BRANCH)
   if [[ -e $db ]]; then

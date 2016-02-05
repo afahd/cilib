@@ -19,7 +19,7 @@ DEST_SCRIPT_DIR=0
 echo "run_pipelines.sh $@"
 ARGS=$@
 # read the options
-TEMP=`getopt -o W:l:P:b:i:\r:Kh --long WORKSPACE:,buildid:,pipeline:,branch:,test_iterations:,base_script_dir:,cost_pipeline_code:,keep-running,\help -n 'nirvana_run_pipelines.sh' -- "$@"`
+TEMP=`getopt -o W:p:l:P:b:s:n:e:i:\r:Kh --long WORKSPACE:,buildid:,existing_commit_hash:,project:,num_instances:,script:,pipeline:,branch:,test_iterations:,base_script_dir:,cost_pipeline_code:,keep-running,\help -n 'nirvana_run_pipelines.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # extract options and their arguments into variables.
@@ -28,9 +28,13 @@ while true ; do
     -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
     -l|--buildid) USER_BUILD_ID=$2 ; shift 2 ;;
     -P|--pipeline) PIPELINE=$2 ; shift 2 ;;
+    -p|--project) PROJECT=$2 ; shift 2 ;;
     -b|--branch) BRANCH=$2 ; shift 2 ;;
+    -s|--script) USER_SCRIPT=$2 ; shift 2 ;;
     -i|--test_iterations) TEST_ITERATIONS=$2 ; shift 2 ;;
     -r|--base_script_dir) BASE_SCRIPT_DIR=$2 ; shift 2;;
+    -n|--num_instances) NUM_INSTANCES=$2 ; shift 2 ;;
+    -e|--existing_commit_hash) EXISTING_COMMIT_HASH=$2 ; shift 2 ;;
     --cost_pipeline_code) COST_CODE="$2" ; shift 2 ;;
     -K|--keep-running) KEEP_RUNNING="-K"; shift ;;
     -h|--help)
@@ -54,7 +58,7 @@ fi
 BUILD_ID=${emailid}-${USER_BUILD_ID}
 MOD_BUILD_ID=`echo ${BUILD_ID} | sed 's/bld/run/'`
 
-if [[ $PIPELINE != "nirvana" ]]; then
+if [[ $PIPELINE != "nirvana" && $PIPELINE != "DEBUG-TEST" ]]; then
   echo "Invalid Pipeline Specified"
   exit 1
 fi
@@ -65,12 +69,21 @@ log_dir=${script_dir}/logs
 untar_log_dir=${script_dir}/untar_logs
 
 echo "nirvana_run_pipelines.sh $ARGS" > $log_dir/aurora_pipeline_command
-db=$(get_db $PIPELINE $BRANCH)
-if [[ -e $db ]]; then
-  echo "database selected = $db"
+
+# Incase validate test stability is triggered
+if [[ $PIPELINE == "DEBUG-TEST" ]]; then
+  #Set the number of iterations
+  TEST_ITERATIONS=$(set_iteration_count $PIPELINE $TEST_ITERATIONS)
+  #Set the number of instances
+  NUM_INSTANCES=$(set_instance_count $PIPELINE $NUM_INSTANCES)
 else
-  echo "$db does not exist!"
-  exit 1
+  db=$(get_db $PIPELINE $BRANCH)
+  if [[ -e $db ]]; then
+    echo "database selected = $db"
+  else
+    echo "$db does not exist!"
+    exit 1
+  fi
 fi
 
 function run_test() {
@@ -80,7 +93,13 @@ function run_test() {
   1)
     # Generate scripts to be used by "aurora run"
     echo "Going to generate test scripts"
-    cp ${BASE_SCRIPT_DIR}/$BASE_SCRIPT ${script_dir}/${BASE_SCRIPT}-1
+    if [[ $PIPELINE == "DEBUG-TEST" ]]; then
+      echo "pipeline is debug-test"
+      gen_user_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -n ${NUM_INSTANCES} -d ${script_dir} --base_script_dir ${BASE_SCRIPT_DIR} -s ${USER_SCRIPT}
+    else
+      echo "Copying base test"
+      cp ${BASE_SCRIPT_DIR}/$BASE_SCRIPT ${script_dir}/${BASE_SCRIPT}-1
+    fi
     ;;
 
   2)

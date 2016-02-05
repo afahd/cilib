@@ -15,6 +15,7 @@ Required Arguments:
 Optional Arguments:
   -i, --test_iterations     Number of iterations, script needs to run
                             Default is '1'.
+  -p, --project             Specify the name of the project
   -f, --first_test          Starting ctest number
                             Default is to start from '1'.
   -t, --step_size           Number of tests to run as part of one script.

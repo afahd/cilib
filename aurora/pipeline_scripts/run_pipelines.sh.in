@@ -17,13 +17,14 @@ source gc_helpers.sh
 
 PIPELINE_ARGUMENTS="$@"
 # read the options
-TEMP=`getopt -o Q:R:E:W:l:P:b:i:f:t:u:s:n:\r:d:IFKc:e:a:h --long major:,preemptible,minor_start:,minor_end:,WORKSPACE:,buildid:,pipeline:,branch:,test_iterations:,first_test:,step_size:,update_db_failure_limit:,script:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update,keep-running,local_commit:,existing_commit_hash:,alps-path:,\help -n 'run_pipelines.sh' -- "$@"`
+TEMP=`getopt -o Q:R:E:W:l:P:b:i:f:t:p:u:s:n:\r:d:IFKc:e:a:h --long major:,project:,preemptible,minor_start:,minor_end:,WORKSPACE:,buildid:,pipeline:,branch:,test_iterations:,first_test:,step_size:,update_db_failure_limit:,script:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update,keep-running,local_commit:,existing_commit_hash:,alps-path:,\help -n 'run_pipelines.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # extract options and their arguments into variables.
 while true ; do
   case "$1" in
     -P|--pipeline) PIPELINE=$2 ; shift 2 ;;
+    -p|--project) PROJECT=$2 ; shift 2 ;;
     -h|--help)
       show_run_tests_help
       exit 0
@@ -49,7 +50,7 @@ if [[ $PIPELINE == "coral-smoke" ]]; then
 elif [[ $PIPELINE =~ "corelib-"+ ]]; then
   BASE_SCRIPT_DIR="@CMAKE_CURRENT_BINARY_DIR@/corelib/"
   corelib_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" --cost_pipeline_code "$cost_pipeline_code" $PIPELINE_ARGUMENTS
-elif [[ $PIPELINE == "nirvana" ]]; then
+elif [[ $PIPELINE == "nirvana" || $PROJECT == "nirvana" ]]; then
   BASE_SCRIPT_DIR="@CMAKE_CURRENT_BINARY_DIR@/nirvana/"
   nirvana_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" --cost_pipeline_code "$cost_pipeline_code" $PIPELINE_ARGUMENTS
 elif [[ $PIPELINE == "networking-plumgrid" ]]; then
