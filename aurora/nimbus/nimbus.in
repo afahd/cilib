@@ -201,7 +201,8 @@ if [[ "$TEST_CLEANUP" = "1" ]]; then
   test_cleanup
 fi
 
-aurora_run_command="aurora run -l ${BUILD_NAME}"
+#cost code for for falcon is 14, ref: pl_settings.conf
+aurora_run_command="aurora run -l ${BUILD_NAME} --cost_pipeline_code 14"
 if [[ ! -z $COMMIT ]]; then
   aurora_run_command+=" -c $COMMIT"
 fi
