@@ -230,10 +230,16 @@ function build_image() {
     ;;
 
   10)
-    # Run Step3: Fetch all repos
-    echo "gitsync Step3: Fetching all the repos (${PROJECT_LIST[@]})"
-    for p in ${PROJECT_LIST[@]}; do
-      translated_branch=$(translate_branch "$BRANCH" "$PROJECT" "$p" "${WORKSPACE}/builder/branch_translations")
+    # Run Step3: Fetch repos to be cloned based on the component
+    # Default branch according to branch translations in the builder
+    default_branch=$(translate_branch "${BRANCH}" "${PROJECT}" "default" "~/work/builder/branch_translations")
+    component=${BRANCH_TO_COMPONENT[${default_branch}]}
+    echo "The default branch for ${PROJECT} is ${default_branch} with component ${component}"
+    # Returns a list of projects to be cloned based on the component provided
+    project_list=$(projects_to_clone "${component}")
+    echo "gitsync Step3: Fetching repos (${project_list[@]})"
+    for p in ${project_list[@]}; do
+      translated_branch=$(translate_branch "${BRANCH}" "${PROJECT}" "${p}" "${WORKSPACE}/builder/branch_translations")
       retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh all_repos $p $translated_branch $GIT_TAG"
     done
     #Delete the cloned builder files
@@ -279,7 +285,7 @@ function build_image() {
     ;;
 
   17)
-    #Polling for corelib buil step
+    #Polling for corelib build step
     echo "Polling for corelib build"
     tryexec run_poll_cmd ${INSTANCE_IP} "corelib_build.sh" "/tmp/corelib_build.log" "1"
     retryexec download ${INSTANCE_IP} "/tmp/corelib_build.log" "${WORKSPACE}/logs/"

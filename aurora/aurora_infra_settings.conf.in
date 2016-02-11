@@ -41,3 +41,32 @@ declare -A INIT_SCRIPT=(
 ['falcon']="@CMAKE_BINARY_DIR@/aurora/init_scripts/falcon_build.sh"
 ['middle-earth']="@CMAKE_BINARY_DIR@/aurora/init_scripts/run_middleearth_init.sh"
 )
+
+# Describe the possible mappings for branch->component translations
+declare -A BRANCH_TO_COMPONENT=(
+['master']=unstable
+['stable_4_0']=everest
+['stable_4_1']=fuji-414
+['stable_4_1_1']=fuji-sushi
+['stable_4_1_2']=fuji
+['stable_4_1_2-amex']=fuji-sashimi
+['stable_4_1_2-ericsson']=fuji-nigiri
+['stable_4_1_3']=fuji-413
+['stable_4_1_3-meli']=fuji-413-chirashi
+['stable_4_1_3-ntt']=fuji-413-maki
+['stable_4_3']=godwin-430
+['stable_5_0']=halfdome-500
+)
+
+COMMON_PROJECTS=("pkg" "pg_cli" "pg_ui" "sal" "alps" "python-plumgridlib" "coral" "corelib")
+
+declare -A COMPONENT_TO_REPO=(
+['unstable']=middle-earth,nirvana,balicek
+['fuji-413']=balicek
+['fuji-413-chirashi']=balicek
+['fuji-413-maki']=balicek
+['godwin-430']=balicek
+['halfdome-500']=balicek,middle-earth
+)
+
+COMMON_CMAKE_PROJECTS=("pkg" "pg_cli" "pg_ui" "sal" "alps" "python-plumgridlib" "corelib" "balicek")

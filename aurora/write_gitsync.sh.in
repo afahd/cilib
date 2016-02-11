@@ -16,28 +16,13 @@ test_against=""
 
 APT_COMPONENT=""
 
-# Describe the possible mappings for branch->component translations
-declare -A branch_to_component
-branch_to_component['master']='unstable'
-branch_to_component['stable_4_0']='everest'
-branch_to_component['stable_4_1']='fuji-414'
-branch_to_component['stable_4_1_1']='fuji-sushi'
-branch_to_component['stable_4_1_2']='fuji'
-branch_to_component['stable_4_1_2-amex']='fuji-sashimi'
-branch_to_component['stable_4_1_2-ericsson']='fuji-nigiri'
-branch_to_component['stable_4_1_3']='fuji-413'
-branch_to_component['stable_4_1_3-meli']='fuji-413-chirashi'
-branch_to_component['stable_4_1_3-ntt']='fuji-413-maki'
-branch_to_component['stable_4_3']='godwin-430'
-branch_to_component['stable_5_0']='halfdome-500'
-
 
 # Convert the branch name to respective component name
 default_branch=$(translate_branch "$branch" "$project" "default" "${branch_translations_path}")
 
-for key in ${!branch_to_component[@]}; do
+for key in ${!BRANCH_TO_COMPONENT[@]}; do
   if [[ "${key}" == ${default_branch} ]]; then
-    APT_COMPONENT=${branch_to_component[$key]}
+    APT_COMPONENT=${BRANCH_TO_COMPONENT[$key]}
     break
   fi
 done
@@ -117,25 +102,23 @@ modify_git_config "\${repo}" "${gerritid}" "${git_script}"
 cat >> ${git_script} <<DELIM__
 branch=\$3
 git_tag=\$4
-if [[ \$repo == "balicek" && ( $APT_COMPONENT == "unstable" || $APT_COMPONENT == "fuji-413" || $APT_COMPONENT == "fuji-413-chirashi" || $APT_COMPONENT == "fuji-413-maki" || $APT_COMPONENT == "fuji-414" || $APT_COMPONENT == "godwin-430" || $APT_COMPONENT == "halfdome-500" ) ]] || [[ ( \$repo == "nirvana" || \$repo == "middle-earth" ) && $APT_COMPONENT == "unstable" ]] || [[ \$repo != "nirvana" && \$repo != "balicek" && \$repo != "middle-earth" ]]; then
-  echo "Extracting and rebuilding \${repo} for branch \${branch}"
-  if [[ -d /home/plumgrid/work/\${repo}/ ]]; then
-    cd /home/plumgrid/work/\${repo}
-    git fetch
-    git reset --hard origin/\${branch}
-    git checkout \${branch}
-    git reset --hard origin/\${branch}
-  else
-    mkdir /home/plumgrid/work/\${repo}/
-    cd /home/plumgrid/work/\${repo}
-    git clone ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/\${repo} -- /home/plumgrid/work/\${repo}/
-    git checkout \${branch}
-  fi
-
-  # Checkout to a given tag
-  echo "Checkout out tag \${git_tag} for \${repo}"
-  git checkout \${git_tag} || retval=$?
+echo "Extracting and rebuilding \${repo} for branch \${branch}"
+if [[ -d /home/plumgrid/work/\${repo}/ ]]; then
+  cd /home/plumgrid/work/\${repo}
+  git fetch
+  git reset --hard origin/\${branch}
+  git checkout \${branch}
+  git reset --hard origin/\${branch}
+else
+  mkdir /home/plumgrid/work/\${repo}/
+  cd /home/plumgrid/work/\${repo}
+  git clone ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/\${repo} -- /home/plumgrid/work/\${repo}/
+  git checkout \${branch}
 fi
+
+# Checkout to a given tag
+echo "Checkout out tag \${git_tag} for \${repo}"
+git checkout \${git_tag} || retval=$?
     ;;
   iovisor)
 DELIM__
@@ -190,19 +173,18 @@ sed -i "/export APT_REPO_HOST/ c\export APT_REPO_HOST=127.0.0.1 && export APT_CO
   cmake_repos)
 DELIM__
 
-for p in ${PROJECT_LIST[@]}; do
+
+for p in ${COMMON_CMAKE_PROJECTS[@]}; do
   # Coral does not use CMake to build, hence skipping cmake.
-  if [[ $p == "coral" || ( $p == "balicek" && $APT_COMPONENT != "unstable" && $APT_COMPONENT != "fuji-413" && $APT_COMPONENT != "fuji-413-chirashi" && $APT_COMPONENT != "fuji-413-maki" && $APT_COMPONENT != "fuji-414" && $APT_COMPONENT != "godwin-430" && $APT_COMPONENT != "halfdome-500" ) || $p == "nirvana" || $p == "middle-earth" ]]; then
-    echo "Skipping cmake step. project=$p and APT_COMPONNET=$APT_COMPONENT"
-  else
-    cat >> ${git_script} <<DELIM__
-mkdir -p /home/plumgrid/work/${p}/build
-cd /home/plumgrid/work/${p}/build
-export APT_COMPONENT=${APT_COMPONENT}
-export PATH="/usr/lib/ccache/:\${PATH}"
-cmake ..
+cat >> ${git_script} <<DELIM__
+if [[ -d /home/plumgrid/work/${p}/ ]]; then
+  mkdir -p /home/plumgrid/work/${p}/build
+  cd /home/plumgrid/work/${p}/build
+  export APT_COMPONENT=${APT_COMPONENT}
+  export PATH="/usr/lib/ccache/:\${PATH}"
+  cmake ..
+fi
 DELIM__
-  fi
 done
 
 cat >> ${git_script} <<DELIM__

@@ -1331,6 +1331,23 @@ function repository_to_abbrev() {
   return 0
 }
 # *****************************************************************************
+# Function: projects_to_clone
+# Purpose : returns a list of projects to be cloned based on the component provided.
+# Usage   : projects_to_clone <component>
+# *****************************************************************************
+function projects_to_clone() {
+
+  local component=$1
+  local repos_array=${COMPONENT_TO_REPO[${component}]}
+  if [[ -n ${repos_array} ]]; then
+    IFS=',' read -a repos_list <<< "${repos_array}"
+    # Appending component specific projects to common projects list
+    COMMON_PROJECTS+=( "${repos_list[@]}" )
+  fi
+  echo "${COMMON_PROJECTS[@]}"
+
+}
+# *****************************************************************************
 # Function: translate_branch
 # Purpose : translate the given branch
 # Usage   : translate_branch <project> <branch map>
