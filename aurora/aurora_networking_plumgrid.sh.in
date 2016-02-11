@@ -126,7 +126,7 @@ function build_image() {
     tryexec exec_gcloud_cmd instances create "${INSTANCE_NAME}" \
       --machine-type "$MACHINE_TYPE" --network "$NETWORK" --maintenance-policy \
       "MIGRATE" --scopes "$SCOPES" -q \
-      --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip" \
+      --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" --no-address --tags "no-ip" \
       --metadata-from-file sshKeys=$key_file
     rm $key_file
     ;;
@@ -141,6 +141,8 @@ function build_image() {
     echo "Changing MTU on the instance"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo ifconfig eth0 mtu 1400"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo apt-get install git -y"
+    tryexec run_cmd_gci ${INSTANCE_IP} "sudo apt-get update"
+    tryexec run_cmd_gci ${INSTANCE_IP} "sudo apt-get install python-pip -y"
     tryexec run_cmd_gci ${INSTANCE_IP} "ssh-keyscan -t rsa -p ${GERRIT_PORT} -H ${GERRIT_IP} >> ~/.ssh/known_hosts"
     tryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "git clone ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/networking-plumgrid.git ~/work/networking-plumgrid"
     ;;
