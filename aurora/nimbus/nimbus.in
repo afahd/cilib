@@ -413,7 +413,7 @@ function launch_middleware(){
 
   #Creating Middleware Instance
   tryexec exec_gcloud_cmd instances create "${INSTANCE_NAME}" -q \
-  --image "mw-image" --machine-type "n1-standard-2" --network "$NETWORK" \
+  --image "mw-centos" --machine-type "n1-standard-2" --network "$NETWORK" \
   --metadata-from-file sshKeys="$state_dir/middleware_keys/tmp.key"
 
   export middleware_ip=$(get_instance_ip ${INSTANCE_NAME})
@@ -421,7 +421,7 @@ function launch_middleware(){
   echo " ===MIDDLEWARE VM LAUNCHED with IP:${middleware_ip}===" >> $WORKSPACE/logs/nimbus.log
 }
 
-function install_middleware_deb(){
+function install_middleware_rpm(){
   # Create a script that will run on the workload vm
   # It will copy the MW deb to MW vm and then install it.
   mw_install_script_path=$(mktemp ${WORKSPACE}/mw-install-XXXXX.sh)
@@ -429,19 +429,14 @@ function install_middleware_deb(){
   cat > $mw_install_script_path <<DELIM__
 #!/bin/bash
 set -x
-echo "removing nginx symlinks"
-ssh -o StrictHostKeyChecking=no plumgrid@$middleware_ip "sudo rm -f /etc/nginx/sites-enabled/elk*"
-echo "removing stale nginx confs"
-ssh -o StrictHostKeyChecking=no plumgrid@$middleware_ip "sudo rm -f /etc/nginx/sites-available/elk*"
-echo "Copy MW deb to VM"
-scp -o StrictHostKeyChecking=no /home/plumgrid/work/middle-earth/build/plumgrid-middleware*.deb plumgrid@$middleware_ip:
-echo "Middleware deb copied to VM"
-echo "stop middleware service"
-ssh -o StrictHostKeyChecking=no plumgrid@$middleware_ip "sudo service plumgrid-middleware stop"
-echo "force install deb pkg"
-ssh -o StrictHostKeyChecking=no plumgrid@$middleware_ip "sudo dpkg -i --force-all /home/plumgrid/plumgrid-middleware*.deb"
+echo "Starting nginx service"
+ssh -o StrictHostKeyChecking=no plumgrid@$middleware_ip "sudo systemctl start nginx"
+echo "Copy MW rpm to VM"
+scp -o StrictHostKeyChecking=no /home/plumgrid/work/middle-earth/build/plumgrid-middleware*.rpm plumgrid@$middleware_ip:
+echo "Install rpm pkg"
+ssh -o StrictHostKeyChecking=no plumgrid@$middleware_ip "sudo yum install /home/plumgrid/plumgrid-middleware*.rpm -y"
 echo "start middleware service"
-ssh -o StrictHostKeyChecking=no  plumgrid@$middleware_ip "sudo service plumgrid-middleware start"
+ssh -o StrictHostKeyChecking=no plumgrid@$middleware_ip "sudo systemctl start plumgrid-middleware"
 DELIM__
 
   scp -o StrictHostKeyChecking=no $mw_install_script_path $username@$workload:/tmp/. >& /tmp/mw_install_script.log
@@ -544,8 +539,8 @@ function run_step(){
 
     #Install latest MW deb on the MW VM
     if [[ $APEX = "1" ]]; then
-      echo "Installing middleware deb" >> $WORKSPACE/logs/nimbus.log
-      install_middleware_deb
+      echo "Installing middleware rpm" >> $WORKSPACE/logs/nimbus.log
+      install_middleware_rpm
     fi
     ;;
 

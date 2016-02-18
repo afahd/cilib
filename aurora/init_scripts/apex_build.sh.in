@@ -16,6 +16,6 @@ tryexec mkdir -p build
 tryexec cd build
 echo "Running cmake"
 tryexec cmake ..
-echo "Making Middleware Debian"
-tryexec make deb-middleware
-echo "Middleware debian built"
+echo "Making Middleware rpm"
+tryexec make rpm-middleware
+echo "Middleware debian rpm"
