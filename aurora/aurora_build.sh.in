@@ -232,7 +232,7 @@ function build_image() {
   10)
     # Run Step3: Fetch repos to be cloned based on the component
     # Default branch according to branch translations in the builder
-    default_branch=$(translate_branch "${BRANCH}" "${PROJECT}" "default" "~/work/builder/branch_translations")
+    default_branch=$(translate_branch "${BRANCH}" "${PROJECT}" "default" "${WORKSPACE}/builder/branch_translations")
     component=${BRANCH_TO_COMPONENT[${default_branch}]}
     echo "The default branch for ${PROJECT} is ${default_branch} with component ${component}"
     # Returns a list of projects to be cloned based on the component provided
