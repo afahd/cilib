@@ -238,7 +238,7 @@ EOD
 }
 
 for i in {1..$NUM}; do
-  $aurora_run_command -t ${TAG}director >& $local_log_file.dir\$i.log &
+  $aurora_run_command -d 100GB -t ${TAG}director >& $local_log_file.dir\$i.log &
 done
 $aurora_run_command -t ${TAG}edge >& $local_log_file.edge1.log &
 $aurora_run_command -t ${TAG}workload >& $local_log_file.workload.log &
