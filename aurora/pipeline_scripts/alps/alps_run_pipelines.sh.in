@@ -98,7 +98,7 @@ if [[ $PIPELINE == "smoke" || $PIPELINE == "extended" || $PIPELINE == "unstable"
     echo "$db does not exist!"
     exit 1
   fi
-elif [[ $PIPELINE != "DEBUG-TEST" && $PIPELINE != "automaton-longevity" && $PIPELINE != "automaton" && $PIPELINE != "longevity" && $PIPELINE != "coral-smoke" && $PIPELINE != "falcon" ]]; then
+elif [[ $PIPELINE != "DEBUG-TEST" && $PIPELINE != "automaton-longevity" && $PIPELINE != "automaton" && $PIPELINE != "longevity" && $PIPELINE != "coral-smoke" && $PIPELINE != "falcon" && $PIPELINE != "falcon-longevity" ]]; then
   echo "Invalid Pipeline Specified"
   exit 1
 fi
@@ -118,7 +118,7 @@ function run_test() {
     if [[ $PIPELINE == "DEBUG-TEST" ]]; then
       echo "pipeline is debug-test"
       gen_user_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -n ${NUM_INSTANCES} -d ${script_dir} --base_script_dir ${BASE_SCRIPT_DIR} -s ${USER_SCRIPT}
-    elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" || $PIPELINE == "longevity" || $PIPELINE == "falcon" ]]; then
+    elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" || $PIPELINE == "longevity" || $PIPELINE == "falcon" || $PIPELINE == "falcon-longevity" ]]; then
       gen_automaton_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -d ${script_dir} -r $BASE_SCRIPT_DIR -p $PIPELINE -n ${NUM_INSTANCES} -l ${USER_BUILD_ID}
       MACHINE_TYPE="n1-standard-16"
     else

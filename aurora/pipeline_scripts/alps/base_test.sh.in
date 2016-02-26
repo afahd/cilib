@@ -65,10 +65,16 @@ elif [[ "$PIPELINE" == "unstable" || "$PIPELINE" == "DEBUG-TEST" ]]; then
   export BUILD_NIGHTLY=1
   unset EXCLUDE_UNSTABLE
   unset EXCLUDE_NON_NIGHTLY
-elif [[ "$PIPELINE" == "falcon" ]]; then
-  test_tag=falcon
+elif [[ "$PIPELINE" == "falcon" || "$PIPELINE" == "falcon-longevity" ]]; then
+
+  if [[ "$PIPELINE" == "falcon-longevity" ]]; then
+    test_tag=falcon_longevity
+  else
+    test_tag=falcon
+  fi
+
   BUILD_ID=
-  TOTAL_CTESTS=`ctest -N -L ^type:falcon | grep Test.*#.* | wc -l`
+  TOTAL_CTESTS=`ctest -N -L ^type:$test_tag$ | grep Test.*#.* | wc -l`
   echo "[TOTAL_CTESTS: $TOTAL_CTESTS]"
   echo "[CTEST_ST: $CTEST_ST]"
 
@@ -101,7 +107,7 @@ if [[ "$RUN_TESTS" -eq "0" ]]; then
   if [[ "x$CTEST_ED" == "x" ]] ; then
     if [[ "$PIPELINE" == "unstable" ]]; then
       CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "UNSTABLE" | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
-    elif [[ "$PIPELINE" == "automaton" || "$PIPELINE" == "automaton-longevity" || "$PIPELINE" == "longevity" || "$PIPELINE" == "falcon" ]]; then
+    elif [[ "$PIPELINE" == "automaton" || "$PIPELINE" == "automaton-longevity" || "$PIPELINE" == "longevity" || "$PIPELINE" == "falcon" || "$PIPELINE" == "falcon-longevity" ]]; then
       CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "Test #" | wc -l`
     else
       CTEST_ED=`ctest -N -L ^type:$test_tag$ | grep "Test " | tail -1 | cut -d ' ' -f 4  | tr -d ':' | tr -d '#'`
@@ -122,7 +128,7 @@ if [[ "$RUN_TESTS" -eq "0" ]]; then
         # Dtermine the test name from the test index
         if [[ "$PIPELINE" == "unstable" ]]; then
           test_name=$(ctest -N  -L ^type:$test_tag$ | grep "UNSTABLE" | grep "Test.*#$testno:" | cut -d ':' -f 2 | tr -d ' ')
-        elif [[ "$PIPELINE" == "falcon" || "$PIPELINE" == "automaton" || "$PIPELINE" == "automaton-longevity" || "$PIPELINE" == "longevity" ]]; then
+        elif [[ "$PIPELINE" == "falcon" || "$PIPELINE" == "automaton" || "$PIPELINE" == "automaton-longevity" || "$PIPELINE" == "longevity" || "$PIPELINE" == "falcon-longevity" ]]; then
           test_name=$(ctest -N  -L ^type:$test_tag$ | grep "Test #" | cut -d " " -f 5 | head -n "$testno" | tail -n 1)
         elif [[ "$PIPELINE" == "DEBUG-TEST" ]]; then
           test_name=${USER_TEST[$testno]}
@@ -178,7 +184,7 @@ if [[ "$RUN_TESTS" -eq "0" ]]; then
     done
 
     # Falcon needs a special cleanup because it creates further instances
-    if [[ "$test_tag" == "falcon" && "$RUN_TESTS" -eq "0" ]]; then
+    if [[ ( "$test_tag" == "falcon" || "$test_tag" == "falcon_longevity" ) && "$RUN_TESTS" -eq "0" ]]; then
       echo "No more tests to run, cleaning up falcon instances"
       /opt/pg/systest/generic_remote/falcon/falcon_local_cleanup.sh
     fi
