@@ -1,5 +1,11 @@
 #!/bin/bash -e
 source cost_utils.sh
+
+if [[ $1 == "help" ]]; then
+  show_help
+  exit 1
+fi
+
 NUM_DAYS=1
 DURATION="day"
 USER_DURATION=""
@@ -34,10 +40,7 @@ if [[ -n "$USER_DURATION" && -n "$USER_DATE" ]]; then
   echo "Incorrect usage of arguments! -T and -d cannot be used together"
   exit 1
 fi
-# if [[ "$PIPELINE_NAME" == "all" && "$USER_NAME" == "all" ]]; then
-#   echo "Fatal combination. Exiting Script !!!"
-#   # exit 1
-# fi
+
 if [[ -n "$USER_DURATION" ]]; then
   DURATION="$USER_DURATION"
 fi

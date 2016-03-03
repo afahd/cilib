@@ -30,7 +30,8 @@ echo "running cost command"
 aurora cost -U all -p all -T $DURATION -W $WORKSPACE
 # send out email to aurora.internal
 echo "Hi All," >> ${WORKSPACE}email_template
-echo "The cost for aurora instances for the past $DURATION is as follows:" >> ${WORKSPACE}email_template
+echo "The total cost for aurora instances for the past $DURATION was about USD:$(cat ${WORKSPACE}total_cost_report)." >> ${WORKSPACE}email_template
+echo "The breakdown of the cost is as follows:" >> ${WORKSPACE}email_template
 echo "" >> ${WORKSPACE}email_template
 cat ${WORKSPACE}sorted_cost_final_report >> ${WORKSPACE}email_template
 

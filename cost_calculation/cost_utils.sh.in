@@ -237,7 +237,7 @@ function extrat_for_all_pipelines() {
     while IFS=":" read -r instance_type time_sec; do
       rate=${instance_rates[$instance_type]}
       time_total=$(echo "${time_total}+${time_sec}" | bc -l )
-      h=$(($time_sec/3600))
+      h=$(echo "$time_sec/3600" | bc -l )
       ttime=$(convertsecs $time_total)
       inst_cost=$(echo "$h*$rate" | bc -l)
       total_cost=$(echo "$total_cost+$inst_cost" | bc -l )
@@ -263,6 +263,7 @@ function extract_for_all_users() {
   local workspace=$3
   local user_all=$4
   local PIPELINE_CODE=""
+  overall_cost=0
   grep Vmimage $report_file >> ${workspace}all_users_usage
   user_list=$(get_users_list ${workspace}all_users_usage $workspace)
   while read name; do
@@ -272,14 +273,19 @@ function extract_for_all_users() {
     local time_total=0
     while IFS=":" read -r instance_type time_sec; do
       rate=${instance_rates[$instance_type]}
+      if [[ ${rate} == "" ]]; then
+        rate=0
+      fi
       time_total=$(echo "${time_total}+${time_sec}" | bc -l )
-      h=$(($time_sec/3600))
+      h=$(echo "$time_sec/3600" | bc -l )
       ttime=$(convertsecs $time_total)
-      inst_cost=$(echo "$h*$rate" | bc -l)
+      inst_cost=$(echo "$h*$rate" | bc -l )
       total_cost=$(echo "${total_cost}+${inst_cost}" | bc -l )
     done < $total_time
     printf "$format" "$total_cost" "$ttime" "$name" >> ${WORKSPACE}xcost_final_report
+    overall_cost=$(echo ${overall_cost}+${total_cost} | bc -l )
   done < $user_list
+  printf "$format" "$overall_cost" >> ${WORKSPACE}total_cost_report
   cat ${WORKSPACE}xcost_final_report | sort -k1 -n -r >> ${WORKSPACE}cost_final_report
 
   rm ${workspace}tmp*
