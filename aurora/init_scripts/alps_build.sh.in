@@ -17,8 +17,8 @@ cd ~/work/gcloud/build/aurora/init_scripts
 cd ~/work/corelib/build
 make -j 4 install
 cd ~/work/alps/build
-return_value=0
-for i in `seq 1 5`; do
+for i in `seq 1 4`; do
+  return_value=0
   make -k -j 4 install || return_value=$?
   [[ $return_value -eq 0 ]] && break
 done
