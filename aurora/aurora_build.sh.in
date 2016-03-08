@@ -299,10 +299,8 @@ function build_image() {
 
   19)
     # Checks the elfsurgeon files
-    if [[ "$PROJECT" == "alps" ]];then
-      echo "make alps and check elfsurgeon files"
-      tryexec check_elfsurgeon ${INSTANCE_IP} "/tmp/check_elfsurgeon.log"
-    fi
+    echo "make alps and check elfsurgeon files"
+    tryexec check_elfsurgeon ${INSTANCE_IP} "/tmp/check_elfsurgeon.log"
     ;;
 
   20)
