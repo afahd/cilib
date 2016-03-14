@@ -6,6 +6,7 @@ PIPELINE=$1
 BUILD_ID=$2
 PROJECT=alps
 BRANCH=master
+FALCON_SCRIPT="${WORKSPACE}/gcloud/build/aurora/init_scripts/falcon_build.sh"
 
 ## if the build is specified it would be used, and if buildid file exists, that build id would be used,
 ## otherwise  aurora build would be run
@@ -18,12 +19,15 @@ else
   tag=$(uuidgen | awk '{print substr($0,0,5)}')
   TAG="atc${tag}"
   echo "No file found with build id or build id specified creating new build with tag $TAG"
-  aurora build -p ${PROJECT} -b ${BRANCH} --tag ${TAG}
+  aurora build -p ${PROJECT} -b ${BRANCH} --tag ${TAG} --script ${FALCON_SCRIPT}
   bld_retval=$?
   if [[ $bld_retval -ne 0 ]]; then
     echo "aurora build failed"
     exit $bld_retval
   fi
+  #Reading teh newly created BUILD_ID
+  IFS="=" read -r id BUILD_ID<${BUILDID_FILE}
+
 fi
 
 echo "$BUILD_ID"

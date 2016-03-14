@@ -9,7 +9,7 @@ tag=$(uuidgen | awk '{print substr($0,0,5)}')
 TAG="atc${tag}"
 echo "Building aurora on Google Cloud"
 echo "Creating new build with tag $TAG"
-aurora build -p ${PROJECT} -b ${BRANCH} --tag ${TAG}
+aurora build -p ${PROJECT} -b ${BRANCH} --tag ${TAG} --script "$WORKSPACE/gcloud/build/aurora/init_scripts/falcon_build.sh"
 bld_retval=$?
 if [[ $bld_retval -eq 0 ]]; then
   IFS="=" read -r id BUILD_ID<${BUILDID_FILE}
