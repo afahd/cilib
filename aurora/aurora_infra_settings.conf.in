@@ -31,6 +31,7 @@ declare -A BR_CODE=(
 ['stable_4_1_3-ntt']="9"
 ['stable_4_3']="10"
 ['stable_5_0']="11"
+['stable_5_0_0']="12"
 )
 
 declare -A INIT_SCRIPT=(
@@ -56,6 +57,7 @@ declare -A BRANCH_TO_COMPONENT=(
 ['stable_4_1_3-ntt']=fuji-413-maki
 ['stable_4_3']=godwin-430
 ['stable_5_0']=halfdome-500
+['stable_5_0_0']=halfdome-500
 )
 
 COMMON_PROJECTS=("pkg" "pg_cli" "pg_ui" "sal" "alps" "python-plumgridlib" "coral" "corelib")
