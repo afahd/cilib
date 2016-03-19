@@ -56,7 +56,7 @@ declare -A BRANCH_TO_COMPONENT=(
 ['stable_4_1_3-meli']=fuji-413-chirashi
 ['stable_4_1_3-ntt']=fuji-413-maki
 ['stable_4_3']=godwin-430
-['stable_5_0']=halfdome-500
+['stable_5_0']=halfdome-510
 ['stable_5_0_0']=halfdome-500
 )
 
@@ -68,6 +68,7 @@ declare -A COMPONENT_TO_REPO=(
 ['fuji-413-chirashi']=balicek
 ['fuji-413-maki']=balicek
 ['godwin-430']=balicek
+['halfdome-510']=balicek,middle-earth
 ['halfdome-500']=balicek,middle-earth
 )
 
