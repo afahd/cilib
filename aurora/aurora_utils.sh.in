@@ -201,8 +201,8 @@ function list_disks() {
 # Prereq: Aurora init has been called. Aurora shutdown has been called.
 # *****************************************************************************
 function start_instances() {
-  local REGEX=".*$1.*"
-  local user_instances=$(gcloud compute instances list --regexp "${REGEX}" | grep ${emailid} | cut -d ' ' -f 1)
+  local REGEX=$(echo "$1" | tr -d '*' ).*
+  local user_instances=$(gcloud compute instances list --regexp "${emailid}-${REGEX}" | grep "^${emailid}.*" | cut -d ' ' -f 1)
 
   if [[ -z ${user_instances} ]]; then
    echo "No such instances found"
@@ -234,8 +234,8 @@ function start_instances() {
 # Prereq: Aurora init has been called.
 # *****************************************************************************
 function shutdown_instances() {
-  local REGEX=".*$1.*"
-  local user_instances=$(gcloud compute instances list --regexp "${REGEX}" | grep ${emailid} | cut -d ' ' -f 1)
+  local REGEX=$(echo "$1" | tr -d '*' ).*
+  local user_instances=$(gcloud compute instances list --regexp "${emailid}-${REGEX}" | grep "^${emailid}.*" | cut -d ' ' -f 1)
 
   if [[ -z ${user_instances} ]]; then
    echo "No such instances found"
