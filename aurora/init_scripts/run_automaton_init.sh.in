@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 sudo apt-get install parallel
+# Adding the net-10-10 nameserver entry in case it's not there
+sudo chown plumgrid:plumgrid /etc/resolv.conf
+echo "nameserver 10.10.0.1" >> /etc/resolv.conf
 #Restarting the lxc-net service
 echo "Restarting the lxc-net service"
 sudo ifconfig lxcbr0 down || true
