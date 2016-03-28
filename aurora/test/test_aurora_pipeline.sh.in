@@ -15,7 +15,7 @@ elif [[ -e ${BUILDID_FILE} ]]; then
   echo "Build id file exists, path to build id file is ${BUILDID_FILE}"
   IFS="=" read -r id BUILD_ID<${BUILDID_FILE}
 else
-  tag=$(uuidgen | cut -d '-' -f 1)
+  tag=$(uuidgen | awk '{print substr($0,0,5)}')
   TAG="atc${tag}"
   echo "No file found with build id or build id specified creating new build with tag $TAG"
   aurora build -p ${PROJECT} -b ${BRANCH} --tag ${TAG}

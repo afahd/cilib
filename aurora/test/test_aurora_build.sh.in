@@ -5,7 +5,7 @@ BUILDID_FILE=${WORKSPACE}/logs/build_id
 PROJECT=alps
 BRANCH=master
 
-tag=$(uuidgen | cut -d '-' -f 1)
+tag=$(uuidgen | awk '{print substr($0,0,5)}')
 TAG="atc${tag}"
 echo "Building aurora on Google Cloud"
 echo "Creating new build with tag $TAG"
