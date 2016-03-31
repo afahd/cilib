@@ -175,14 +175,30 @@ DELIM__
 
 
 for p in ${COMMON_CMAKE_PROJECTS[@]}; do
-  # Coral does not use CMake to build, hence skipping cmake.
 cat >> ${git_script} <<DELIM__
 if [[ -d /home/plumgrid/work/${p}/ ]]; then
-  mkdir -p /home/plumgrid/work/${p}/build
-  cd /home/plumgrid/work/${p}/build
-  export APT_COMPONENT=${APT_COMPONENT}
-  export PATH="/usr/lib/ccache/:\${PATH}"
-  cmake ..
+
+  if [[ ${p} == "pg_ui" && ${branch} == "grunt" ]]; then
+    set -x
+    sudo add-apt-repository -y ppa:chris-lea/node.js
+    sudo apt-get update
+    sudo apt-get install -y nodejs
+    pushd /home/plumgrid/work/pg_ui/devtools/
+    sudo npm install npm -g
+    npm install grunt --save-dev
+    npm install grunt-cli --save-dev
+    npm install
+    export PATH=~/work/pg_ui/devtools/node_modules/grunt-cli/bin/:$PATH
+    grunt build
+    popd
+  else
+    mkdir -p /home/plumgrid/work/${p}/build
+    cd /home/plumgrid/work/${p}/build
+    export APT_COMPONENT=${APT_COMPONENT}
+    export PATH="/usr/lib/ccache/:\${PATH}"
+    cmake ..
+  fi
+
 fi
 DELIM__
 done
@@ -194,4 +210,3 @@ cat >> ${git_script} <<DELIM__
     exit 1
 esac
 DELIM__
-

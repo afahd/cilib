@@ -1,7 +1,14 @@
 #!/bin/bash -e
+PROJECT=$1
+BRANCH=$2
+
+# Main code
 . /opt/pg/env/alps.bashrc
+
 cd ~/work/pg_ui/build
-make -j 4 install
+if [[ $PROJECT == "pg_ui" && $BRANCH != "grunt" ]]; then
+  make -j 4 install
+fi
 cd ~/work/sal/build
 make -j 4 install
 cd ~/work/pkg/build

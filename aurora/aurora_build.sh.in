@@ -239,8 +239,12 @@ function build_image() {
     project_list=$(projects_to_clone "${component}")
     echo "gitsync Step3: Fetching repos (${project_list[@]})"
     for p in ${project_list[@]}; do
-      translated_branch=$(translate_branch "${BRANCH}" "${PROJECT}" "${p}" "${WORKSPACE}/builder/branch_translations")
-      retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh all_repos $p $translated_branch $GIT_TAG"
+      if [[ ${p} == ${PROJECT} ]]; then
+        retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh all_repos $p $BRANCH $GIT_TAG"
+      else
+        translated_branch=$(translate_branch "${BRANCH}" "${PROJECT}" "${p}" "${WORKSPACE}/builder/branch_translations")
+        retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh all_repos $p $translated_branch $GIT_TAG"
+      fi
     done
     #Delete the cloned builder files
     rm -rf ${WORKSPACE}/builder
@@ -318,7 +322,7 @@ function build_image() {
   22)
     echo "Running the build-init script"
     retryexec upload ${INSTANCE_IP} ${BUILD_SCRIPT} /tmp/build-init.sh
-    tryexec run_bg_cmd ${INSTANCE_IP} "/tmp/build-init.sh" "/bin/bash /tmp/build-init.sh" "/tmp/build-init.log"
+    tryexec run_bg_cmd ${INSTANCE_IP} "/tmp/build-init.sh" "/bin/bash /tmp/build-init.sh $PROJECT $BRANCH" "/tmp/build-init.log"
     ;;
 
   23)
