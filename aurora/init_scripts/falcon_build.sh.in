@@ -1,5 +1,6 @@
 #!/bin/bash
 
+echo "Installing the parallel package"
 sudo apt-get install parallel
 #Restarting the lxc-net service
 echo "Restarting the lxc-net service"
