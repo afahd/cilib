@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 sudo apt-get install parallel
+export JCFG_GITHUB_OAUTH='d3936bad97c404516cba043e1da9bdc042b63b25'
+
 # Adding the net-10-10 nameserver entry in case it's not there
 sudo chown plumgrid:plumgrid /etc/resolv.conf
 echo "nameserver 10.10.0.1" >> /etc/resolv.conf
