@@ -8,6 +8,7 @@ configure_file(flag_passing_tests.sh.in "${CMAKE_CURRENT_BINARY_DIR}/flag_passin
 configure_file(pl_utils.sh.in "${CMAKE_CURRENT_BINARY_DIR}/pl_utils.sh" @ONLY)
 configure_file(gen_user_tests.sh.in "${CMAKE_CURRENT_BINARY_DIR}/gen_user_tests.sh" @ONLY)
 configure_file(gen_automaton_tests.sh.in "${CMAKE_CURRENT_BINARY_DIR}/gen_automaton_tests.sh" @ONLY)
+configure_file(gen_pgui_tests.sh.in "${CMAKE_CURRENT_BINARY_DIR}/gen_pgui_tests.sh" @ONLY)
 configure_file(hunt_culprit.sh.in "${CMAKE_CURRENT_BINARY_DIR}/hunt_culprit.sh" @ONLY)
 
 install_programs (/gcloud/aurora/pipeline_scripts FILES "${CMAKE_CURRENT_BINARY_DIR}/build_db.sh")
@@ -17,6 +18,7 @@ install_programs (/gcloud/aurora/pipeline_scripts FILES "${CMAKE_CURRENT_BINARY_
 install_programs (/gcloud/aurora/pipeline_scripts FILES "${CMAKE_CURRENT_BINARY_DIR}/flag_passing_tests.sh")
 install_programs (/gcloud/aurora/pipeline_scripts FILES "${CMAKE_CURRENT_BINARY_DIR}/gen_user_tests.sh")
 install_programs (/gcloud/aurora/pipeline_scripts FILES "${CMAKE_CURRENT_BINARY_DIR}/gen_automaton_tests.sh")
+install_programs (/gcloud/aurora/pipeline_scripts FILES "${CMAKE_CURRENT_BINARY_DIR}/gen_pgui_tests.sh")
 install_programs (/gcloud/aurora/pipeline_scripts FILES "${CMAKE_CURRENT_BINARY_DIR}/hunt_culprit.sh")
 install_files (/gcloud/aurora/pipeline_scripts FILES "${CMAKE_CURRENT_BINARY_DIR}/pl_help.sh")
 install_files (/gcloud/aurora/pipeline_scripts FILES "${CMAKE_CURRENT_BINARY_DIR}/pl_settings.conf")

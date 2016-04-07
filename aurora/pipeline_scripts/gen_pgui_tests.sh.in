@@ -1,0 +1,48 @@
+#!/bin/bash
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/:$PATH
+source pl_help.sh
+source pl_settings.conf
+
+TEST_ITERATIONS=1
+# read the options
+TEMP=`getopt -o b:i:r:l:p:d:n:h --long base_script:,buildid:,pipeline:,num_instances:,test_iterations:,base_script_dir:,dest_script_dir:,\help -n 'gen_automaton_tests.sh' -- "$@"`
+eval set -- "$TEMP"
+
+# extract options and their arguments into variables.
+while true ; do
+  case "$1" in
+    -b|--base_script)
+      BASE_SCRIPT=$2 ; shift 2 ;;
+    -p|--pipeline)
+      PIPELINE=$2 ; shift 2 ;;
+    -r|--base_script_dir)
+      BASE_SCRIPT_DIR=$2 ; shift 2;;
+    -l|--buildid)
+      BUILD_ID=$2 ; shift 2 ;;
+    -d|--dest_script_dir)
+      DEST_SCRIPT_DIR=$2 ; shift 2 ;;
+    -n|--num_instances)
+      NUM_INSTANCES=$2 ; shift 2 ;;
+    -h|--help)
+      #TODO
+      show_gen_test_scripts_help
+      exit 0 ;;
+    --) shift ; break ;;
+    *) exit 1 ;;
+  esac
+done
+echo "**** BASE_SCRIPT_DIR=$BASE_SCRIPT_DIR **** "
+
+
+#Iterate over the number of tests
+for test in `seq 1 $NUM_INSTANCES`; do
+    # Create target script for base
+    cp ${BASE_SCRIPT_DIR}/$BASE_SCRIPT ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
+    # replace instance_no
+    sed -i 's/instance_no=.*/instance_no='${test}'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
+    # replace PIPELINE
+    sed -i 's/PIPELINE=.*/PIPELINE='${PIPELINE}'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
+    #Replace build_id
+    sed -i 's/BUILD_ID=/BUILD_ID='${BUILD_ID}'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
+
+done

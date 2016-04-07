@@ -1,0 +1,67 @@
+#!/bin/bash
+# Script to run tests in alps director
+# and collect log from the failing tests
+# these are designed to work with aurora
+
+instance_no="1"
+PIPELINE="smoke"
+export EXPORT_FAILURES_DIR="/tmp/aurora_logs/$instance_no"
+export EXPORT_FAILURES_DIR_TMP="/tmp/log/$instance_no"
+export PATH="$PATH:/opt/pg/scripts/:/home/plumgrid/work/pg_ui/devtools/node_modules/grunt-cli/bin"
+rm -rf "${EXPORT_FAILURES_DIR}"
+rm -rf "${EXPORT_FAILURES_DIR_TMP}"
+mkdir -p "${EXPORT_FAILURES_DIR}"
+mkdir -p "${EXPORT_FAILURES_DIR_TMP}"
+mkdir -p "${EXPORT_FAILURES_DIR_TMP}/xml_logs"
+#Delete the exsisting logs
+rm -rf /opt/pg/log/*
+cd ~/work/pg_ui/devtools
+test_tag=uilocal
+export AURORA=1
+
+# Need to add a couple dirs to python path to run the tests
+sed -ri "s/import re$/import re\nsys\.path\.insert\(0, '\/opt\/pg')/" ~/work/pg_ui/guitest/gui/test_gui.py
+sed -ri "s/sys\.path\.insert\(0, '\/opt\/pg'.*/sys\.path\.insert\(0, '\/opt\/pg')\n\sys\.path\.insert\(0, '\/opt\/pg\/systest\/guitest')/" ~/work/pg_ui/guitest/gui/test_gui.py
+
+#Exporting pipeline variables
+if [[ "${PIPELINE}" == "pgui-smoke" ]]; then
+  export BUILD_GUI=1
+  export EXCLUDE_NON_GUI=1
+  export EXCLUDE_UNSTABLE=1
+elif [[ "${PIPELINE}" == "pgui-extended" ]]; then
+  export BUILD_GUI=1
+  export EXCLUDE_NON_GUI=1
+  export BUILD_NIGHTLY=1
+  export EXCLUDE_NON_NIGHTLY=1
+  export EXCLUDE_UNSTABLE=1
+else
+  echo "UNKOWN PIPELINE:  ${PIPELINE}"
+fi
+
+BUILD_ID=
+
+# Disable ipv6
+echo 1 | sudo tee /proc/sys/net/ipv6/conf/all/disable_ipv6
+
+
+tests_ran=0
+
+# use a common, but hopefully unique prefix for the log destination
+formatted_date=$(date '+%Y%m%d-%H%M%S')
+echo  "Running pipe number: ${instance_no}"
+sudo pkill rsyslogd
+sleep 0.2
+pgrep rsyslogd >> /dev/null  || $(sudo rsyslogd &)
+log_file_name="grunt_inst${instance_no}"
+
+
+# run tests for this instances
+grunt e2etest --pipes=10 --pipe=$instance_no
+result="$?"
+
+# generating this to make aurora run happy
+echo "$tests_ran" > /opt/pg/log/total_tests_inst${instance_no}
+cp -r /opt/pg/logs/* "${EXPORT_FAILURES_DIR}"
+
+echo " All Logs are in :: ${EXPORT_FAILURES_DIR}"
+echo 'All done'
