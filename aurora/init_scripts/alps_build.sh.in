@@ -6,7 +6,9 @@ BRANCH=$2
 . /opt/pg/env/alps.bashrc
 
 cd ~/work/pg_ui/build
-if [[ $PROJECT == "pg_ui" && $BRANCH != "grunt" ]]; then
+if [[ $PROJECT == "pg_ui" && $BRANCH == "grunt" ]]; then
+  echo "Skipping make install"
+else
   make -j 4 install
 fi
 cd ~/work/sal/build
