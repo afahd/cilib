@@ -52,16 +52,40 @@ echo  "Running pipe number: ${instance_no}"
 sudo pkill rsyslogd
 sleep 0.2
 pgrep rsyslogd >> /dev/null  || $(sudo rsyslogd &)
-log_file_name="grunt_inst${instance_no}"
 
+# Use grunt to figure out the number of tests
+tests_count_output=`grunt e2etest --pipes=10 --pipe=$instance_no --count`
+# Taking out the number from the whole message
+tests_count=$( echo ${tests_count_output/Done, without errors.} | cut -f 1 -d " " )
 
+echo "No. of tests will be run: $tests_count"
+for test_no in $(seq 1 "$tests_count"); do
+  # Use grunt to figure out the name of test
+  test_name=`grunt e2etest --pipes=10 --pipe=$instance_no --index=$test_no --name`
+  # take the name out of the output
+  test_name=$( echo ${test_name/Done, without errors.} | sed 's/.*--test_pattern=\(.*\)\( .*\)/\1/' | cut -f 1 -d " " )
+  echo "Running test: ====== $test_name ========="
+
+  # Run the test and capture it's output
+  grunt e2etest --pipes=10 --pipe=${instance_no} --index=${test_no} >& "${EXPORT_FAILURES_DIR}/${test_name}.log"
+  result="$?"
+
+  if [[ "$result" -ne "0" ]] ; then
+    echo "                 FAILED"
+    mv "$EXPORT_FAILURES_DIR/${test_name}.log" "$EXPORT_FAILURES_DIR_TMP/${test_name}.FAILED.log"
+    # grunt generated logs are generated in /opt/pg/log/ and aren't in tar.gz form
+    tar -zcf "$EXPORT_FAILURES_DIR_TMP/${test_name}.tar.gz" /opt/pg/log/${test_name}*
+  else
+    mv "$EXPORT_FAILURES_DIR/${test_name}.log" "$EXPORT_FAILURES_DIR_TMP/${test_name}.log"
+  fi
+  rm -rf /opt/pg/log/*
+  rm -rf $EXPORT_FAILURES_DIR/*
+done
 # run tests for this instances
-grunt e2etest --pipes=10 --pipe=$instance_no
-result="$?"
 
-# generating this to make aurora run happy
-echo "$tests_ran" > /opt/pg/log/total_tests_inst${instance_no}
-cp -r /opt/pg/logs/* "${EXPORT_FAILURES_DIR}"
-
+echo "$tests_count" > $EXPORT_FAILURES_DIR_TMP/total_tests_inst${instance_no}
+#Copy logs to /opt/pg/log for get_latest_logs to copy the tests.
+mkdir -p /opt/pg/log/grunt-pipe-${instance_no}
+cp -r ${EXPORT_FAILURES_DIR_TMP} /opt/pg/log/
 echo " All Logs are in :: ${EXPORT_FAILURES_DIR}"
 echo 'All done'
