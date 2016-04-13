@@ -8,6 +8,7 @@ PIPELINE="smoke"
 export EXPORT_FAILURES_DIR="/tmp/aurora_logs/${instance_no}"
 export EXPORT_FAILURES_DIR_TMP="/tmp/log/${instance_no}"
 export PATH="${PATH}:/opt/pg/scripts/:/home/plumgrid/work/pg_ui/devtools/node_modules/grunt-cli/bin"
+. /opt/pg/env/alps.bashrc
 rm -rf "${EXPORT_FAILURES_DIR}"
 rm -rf "${EXPORT_FAILURES_DIR_TMP}"
 mkdir -p "${EXPORT_FAILURES_DIR}"
