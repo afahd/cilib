@@ -17,10 +17,6 @@ mkdir -p "${EXPORT_FAILURES_DIR_TMP}/xml_logs"
 rm -rf /opt/pg/log/*
 cd ~/work/pg_ui/devtools
 
-# Need to add a couple dirs to python path to run the tests
-sed -ri "s/import re$/import re\nsys\.path\.insert\(0, '\/opt\/pg')/" ~/work/pg_ui/guitest/gui/test_gui.py
-sed -ri "s/sys\.path\.insert\(0, '\/opt\/pg'.*/sys\.path\.insert\(0, '\/opt\/pg')\n\sys\.path\.insert\(0, '\/opt\/pg\/systest\/guitest')/" ~/work/pg_ui/guitest/gui/test_gui.py
-
 #Exporting pipeline variables
 if [[ "${PIPELINE}" != "pgui-smoke" && "${PIPELINE}" != "pgui-extended" ]]; then
   echo "UNKOWN PIPELINE:  ${PIPELINE}"
