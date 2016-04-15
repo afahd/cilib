@@ -49,6 +49,8 @@ for test_no in $(seq 1 "${tests_count}"); do
   test_name=$( echo ${test_name/Done, without errors.} | sed 's/.*--test_pattern=\(.*\)\( .*\)/\1/' | cut -f 1 -d " " )
   echo "Running test: ====== ${test_name} ========="
 
+  # Pre-req for the tests
+  grunt shell:gui_wrapper
   # Run the test and capture it's output
   grunt e2etest --pipes=10 --pipe=${instance_no} --index=${test_no} >& "${EXPORT_FAILURES_DIR}/${test_name}.log"
   result="$?"
