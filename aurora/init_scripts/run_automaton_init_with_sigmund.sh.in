@@ -1,0 +1,47 @@
+#!/bin/bash
+set -e
+sudo apt-get install parallel
+
+# Adding the net-10-10 nameserver entry in case it's not there
+sudo chown plumgrid:plumgrid /etc/resolv.conf
+echo "nameserver 10.10.0.1" >> /etc/resolv.conf
+#Restarting the lxc-net service
+echo "Restarting the lxc-net service"
+sudo ifconfig lxcbr0 down || true
+sudo brctl delbr lxcbr0 || true
+sudo pkill dnsmasq || true
+sudo service lxc-net restart
+
+source /opt/pg/env/alps.bashrc
+cd /home/plumgrid/work/pkg/build
+make -j4 install
+../scripts/build-all.sh --useallcpus
+
+# This is here only untill https://gerrit:8443/#/c/10751/ gets merged.
+sed -i '/restart_lxc lvm/a tryexec lxc-attach -n lvm -- /bin/bash -c \"echo 'NOZEROCONF=true' >> /etc/sysconfig/network\"' /opt/pg/systest/lxc/automaton/automaton-helpers.sh
+
+sudo /home/plumgrid/work/alps/build/scripts/jenkins/lxc-automaton-longevity-jenkins-init.sh
+#Stop the lxc
+sudo lxc-stop -n lvm -t 10
+#Make the lvm lxc auto start
+sudo bash -c 'echo "lxc.start.auto = 1" >> /var/lib/lxc/lvm/config'
+
+## Setup Sigmund
+mkdir -p /opt/es-kibana
+pushd /opt/es-kibana
+wget http://192.168.10.167/tests/unstable/sigmund/elasticsearch-2.3.1.tar.gz \
+  http://192.168.10.167/tests/unstable/sigmund/kibana-4.5.0-linux-x64.tar.gz
+# extract ElasticSearch
+mkdir -p /opt/es-kibana/es
+tar xvf elasticsearch-2.3.1.tar.gz -C /opt/es-kibana/es
+# extract Kibana
+mkdir -p /opt/es-kibana/kibana
+tar xvf kibana-4.5.0-linux-x64.tar.gz -C /opt/es-kibana/kibana
+# configure ElasticSearch
+sed -i '/network.host:/c\network.host: _site_' /opt/es-kibana/es/elasticsearch-2.3.1/config/elasticsearch.yml
+# configure Kibana
+eth0addr=$(ifconfig eth0 | grep 'inet addr:' | sed 's/.*inet addr:\([^ ]*\) .*/\1/')
+sed -i "/elasticsearch.url:/c\elasticsearch.url: \"http://${eth0addr}:9200\"" /opt/es-kibana/kibana/kibana-4.5.0-linux-x64/config/kibana.yml
+# configure Sigmund
+sudo rm -f /var/lib/lxc/pg_base_image/rootfs/var/lib/libvirt/filesystems/plumgrid/etc/init/plumgrid-sigmund.override
+echo 'es_url=http://10.0.3.1:9200/' | sudo tee /var/lib/lxc/pg_base_image/rootfs/var/lib/libvirt/filesystems/plumgrid/etc/sigmund/sigmund.conf
