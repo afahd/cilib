@@ -25,7 +25,7 @@ if [[ $1 == "help" ]]; then
 fi
 #Starting and ending steps
 STEP_ST=1
-TOTAL_RUN_STEPS=12
+TOTAL_RUN_STEPS=13
 STEP_ED=$TOTAL_RUN_STEPS
 
 GIVEN_ST=0
@@ -184,6 +184,13 @@ function run_test() {
     ;;
 
   6)
+    echo "Updating the sources.list to make sure it hasn't changed"
+    tryexec run_cmd_gci ${INSTANCE_IP} "sudo mv /etc/apt/sources.list /etc/apt/sources.list.bak"
+    tryexec run_cmd_gci ${INSTANCE_IP} "sudo cp ~/work/tools/packages/sources.list /etc/apt/sources.list"
+    tryexec run_cmd_gci ${INSTANCE_IP} "sudo apt-get update"
+    ;;
+
+  7)
     if [[ -n "$COMMIT_ID" ]]; then
       tryexec push_local_changes ${INSTANCE_IP} ${COMMIT_ID} ${ALPS_PATH}
       tryexec make_install_alps ${INSTANCE_IP} "/tmp/make_install_alps.log"
@@ -191,14 +198,14 @@ function run_test() {
     fi
     ;;
 
-  7)
+  8)
     if [[ $VALID_COMMIT_HASH == "true" ]];then
       tryexec checkout_existing_commit ${INSTANCE_IP} ${EXISTING_COMMIT_HASH} /tmp/checkout_existing_commit.log
       tryexec run_poll_cmd ${INSTANCE_IP} "checkout_existing_commit.sh" "/tmp/checkout_existing_commit.log" "1"
     fi
     ;;
 
-  8)
+  9)
     echo "Restarting lxc-net service"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo ifconfig lxcbr0 down || true"
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo brctl delbr lxcbr0 || true"
@@ -206,24 +213,24 @@ function run_test() {
     tryexec run_cmd_gci ${INSTANCE_IP} "sudo service lxc-net restart || true"
     ;;
 
-  9)
+  10)
     retryexec upload ${INSTANCE_IP} ${TEST_SCRIPT} /tmp/user_test_script.sh
     tryexec run_cmd_gci_bg ${INSTANCE_IP} "/bin/bash /tmp/user_test_script.sh" "/tmp/test.logs"
     ;;
 
-  10)
+  11)
     echo "Poll the test logs (tailing \"/tmp/test.log\")"
     tryexec run_poll_cmd ${INSTANCE_IP} "/tmp/user_test_script.sh" "/tmp/test.logs" "0"
     retryexec download ${INSTANCE_IP} "/tmp/test.logs" "${LOG_DEST_DIR}/${INSTANCE_NAME}.log"
     ;;
 
-  11)
+  12)
     echo "Downloading logs in ${LOG_DEST_DIR} directory"
     tryexec get_latest_logs ${INSTANCE_IP} ${INSTANCE_NAME} ${LOG_SRC_DIR} ${LOG_DEST_DIR}
     printf "\n\n********* Run has been completed successfully. Please see all logs in ${LOG_DEST_DIR} direcotry *********\n\n"
     ;;
 
-  12)
+  13)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     ;;
