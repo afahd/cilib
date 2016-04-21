@@ -1,0 +1,75 @@
+#! /bin/bash -e
+PWD=`pwd`
+source aurora_infra_settings.conf
+export PATH=/opt/pg/scripts:/opt/pg/scripts/gcloud/cloud_image_builder:${PATH}
+. gc_helpers.sh
+. ~/.aurora.conf
+
+_USER=plumgrid
+
+# forward to subshells
+trap "kill 0" SIGINT
+trap "kill 0" SIGTERM
+
+function usage() {
+cat <<EOF
+usage: $0
+-n |--name : Name of the foster production instance to use default is "pg-foster"
+-ip|--ip : IP of the foster production instance to use default is IP of "pg-foster"
+-h | --help : help
+EOF
+exit 0
+}
+
+PRIM_INST_NAME="pg-foster"
+STEP_ST=1
+STEP_ED=1
+# Parsing arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -ip|--ip ) INSTANCE_IP=$2; shift ;;
+    -n |--name ) PRIM_INST_NAME=$2; shift ;;
+    -h |--help ) usage; ;;
+    -- ) shift; break ;;
+    * )
+      log "Unknown parameter: $1";
+      usage; break;;
+  esac
+  shift
+done
+
+function build_image() {
+  local step=$1
+
+  case "${step}" in
+    1)
+      if [[ -z "${INSTANCE_IP}" ]]; then
+        INSTANCE_IP=$(get_instance_ip ${PRIM_INST_NAME})
+      fi
+      echo "Making a snapshot of the Foster VM [${PRIM_INST_NAME}] [${INSTANCE_IP}]"
+      SN_ID=`date +%s`
+      SNAP_D1="${PRIM_INST_NAME}-${SN_ID}"
+      echo "SNAP_D1 = [${SNAP_D1}]"
+      # Can use fsfreeze here with logstash running
+      echo "gcloud compute disks snapshot ${PRIM_INST_NAME} --snapshot-names ${SNAP_D1}"
+      gcloud compute disks snapshot ${PRIM_INST_NAME} --snapshot-names "${SNAP_D1}"
+      ;;
+    *)
+      echo "NOP - ${step}"
+      ;;
+esac
+}
+
+script_start_time=$(date +%s)
+for STEP in `seq ${STEP_ST} ${STEP_ED}`; do
+  printf "\n    === Starting STEP ${STEP} === \n"
+  start_time=$(date +%s)
+  build_image ${STEP}
+  end_time=$(date +%s)
+  print_time_taken ${start_time} ${end_time} "[${STEP}]"
+done
+
+script_end_time=$(date +%s)
+print_time_taken ${script_start_time} ${script_end_time} "[BUILD]"
+
+exit 0
