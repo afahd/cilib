@@ -1,5 +1,5 @@
 #!/bin/bash
-
+export JCFG_GITHUB_OAUTH='d3936bad97c404516cba043e1da9bdc042b63b25'
 echo "Installing the parallel package"
 sudo apt-get install parallel
 #Restarting the lxc-net service

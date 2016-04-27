@@ -1,6 +1,7 @@
 #!/bin/bash
 #Restarting the lxc-net service
 #TODO: This block might not be needed anymore
+export JCFG_GITHUB_OAUTH='d3936bad97c404516cba043e1da9bdc042b63b25'
 echo "Restarting the lxc-net service"
 sudo ifconfig lxcbr0 down || true
 sudo brctl delbr lxcbr0 || true
