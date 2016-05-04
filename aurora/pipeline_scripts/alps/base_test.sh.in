@@ -175,6 +175,11 @@ if [[ "$RUN_TESTS" -eq "0" ]]; then
           mv ${test_failing_name} ${EXPORT_FAILURES_DIR_TMP}/$log_file_name.tar.gz
           #Copy the xml output for downloading
           mv "$xml_filename" ${EXPORT_FAILURES_DIR_TMP}/xml_logs/${test_name}.FAILED.xml
+        elif [[ "$PIPELINE" == "automaton-longevity" || "$PIPELINE" == "falcon-longevity" ]]; then
+          mv "$EXPORT_FAILURES_DIR/${log_file_name}.log" "$EXPORT_FAILURES_DIR_TMP/${log_file_name}.log"
+          test_passing_name=$(find "$EXPORT_FAILURES_DIR" -name "*.tar.gz")
+          mv ${test_passing_name} ${EXPORT_FAILURES_DIR_TMP}/$log_file_name.tar.gz
+          mv "$xml_filename" ${EXPORT_FAILURES_DIR_TMP}/xml_logs/${test_name}.xml
         else
           mv "$EXPORT_FAILURES_DIR/${log_file_name}.log" "$EXPORT_FAILURES_DIR_TMP/${log_file_name}.log"
           mv "$xml_filename" ${EXPORT_FAILURES_DIR_TMP}/xml_logs/${test_name}.xml
