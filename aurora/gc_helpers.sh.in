@@ -606,7 +606,7 @@ function make_install_alps() {
 #           check for failure.
 # Usage   : make_tools_iovisor <cloud_instance_ip> <log file>
 # ******************************************************************************
-function make_tools_iovisor() {
+function make_tools_iovisor_esper() {
   local INSTANCE_IP=$1
   local LOG_FILE=$2
   local local_file=$(mktemp $WORKSPACE/make_tools_iovisor.sh-XXXXX)
@@ -615,6 +615,8 @@ function make_tools_iovisor() {
 set -e
 cd /home/plumgrid/work/tools/build
 export PATH="/usr/lib/ccache/:\${PATH}"
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys D5495F657635B973
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 63F65885554E46B2
 cmake ..
 sudo make test_packages
 sudo make packages
@@ -623,6 +625,9 @@ make -j4 install
 cd /home/plumgrid/work/iovisor/bld
 make -j4 -k
 sudo make install
+cd /home/plumgrid/work/esper
+make
+
 DELIM__
   #File name needs to be constant for continue functionality, thus renaming.
   local instance_file=/tmp/$(basename ${local_file})
