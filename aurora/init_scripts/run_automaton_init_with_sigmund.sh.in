@@ -44,4 +44,4 @@ eth0addr=$(ifconfig eth0 | grep 'inet addr:' | sed 's/.*inet addr:\([^ ]*\) .*/\
 sed -i "/elasticsearch.url:/c\elasticsearch.url: \"http://${eth0addr}:9200\"" /opt/es-kibana/kibana/kibana-4.5.0-linux-x64/config/kibana.yml
 # configure Sigmund
 sudo rm -f /var/lib/lxc/pg_base_image/rootfs/var/lib/libvirt/filesystems/plumgrid/etc/init/plumgrid-sigmund.override
-echo 'es_url=http://10.0.3.1:9200/' | sudo tee /var/lib/lxc/pg_base_image/rootfs/var/lib/libvirt/filesystems/plumgrid/etc/sigmund/sigmund.conf
+echo "es_url=http://${eth0addr}:9200/" | sudo tee /var/lib/lxc/pg_base_image/rootfs/var/lib/libvirt/filesystems/plumgrid/etc/sigmund/sigmund.conf
