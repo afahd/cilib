@@ -204,6 +204,29 @@ DELIM__
 done
 
 cat >> ${git_script} <<DELIM__
+  ;;
+  corelib)
+DELIM__
+
+if [[ $test_project == "corelib" ]]; then
+  cat >> ${git_script} <<DELIM__
+echo "Corelib used in test-against, no need to extract version"
+DELIM__
+else
+  cat >> ${git_script} <<DELIM__
+cd /home/plumgrid/work/alps
+source dependencies-versions.sh
+if [[ -n \${git_dep_branch[corelib]} ]]; then
+  echo "Corelib Version: \${git_dep_branch[corelib]}"
+  cd /home/plumgrid/work/corelib
+  git checkout \${git_dep_branch[corelib]}
+else
+  echo 'git_dep_branch[corelib] is empty, using branch translated corelib branch'
+fi
+DELIM__
+fi
+
+cat >> ${git_script} <<DELIM__
     ;;
   *)
     echo "Step \$step provided is invalid. Exiting!"

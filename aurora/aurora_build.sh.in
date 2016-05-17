@@ -33,7 +33,7 @@ PROJECT=""
 
 STEP_ST=1
 
-TOTAL_BUILD_STEPS=26
+TOTAL_BUILD_STEPS=27
 STEP_ED=$TOTAL_BUILD_STEPS
 
 GIVEN_ST=0
@@ -262,6 +262,7 @@ function build_image() {
     retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh iovisor"
     ;;
 
+
   13)
     # Get the build info
     echo "Getting build info for ${PROJECT}"
@@ -269,12 +270,22 @@ function build_image() {
     ;;
 
   14)
+    # Extract Corelib Version from Alps
+    if [[ $PROJECT == "corelib" ]]; then
+      echo "Main project is corelib no need to extract version"
+    else
+      echo "Extracting corelib version from alps"
+      tryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh corelib"
+    fi
+    ;;
+
+  15)
     #Install tools and iovisor in the background
     echo "Installing tools and iovisor"
     tryexec make_tools_iovisor ${INSTANCE_IP} "/tmp/make_tools_iovisor.log"
     ;;
 
-  15)
+  16)
     # Adding polling as a separate step, so that if the connection broke at the previous step,
     # this step can be run directly to see if the previous command is still running
     echo "Polling for tools install"
@@ -282,56 +293,56 @@ function build_image() {
     retryexec download ${INSTANCE_IP} "/tmp/make_tools_iovisor.log" "${WORKSPACE}/logs/"
     ;;
 
-  16)
+  17)
     # Corelib build is required for alps cmake..
     echo "Corelib Build Step"
     tryexec corelib_build ${INSTANCE_IP} "/tmp/corelib_build.log"
     ;;
 
-  17)
+  18)
     #Polling for corelib build step
     echo "Polling for corelib build"
     tryexec run_poll_cmd ${INSTANCE_IP} "corelib_build.sh" "/tmp/corelib_build.log" "1"
     retryexec download ${INSTANCE_IP} "/tmp/corelib_build.log" "${WORKSPACE}/logs/"
     ;;
 
-  18)
+  19)
     #run cmake on the repos
     echo "running cmake on the repos"
     retryexec run_cmd_gci ${INSTANCE_IP} "bash /tmp/gitsync.sh cmake_repos"
     ;;
 
-  19)
+  20)
     # Checks the elfsurgeon files
     echo "make alps and check elfsurgeon files"
     tryexec check_elfsurgeon ${INSTANCE_IP} "/tmp/check_elfsurgeon.log"
     ;;
 
-  20)
+  21)
     # Adding polling as a separate step, so that if the connection broke at the previous step.
     echo "Polling make for alps and checking elfsurgeon files (tailing \"/tmp/check_elfsurgeon.log\" for complete logs)"
     tryexec run_poll_cmd ${INSTANCE_IP} "check_elfsurgeon.sh" "/tmp/check_elfsurgeon.log" "1"
     retryexec download ${INSTANCE_IP} "/tmp/check_elfsurgeon.log" "${WORKSPACE}/logs/"
     ;;
 
-  21)
-     run_cmd_gci ${INSTANCE_IP} "ln -s /opt/pg/web/temp /opt/pg/var/www/"
+  22)
+    run_cmd_gci ${INSTANCE_IP} "ln -s /opt/pg/web/temp /opt/pg/var/www/"
      run_cmd_gci ${INSTANCE_IP} "sudo bash -c \"echo 'proxy=http://10.10.163.162:3128' >> /etc/yum/yum.conf\""
     ;;
 
-  22)
+  23)
     echo "Running the build-init script"
     retryexec upload ${INSTANCE_IP} ${BUILD_SCRIPT} /tmp/build-init.sh
     tryexec run_bg_cmd ${INSTANCE_IP} "/tmp/build-init.sh" "/bin/bash /tmp/build-init.sh $PROJECT $BRANCH" "/tmp/build-init.log"
     ;;
 
-  23)
+  24)
     echo "Poll the build-init logs (tailing \"/tmp/build-init.log\")"
     tryexec run_poll_cmd ${INSTANCE_IP} "/tmp/build-init.sh" "/tmp/build-init.log" "1"
     retryexec download ${INSTANCE_IP} "/tmp/build-init.log" "${WORKSPACE}/logs/build-init.log"
     ;;
 
-  24)
+  25)
     BUILD_ID=`echo ${INSTANCE_NAME} | sed "s/${emailid}-//"`
     echo "Creating a snapshot of VM for BUILD-ID=${BUILD_ID}"
 
@@ -344,7 +355,7 @@ function build_image() {
     tryexec exec_gcloud_cmd disks snapshot ${INSTANCE_NAME}-d2 --snapshot-names ${INSTANCE_NAME}-ssd2
     ;;
 
-  25)
+  26)
 
     # Flushing the disk buffers only if -K is not set
     if [[ "${KEEP_RUNNING}" != "1" ]]; then
@@ -358,7 +369,7 @@ function build_image() {
     echo "BUILD-ID=${BUILD_ID}" | tee $WORKSPACE/logs/build_id
     ;;
 
-  26)
+  27)
     echo "Shutting down the Instance ${INSTANCE_NAME}"
     tryexec exec_gcloud_cmd instances delete ${INSTANCE_NAME} --delete-disks all  -q
     printf "\n\n *********************** BUILD-ID = ${BUILD_ID} *********************** \n\n"
