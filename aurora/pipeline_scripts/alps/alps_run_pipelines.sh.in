@@ -115,6 +115,12 @@ TEST_ITERATIONS=$(set_iteration_count $PIPELINE $TEST_ITERATIONS)
 #Set the number of instances
 NUM_INSTANCES=$(set_instance_count $PIPELINE $NUM_INSTANCES)
 
+if [[ $PIPELINE == "DEBUG-TEST" ]]; then
+  DISK1SIZE="-d 30GB"
+else
+  DISK1SIZE=""
+fi
+
 function run_test() {
   local step=$1
 
@@ -143,9 +149,9 @@ function run_test() {
     echo "log_dir=$log_dir script_dir=$script_dir"
     while read -r -d $'\0'; do
       if [[ -n "$PREEMPTIBLE" ]]; then
-        aurora run_preemptible -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -e $EXISTING_COMMIT_HASH -m $MACHINE_TYPE --cost_pipeline_code $COST_PIPELINE_CODE $KEEP_RUNNING $LOCAL_COMMIT_HASH $ALPS_PATH> $REPLY.txt 2>&1 &
+        aurora run_preemptible -l ${USER_BUILD_ID} ${DISK1SIZE} -o ${log_dir} -s $REPLY -e $EXISTING_COMMIT_HASH -m $MACHINE_TYPE --cost_pipeline_code $COST_PIPELINE_CODE $KEEP_RUNNING $LOCAL_COMMIT_HASH $ALPS_PATH> $REPLY.txt 2>&1 &
       else
-        aurora run -l ${USER_BUILD_ID} -o ${log_dir} -s $REPLY -e $EXISTING_COMMIT_HASH -m $MACHINE_TYPE --cost_pipeline_code $COST_PIPELINE_CODE $KEEP_RUNNING $LOCAL_COMMIT_HASH $ALPS_PATH > $REPLY.txt 2>&1 &
+        aurora run -l ${USER_BUILD_ID} ${DISK1SIZE} -o ${log_dir} -s $REPLY -e $EXISTING_COMMIT_HASH -m $MACHINE_TYPE --cost_pipeline_code $COST_PIPELINE_CODE $KEEP_RUNNING $LOCAL_COMMIT_HASH $ALPS_PATH > $REPLY.txt 2>&1 &
       fi
       #Get the pid of the last background command
       pids+=("$!")
