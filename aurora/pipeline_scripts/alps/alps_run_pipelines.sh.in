@@ -34,7 +34,7 @@ PROJECT="alps"
 echo "run_pipelines.sh $@"
 ARGS=$@
 # read the options
-TEMP=`getopt -o Q:R:E:W:l:P:b:i:f:t:u:s:n:\r:d:IFKc:e:a:p:h --long major:,preemptible,minor_start:,minor_end:,WORKSPACE:,buildid:,pipeline:,branch:,test_iterations:,first_test:,step_size:,update_db_failure_limit:,script:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update,keep-running,local_commit:,existing_commit_hash:,project:,alps-path:,cost_pipeline_code:,\help -n 'run_all_test.sh' -- "$@"`
+TEMP=`getopt -o Q:R:E:W:l:P:b:i:f:t:T:u:s:n:\r:d:IFKc:e:a:p:h --long major:,preemptible,minor_start:,minor_end:,WORKSPACE:,buildid:,pipeline:,branch:,test_iterations:,first_test:,step_size:,update_db_failure_limit:,script:,num_instances:,base_script_dir:,dest_script_dir:,initial_run,db_update,keep-running,local_commit:,topology:,existing_commit_hash:,project:,alps-path:,cost_pipeline_code:,\help -n 'run_all_test.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # extract options and their arguments into variables.
@@ -51,6 +51,7 @@ while true ; do
     -i|--test_iterations) TEST_ITERATIONS=$2 ; shift 2 ;;
     -f|--first_test) FIRST_TEST=$2 ; shift 2 ;;
     -t|--step_size) STEP_SIZE=$2 ; shift 2 ;;
+    -T|--topology) TOPOLOGY=$2 ; shift 2 ;;
     -u|--update_db_failure_limit) UPDATE_DB_FAILURE_LIMIT=$2 ; shift 2 ;;
     -s|--script) USER_SCRIPT=$2 ; shift 2 ;;
     -n|--num_instances) NUM_INSTANCES=$2 ; shift 2 ;;
@@ -126,7 +127,7 @@ function run_test() {
       echo "pipeline is debug-test"
       gen_user_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -n ${NUM_INSTANCES} -d ${script_dir} --base_script_dir ${BASE_SCRIPT_DIR} -s ${USER_SCRIPT}
     elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" || $PIPELINE == "longevity" || $PIPELINE == "falcon" || $PIPELINE == "falcon-longevity" ]]; then
-      gen_automaton_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -d ${script_dir} -r $BASE_SCRIPT_DIR -p $PIPELINE -n ${NUM_INSTANCES} -l ${USER_BUILD_ID}
+      gen_automaton_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -d ${script_dir} -r $BASE_SCRIPT_DIR -p $PIPELINE -n ${NUM_INSTANCES} -l ${USER_BUILD_ID} -T ${TOPOLOGY}
       MACHINE_TYPE="n1-standard-16"
     elif [[ $PIPELINE == "pgui-smoke" && $BRANCH == "grunt" ]]; then
       echo "pipeline is pgui-smoke on branch grunt"

@@ -5,7 +5,7 @@ source pl_settings.conf
 
 TEST_ITERATIONS=1
 # read the options
-TEMP=`getopt -o b:i:r:l:p:d:n:h --long base_script:,buildid:,pipeline:,num_instances:,test_iterations:,base_script_dir:,dest_script_dir:,\help -n 'gen_automaton_tests.sh' -- "$@"`
+TEMP=`getopt -o b:i:r:l:p:d:T:n:h --long base_script:,buildid:,pipeline:,num_instances:,topology:,test_iterations:,base_script_dir:,dest_script_dir:,\help -n 'gen_automaton_tests.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # extract options and their arguments into variables.
@@ -25,6 +25,8 @@ while true ; do
       DEST_SCRIPT_DIR=$2 ; shift 2 ;;
     -n|--num_instances)
       NUM_INSTANCES=$2 ; shift 2 ;;
+    -T|--topology)
+      TOPOLOGY=$2 ; shift 2 ;;
     -h|--help)
       #TODO
       show_gen_test_scripts_help
@@ -53,5 +55,6 @@ for test in `seq 1 $NUM_INSTANCES`; do
     sed -i 's/itr=[0-9]*/itr='${TEST_ITERATIONS}'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
     #Replace build_id
     sed -i 's/BUILD_ID=/BUILD_ID='${BUILD_ID}'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
-
+    #Replace topology
+    sed -i 's/topology=.*/topology='${TOPOLOGY}'/' ${DEST_SCRIPT_DIR}/${BASE_SCRIPT}-$test
 done
