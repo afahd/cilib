@@ -66,14 +66,17 @@ elif [[ "$PIPELINE" == "unstable" || "$PIPELINE" == "DEBUG-TEST" ]]; then
   export BUILD_NIGHTLY=1
   unset EXCLUDE_UNSTABLE
   unset EXCLUDE_NON_NIGHTLY
-elif [[ "$PIPELINE" == "falcon" ]]; then
-  test_tag=falcon
-elif [[ "$PIPELINE" == "falcon-longevity" ]]; then
-  # Running seperate tests for 20x4 topology
-  if [[ "$topology" == "20x4" ]]; then
-    test_tag=falcon_longevity_20x4
+elif [[ "$PIPELINE" == "falcon" || "$PIPELINE" == "falcon-longevity" ]]; then
+
+  if [[ "$PIPELINE" == "falcon-longevity" ]]; then
+    # Running seperate tests for 20x4 topology
+    if [[ "$topology" == "20x4" ]]; then
+      test_tag=falcon_longevity_20x4
+    else
+      test_tag=falcon_longevity
+    fi
   else
-    test_tag=falcon_longevity
+    test_tag=falcon
   fi
 
   BUILD_ID=
