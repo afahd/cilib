@@ -16,6 +16,10 @@ cd ~/work/pkg/build && make install
 bash -c "cd ~/work/pg_cli/build && . /opt/pg/env/alps.bashrc && cmake .."
 cd ~/work/pg_cli/build && make -j 4 -k
 cd ~/work/pg_cli/build && make install
+mkdir -p ~/work/corelib/build
+bash -c "cd ~/work/corelib/build && . /opt/pg/env/alps.bashrc && cmake .."
+cd ~/work/corelib/build && make -j 4 -k
+cd ~/work/corelib/build && make install
 mkdir -p ~/work/alps/build
 bash -c "cd ~/work/alps/build && . /opt/pg/env/alps.bashrc && cmake .."
 cd ~/work/alps/build && make -j 4 -k

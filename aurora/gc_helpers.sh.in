@@ -647,6 +647,7 @@ function corelib_build() {
   cat /dev/null > ${local_file}
   cat >> ${local_file} <<DELIM__
 set -e
+export PATH="/usr/lib/ccache/:\${PATH}"
 mkdir -p /home/plumgrid/work/corelib/build
 cd /home/plumgrid/work/corelib/build
 cmake ..

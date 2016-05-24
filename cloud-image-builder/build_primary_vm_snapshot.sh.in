@@ -12,7 +12,7 @@ BUILD_ENV_USER=${USER}
 
 MAJOR_STEPS="build"
 MINOR_STEPS_ST[build]=1
-MINOR_STEPS_ED[build]=29
+MINOR_STEPS_ED[build]=20
 
 # forward to subshells
 trap "kill 0" SIGINT
@@ -100,7 +100,7 @@ function build_image() {
           tryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "git clone ssh://${gerritid}@gerrit:29418/tools.git ~/work/tools"
           ;;
       9)
-          projs="pg_ui iovisor sal pkg pg_cli python-plumgridlib alps coral"
+          projs="pg_ui iovisor sal pkg pg_cli python-plumgridlib alps coral corelib"
           echo "git clone of $projs"
           for pr in $projs ; do
               echo "   ==> Extracting $pr on the instance[$INSTANCE_IP]"
@@ -114,12 +114,12 @@ function build_image() {
           ;;
 
       11)
-          echo "Checking out stable_4_0 for the projects"
-          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_checkout_branch.sh stable_4_0'"
+          echo "Checking out master for the projects"
+          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_checkout_branch.sh master'"
           ;;
 
       12)
-          echo "Building the rest for stable_4_0"
+          echo "Building the rest for master"
           retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_setup_all.sh'"
           ;;
 
@@ -129,12 +129,12 @@ function build_image() {
           ;;
 
       14)
-          echo "Checking out master for the projects"
-          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_checkout_branch.sh master'"
+          echo "Checking out stable_4_3 for the projects"
+          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_checkout_branch.sh stable_4_3'"
           ;;
 
       15)
-          echo "Building the rest for master"
+          echo "Building the rest for stable_4_3"
           retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_setup_all.sh'"
           ;;
 
@@ -143,63 +143,18 @@ function build_image() {
           retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash /home/plumgrid/work/alps/scripts/system_cleanup.sh'"
           ;;
 
+
       17)
-          echo "Checking out stable_4_1 for the projects"
-          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_checkout_branch.sh stable_4_1'"
-          ;;
-
-      18)
-          echo "Building the rest for stable_4_1"
-          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_setup_all.sh'"
-          ;;
-
-      19)
-          echo "Cleaning up stuff"
-          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash /home/plumgrid/work/alps/scripts/system_cleanup.sh'"
-          ;;
-
-      20)
-          echo "Checking out stable_4_1_3-meli for the projects"
-          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_checkout_branch.sh stable_4_1_3-meli'"
-          ;;
-
-      21)
-          echo "Building the rest for stable_4_1_3-meli"
-          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_setup_all.sh'"
-          ;;
-
-      22)
-          echo "Cleaning up stuff"
-          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash /home/plumgrid/work/alps/scripts/system_cleanup.sh'"
-          ;;
-
-      23)
-          echo "Checking out stable_4_3 for the projects"
-          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_checkout_branch.sh stable_4_3'"
-          ;;
-
-      24)
-          echo "Building the rest for stable_4_3"
-          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_setup_all.sh'"
-          ;;
-
-      25)
-          echo "Cleaning up stuff"
-          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash /home/plumgrid/work/alps/scripts/system_cleanup.sh'"
-          ;;
-
-
-      26)
           echo "Checking out stable_5_0 for the projects"
           retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_checkout_branch.sh stable_5_0'"
           ;;
 
-      27)
+      18)
           echo "Building the rest for stable_5_0"
           retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_setup_all.sh'"
           ;;
 
-      28)
+      19)
           echo "Making a snapshot of the VM"
           SN_ID=`date +%s`
           SNAP_D1="$PRIM_INST_NAME-d1-${SN_ID}"
@@ -213,7 +168,7 @@ function build_image() {
           tryexec run_cmd_gci ${INSTANCE_IP} "sudo fsfreeze -f / || true"
           gcloud compute disks snapshot $PRIM_INST_NAME-d1 --snapshot-names "$SNAP_D1"
           ;;
-      29)
+      20)
           echo "Shutting down the Instance $PRIM_INST_NAME"
           gcloud compute instances delete $PRIM_INST_NAME --delete-disks all  -q
           ;;
