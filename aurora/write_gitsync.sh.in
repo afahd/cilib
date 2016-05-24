@@ -178,7 +178,7 @@ for p in ${COMMON_CMAKE_PROJECTS[@]}; do
 cat >> ${git_script} <<DELIM__
 if [[ -d /home/plumgrid/work/${p}/ ]]; then
 
-  if [[ ${p} == "pg_ui" && ${branch} == "grunt" ]]; then
+  if [[ ${p} == "pg_ui" && -f "/home/plumgrid/work/pg_ui/devtools/Gruntfile.js" ]]; then
     set -x
     sudo add-apt-repository -y ppa:chris-lea/node.js
     sudo apt-get update
