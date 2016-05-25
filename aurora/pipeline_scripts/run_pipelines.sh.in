@@ -56,10 +56,6 @@ elif [[ $PIPELINE == "nirvana" || $PROJECT == "nirvana" ]]; then
   nirvana_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" --cost_pipeline_code "$cost_pipeline_code" $PIPELINE_ARGUMENTS
 elif [[ $PIPELINE == "networking-plumgrid" ]]; then
   aurora_networking_plumgrid.sh $PIPELINE_ARGUMENTS
-elif [[ $PIPELINE == "pgui-smoke" && $BRANCH == "grunt" ]]; then
-  BASE_SCRIPT_DIR="@CMAKE_CURRENT_BINARY_DIR@/alps/"
-  BASE_SCRIPT="pgui_base_test.sh"
-  alps_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" --cost_pipeline_code "$cost_pipeline_code" $PIPELINE_ARGUMENTS
 else
   BASE_SCRIPT_DIR="@CMAKE_CURRENT_BINARY_DIR@/alps/"
   alps_run_pipelines.sh --base_script_dir "$BASE_SCRIPT_DIR" --cost_pipeline_code "$cost_pipeline_code" $PIPELINE_ARGUMENTS
