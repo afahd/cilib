@@ -271,7 +271,7 @@ function build_image() {
 
   14)
     # Extract Corelib Version from Alps
-    if [[ $PROJECT == "corelib" ]]; then
+    if [[ $PROJECT == "corelib"  || $COMPONENT != "unstable" ]]; then
       echo "Main project is corelib no need to extract version"
     else
       echo "Extracting corelib version from alps"

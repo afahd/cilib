@@ -221,7 +221,8 @@ if [[ -n \${git_dep_branch[corelib]} ]]; then
   cd /home/plumgrid/work/corelib
   git checkout \${git_dep_branch[corelib]}
 else
-  echo 'git_dep_branch[corelib] is empty, using branch translated corelib branch'
+  echo 'git_dep_branch[corelib] is empty, exiting'
+  exit 1
 fi
 DELIM__
 fi
