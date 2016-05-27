@@ -12,20 +12,18 @@ sudo service lxc-net restart
 project_list=("pg_ui" "sal" "pkg" "pg_cli" "common-config" "balicek" "python-plumgridlib" "corelib" "coral" "alps")
 
 for project in ${project_list[@]}; do
-  if [[ ${project} == "coral" ]]; then
+  cd ~/work/${project}/build
+  if [[ ${project} == "alps" ]]; then
+    for i in `seq 1 4`; do
+        return_value=0
+        make -k -j 4 install || return_value=$?
+        [[ $return_value -eq 0 ]] && break
+    done
+  elif [[ ${project} == "coral" ]]; then
     cd ~/work/coral/devtools
     ./coral_build.sh
   else
-    cd ~/work/${project}/build
-    if [[ ${project} == "alps" ]]; then
-      for i in `seq 1 4`; do
-          return_value=0
-          make -k -j 4 install || return_value=$?
-          [[ $return_value -eq 0 ]] && break
-      done
-    else
-      make -j 4 install
-    fi
+    make -j 4 install
   fi
 
   if [[ ${project} == "python-plumgridlib" ]]; then
