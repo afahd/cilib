@@ -69,7 +69,7 @@ fi
 DELIM__
 done
 
-# STEP-2: Fetch tools and builder
+# STEP-2: Fetch tools
 cat >> ${git_script} <<DELIM__
 rm -rf /opt/pg/systest
     ;;
@@ -83,10 +83,6 @@ cd /home/plumgrid/work/tools
 git fetch
 git checkout master
 git reset --hard origin/master
-echo 'Clone builder'
-git clone ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/builder -- /home/plumgrid/work/builder
-echo 'Clone esper'
-git clone ssh://${gerritid}@${GERRIT_IP}:${GERRIT_PORT}/esper_for_alps -- /home/plumgrid/work/esper
     ;;
   install_gcloud)
 DELIM__
@@ -171,7 +167,8 @@ DELIM__
 fi
 
 cat >> ${git_script} <<DELIM__
-echo "export APT_COMPONENT=${APT_COMPONENT}" > /home/plumgrid/apt_component.sh
+cd /home/plumgrid/work/pkg/scripts
+sed -i "/export APT_REPO_HOST/ c\export APT_REPO_HOST=127.0.0.1 && export APT_COMPONENT=${APT_COMPONENT}" build-all.sh
     ;;
   cmake_repos)
 DELIM__

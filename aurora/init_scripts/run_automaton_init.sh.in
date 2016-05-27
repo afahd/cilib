@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 sudo apt-get install parallel
+export JCFG_GITHUB_OAUTH='d3936bad97c404516cba043e1da9bdc042b63b25'
+
 # Adding the net-10-10 nameserver entry in case it's not there
 sudo chown plumgrid:plumgrid /etc/resolv.conf
 echo "nameserver 10.10.0.1" >> /etc/resolv.conf
@@ -11,34 +13,11 @@ sudo brctl delbr lxcbr0 || true
 sudo pkill dnsmasq || true
 sudo service lxc-net restart
 
-. /opt/pg/env/alps.bashrc
+source /opt/pg/env/alps.bashrc
+cd /home/plumgrid/work/pkg/build
+make -j4 install
+../scripts/build-all.sh --useallcpus
 
-project_list=("pg_ui" "sal" "pkg" "pg_cli" "common-config" "balicek" "python-plumgridlib" "corelib" "coral" "alps")
-
-for project in ${project_list[@]}; do
-  cd ~/work/${project}/build
-  if [[ ${project} == "alps" ]]; then
-    for i in `seq 1 4`; do
-        return_value=0
-        make -k -j 4 install || return_value=$?
-        [[ $return_value -eq 0 ]] && break
-    done
-  elif [[ ${project} == "coral" ]]; then
-    cd ~/work/coral/devtools
-    ./coral_build.sh
-  else
-    make -j 4 install
-  fi
-
-  if [[ ${project} == "python-plumgridlib" ]]; then
-      cd ~/work/python-plumgridlib/lib
-      sudo python setup.py install
-  fi
-done
-
-. /home/plumgrid/apt_component.sh
-export JENKINS_BUILDER_SCRIPT_DIR=/home/plumgrid/work/builder
-${JENKINS_BUILDER_SCRIPT_DIR}/jenkins-build-pkgs.sh -W "/home/plumgrid/work"
 # This is here only untill https://gerrit:8443/#/c/10751/ gets merged.
 sed -i '/restart_lxc lvm/a tryexec lxc-attach -n lvm -- /bin/bash -c \"echo 'NOZEROCONF=true' >> /etc/sysconfig/network\"' /opt/pg/systest/lxc/automaton/automaton-helpers.sh
 

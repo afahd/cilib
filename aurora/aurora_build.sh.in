@@ -225,7 +225,7 @@ function build_image() {
 
   9)
     # Run Step2: Fetch tools
-    echo "gitsync Step2: Fetching latest tools, esper and builder"
+    echo "gitsync Step2: Fetching latest tools"
     retryexec run_cmd_gci_sshforwarding ${INSTANCE_IP} "bash /tmp/gitsync.sh tools"
     ;;
 
@@ -281,8 +281,8 @@ function build_image() {
 
   15)
     #Install tools and iovisor in the background
-    echo "Installing tools, esper and iovisor"
-    tryexec make_tools_iovisor_esper ${INSTANCE_IP} "/tmp/make_tools_iovisor.log"
+    echo "Installing tools and iovisor"
+    tryexec make_tools_iovisor ${INSTANCE_IP} "/tmp/make_tools_iovisor.log"
     ;;
 
   16)
