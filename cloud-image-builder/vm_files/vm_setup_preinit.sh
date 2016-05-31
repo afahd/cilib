@@ -18,3 +18,4 @@ sudo mkdir /opt/lxc
 sudo ln -s /opt/lxc /var/lib/lxc
 sudo sed -i '/gerrit/d' /etc/hosts
 sudo bash -c "echo '192.168.10.77 gerrit' >> /etc/hosts"
+sudo bash -c "echo '192.168.10.77 gerrit.plumgrid.com' >> /etc/hosts"
