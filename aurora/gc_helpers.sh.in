@@ -53,8 +53,8 @@ function run_cmd_gci() {
   local CMD=$2
   local SSH_FLAGS=${3:-t}
 
-  ssh -${SSH_FLAGS} -o UserKnownHostsFile=/dev/null -o CheckHostIP=no -o StrictHostKeyChecking=no -o ServerAliveInterval=50 \
-  -o ConnectionAttempts=3 -o ServerAliveCountMax=5 ${_USER}@${INSTANCE_IP} "$CMD"
+  ssh -${SSH_FLAGS} -o UserKnownHostsFile=/dev/null -o CheckHostIP=no -o StrictHostKeyChecking=no -o ServerAliveInterval=20 \
+  -o ConnectionAttempts=2 -o ServerAliveCountMax=2 ${_USER}@${INSTANCE_IP} "$CMD"
 }
 
 # *****************************************************************************
@@ -273,10 +273,10 @@ DELIM__
 function wait_for_instance() {
   local INSTANCE_IP=$1
   local RESULT=1
-  for i in `seq 1 60`;
+  for i in `seq 1 30`;
     do
       echo "Trying to ssh to ${INSTANCE_NAME} Iteration [$i]"
-      run_cmd_gci ${INSTANCE_IP} "exit" 2>&1  && RESULT=0 && break
+      timeout 10 run_cmd_gci ${INSTANCE_IP} "exit" 2>&1  && RESULT=0 && break
       sleep 1
     done
   return $RESULT
@@ -993,7 +993,7 @@ function tryexec() {
 # *****************************************************************************
 function retryexec() {
   retry=1
-  until [[ $retry == "10" ]]
+  until [[ $retry == "4" ]]
   do
      echo "Try $retry for command "
      echo "  $@"
@@ -1003,7 +1003,7 @@ function retryexec() {
        break
      fi
      let retry++
-     if [[ $retry == "10" ]]; then
+     if [[ $retry == "4" ]]; then
        echo "Command $@ failed"
        echo "$(basename $0) Failed, do you want to cleanup the instances?"
        read -r -p "Are you sure you want to continue? (y/N)" response
