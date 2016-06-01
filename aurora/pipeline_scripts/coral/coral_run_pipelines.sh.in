@@ -7,7 +7,7 @@ source pl_settings.conf
 source gc_helpers.sh
 
 #Show help
-if [[ $3 == "help" ]]; then
+if [[ $3 =~ "help" ]]; then
   show_pl_help
   exit 1
 fi

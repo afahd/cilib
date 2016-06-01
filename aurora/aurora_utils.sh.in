@@ -379,7 +379,7 @@ function set_max_instances() {
 # Prereq: The instance should exsist.
 # *****************************************************************************
 function login_instance() {
-  if [[ $1 == "help" || -z $1 ]]; then
+  if [[ $1 =~ "help" || -z $1 ]]; then
     show_login_help
     exit 1
   fi
@@ -419,7 +419,7 @@ function list_primary_snapshots()
 # *****************************************************************************
 function list_entities()
 {
-  if [[ $1 == "help" ]]; then
+  if [[ $1 =~ "help" ]]; then
     show_ls_help
     exit 1
   fi
@@ -457,7 +457,7 @@ function list_entities()
 # *****************************************************************************
 function start_entities()
 {
-  if [[ $1 == "help" || $# -lt 1 ]]; then
+  if [[ $1 =~ "help" || $# -lt 1 ]]; then
     show_start_help
     exit 1
   fi
@@ -478,7 +478,7 @@ function start_entities()
 # *****************************************************************************
 function shutdown_entities()
 {
-  if [[ $1 == "help" || $# -lt 1 ]]; then
+  if [[ $1 =~ "help" || $# -lt 1 ]]; then
     show_shutdown_help
     exit 1
   fi
@@ -499,7 +499,7 @@ function shutdown_entities()
 # *****************************************************************************
 function delete_entities()
 {
-  if [[ $1 == "help" || $# -lt 2 ]]; then
+  if [[ $1 =~ "help" || $# -lt 2 ]]; then
     show_rm_help
     exit 1
   fi
@@ -529,7 +529,7 @@ function delete_entities()
 # *****************************************************************************
 function cp_entities()
 {
-  if [[ $1 == "help" || $# -lt 2 ]]; then
+  if [[ $1 =~ "help" || $# -lt 2 ]]; then
     show_cp_help
     exit 1
   fi

@@ -19,7 +19,7 @@ source /home/$USER/.aurora.conf
 source aurora_infra_settings.conf
 
 #Show help
-if [[ $1 == "help" ]]; then
+if [[ $1 =~ "help" ]]; then
   show_run_help
   exit 1
 fi

@@ -5,7 +5,7 @@ source pl_utils.sh
 source pl_settings.conf
 source pl_help.sh
 
-if [[ $1 == "help" ]]; then
+if [[ $1 =~ "help" ]]; then
   show_flag_help
   exit 1
 fi

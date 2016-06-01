@@ -20,7 +20,7 @@ function exit_handler() {
 trap "exit_handler" EXIT
 
 #Show help
-if [[ $3 == "help" ]]; then
+if [[ $3 =~ "help" ]]; then
   show_pl_help
   exit 1
 fi

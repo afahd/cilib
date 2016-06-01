@@ -16,7 +16,7 @@ if [[ ! -d "${WORKSPACE}/logs" ]] ; then
 fi
 
 function init_id() {
-  if [[ $1 == "help" ]] ; then
+  if [[ $1 =~ "help" ]] ; then
     show_init_help
     exit 1
   fi
@@ -202,7 +202,7 @@ DELIM__
 # Usage   : spawn_instance <instance_name> <os_name> <instance_type>
 # *****************************************************************************
 function spawn_instance() {
-  if [[ $1 == "help" || $# -lt 3 ]]; then
+  if [[ $1 =~ "help" || $# -lt 3 ]]; then
     show_spawn_help
     exit 1
   fi

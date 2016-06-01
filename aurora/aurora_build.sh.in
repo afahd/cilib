@@ -20,7 +20,7 @@ source /home/$USER/.aurora.conf
 
 
 #Show help
-if [[ $1 == "help" ]]; then
+if [[ $1 =~ "help" ]]; then
   show_build_help
   exit 1
 fi
