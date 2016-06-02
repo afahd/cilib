@@ -394,6 +394,23 @@ function login_instance() {
     exit 1
   fi
 }
+
+# *****************************************************************************
+# Function: list_primary_snapshots
+# Purpose : Lists the primary snapshot being used in aurora
+# Usage   : list_primary_snapshots
+# Prereq:   aurora init has been called.
+# *****************************************************************************
+function list_primary_snapshots()
+{
+  local SN_ID=$(get_latest_snapshot_id)
+  local SNAP1=${PRIM_INST_NAME}-d1-${SN_ID}
+  local SNAP2=${PRIM_INST_NAME}-d2-${SN_ID}
+  echo "Current primary snapshots:"
+  echo "$SNAP1"
+  echo "$SNAP2"
+}
+
 # *****************************************************************************
 # Function: list_entities
 # Purpose : Parses the options for aurora ls and calls the respective functions
@@ -418,6 +435,8 @@ function list_entities()
       list_instances $EMAILID;;
     snapshots)
       list_snapshots $EMAILID;;
+    primary-snapshot)
+      list_primary_snapshots;;
     run)
       list_runids $EMAILID;;
     build)

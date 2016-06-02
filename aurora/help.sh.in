@@ -168,6 +168,7 @@ USAGE: aurora ls <ENTITY>
                       build: Lists the build-ids and their corresponding RefSpec.
                              To see "builds" created by other user, give their
                              email id as parameter. e.g. "aurora ls build alir"
+                      primary-snapshot: Lists the current primary snapshot being used by aurora.
                       run: Lists the run instances and the corresponding build-ids.
                       disks: Lists the disks not attached to instances.
                       Default is instances.
