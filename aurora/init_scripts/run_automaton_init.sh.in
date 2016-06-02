@@ -41,7 +41,7 @@ export JENKINS_BUILDER_SCRIPT_DIR=/home/plumgrid/work/builder
 ${JENKINS_BUILDER_SCRIPT_DIR}/jenkins-build-pkgs.sh -W "/home/plumgrid/work"
 # This is here only untill https://gerrit:8443/#/c/10751/ gets merged.
 sed -i '/restart_lxc lvm/a tryexec lxc-attach -n lvm -- /bin/bash -c \"echo 'NOZEROCONF=true' >> /etc/sysconfig/network\"' /opt/pg/systest/lxc/automaton/automaton-helpers.sh
-
+set -e
 sudo /home/plumgrid/work/alps/build/scripts/jenkins/lxc-automaton-longevity-jenkins-init.sh
 #Stop the lxc
 sudo lxc-stop -n lvm -t 10
