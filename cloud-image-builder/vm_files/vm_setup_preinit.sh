@@ -1,6 +1,7 @@
 #!/bin/bash -e
 set -e
-echo 'Acquire::http { Proxy \"http://10.10.163.162:3142\"; };' > /tmp/02proxy
+echo 'Acquire::http::Proxy "http://10.10.163.162:3142";' > /tmp/02proxy
+echo 'Acquire::http::Proxy { download.oracle.com DIRECT; };' >> /tmp/02proxy
 sudo mv /tmp/02proxy /etc/apt/apt.conf.d/02proxy
 sudo apt-get update || true
 sudo apt-get install -y btrfs-tools haveged libxml2-dev
