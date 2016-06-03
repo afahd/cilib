@@ -536,6 +536,7 @@ function run_step(){
       echo "$date_begin:: Unable to ready $state_dir/edge_ips during workload VM with $TAG tag configuration" >> $WORKSPACE/logs/nimbus.log
     fi
     edges=$(cat $state_dir/edge_ips)
+    scp -r -o StrictHostKeyChecking=no $WORKSPACE $username@$workload:/tmp/
     scp -o StrictHostKeyChecking=no /opt/pg/scripts/nimbus_remote_conf $username@$workload:/opt/pg/scripts/. >& /tmp/nimbus_remote_conf.log
     ssh -o StrictHostKeyChecking=no $username@$workload "sudo /opt/pg/scripts/nimbus_remote_conf \"WORKLOAD\" $directors $edges $middleware_ip >& /tmp/nimbus_remote_conf.log"
 
