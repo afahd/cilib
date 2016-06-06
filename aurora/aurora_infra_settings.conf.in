@@ -46,6 +46,7 @@ declare -A INIT_SCRIPT=(
 # Describe the possible mappings for branch->component translations
 declare -A BRANCH_TO_COMPONENT=(
 ['master']=unstable
+['bnp_paribas']=unstable-bnp
 ['stable_4_0']=everest
 ['stable_4_1']=fuji-414
 ['stable_4_1_1']=fuji-sushi
@@ -64,6 +65,7 @@ COMMON_PROJECTS=("pkg" "pg_cli" "pg_ui" "sal" "alps" "python-plumgridlib" "coral
 
 declare -A COMPONENT_TO_REPO=(
 ['unstable']=middle-earth,nirvana,common-config,balicek
+['unstable-bnp']=middle-earth,nirvana,common-config,balicek
 ['fuji-413']=balicek
 ['fuji-413-chirashi']=balicek
 ['fuji-413-maki']=balicek
