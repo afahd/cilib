@@ -1,10 +1,21 @@
 #!/bin/bash -e
 . /opt/pg/env/alps.bashrc
 
-# corelib doesn't need to install other repos
+pushd ~/.
+wget https://github.com/zeromq/zeromq4-1/releases/download/v4.1.4/zeromq-4.1.4.tar.gz
+tar xvf zeromq-4.1.4.tar.gz
+pushd zeromq-4.1.4
+./configure --without-libsodium --prefix=/usr
+make -j 4
+sudo make install
+popd
+popd
 
+# corelib doesn't need to install other repos
 cd ~/work/corelib/build
 return_value=0
+rm -rf *
+cmake ..
 make -k -j 4 install || return_value=$?
 
 #Need to have the last command status for run_bg_cmd
