@@ -195,6 +195,7 @@ if [[ -d /home/plumgrid/work/${p}/ ]]; then
     export PATH=~/work/pg_ui/devtools/node_modules/grunt-cli/bin/:$PATH
     grunt build
     popd
+    mkdir -p /home/plumgrid/work/pg_ui/build
   else
     mkdir -p /home/plumgrid/work/${p}/build
     cd /home/plumgrid/work/${p}/build
