@@ -34,4 +34,5 @@ done
 
 . /home/plumgrid/apt_component.sh
 export JENKINS_BUILDER_SCRIPT_DIR=/home/plumgrid/work/builder
+set -e
 ${JENKINS_BUILDER_SCRIPT_DIR}/jenkins-build-pkgs.sh -W "/home/plumgrid/work"
