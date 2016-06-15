@@ -313,9 +313,13 @@ function build_image() {
     ;;
 
   20)
-    # Checks the elfsurgeon files
-    echo "make alps and check elfsurgeon files"
-    tryexec check_elfsurgeon ${INSTANCE_IP} "/tmp/check_elfsurgeon.log"
+    # Checks the elfsurgeon files, but only if we are testing an alps commit
+    if [[ "${PROJECT}" == 'alps' ]]; then
+      echo "make alps and check elfsurgeon files"
+      tryexec check_elfsurgeon ${INSTANCE_IP} "/tmp/check_elfsurgeon.log"
+    else
+      echo "Skipping check_elfsurgeon since the current project is ${PROJECT}"
+    fi
     ;;
 
   21)
