@@ -324,9 +324,13 @@ function build_image() {
 
   21)
     # Adding polling as a separate step, so that if the connection broke at the previous step.
-    echo "Polling make for alps and checking elfsurgeon files (tailing \"/tmp/check_elfsurgeon.log\" for complete logs)"
-    tryexec run_poll_cmd ${INSTANCE_IP} "check_elfsurgeon.sh" "/tmp/check_elfsurgeon.log" "1"
-    retryexec download ${INSTANCE_IP} "/tmp/check_elfsurgeon.log" "${WORKSPACE}/logs/"
+    if [[ "${PROJECT}" == 'alps' ]]; then
+      echo "Polling make for alps and checking elfsurgeon files (tailing \"/tmp/check_elfsurgeon.log\" for complete logs)"
+      tryexec run_poll_cmd ${INSTANCE_IP} "check_elfsurgeon.sh" "/tmp/check_elfsurgeon.log" "1"
+      retryexec download ${INSTANCE_IP} "/tmp/check_elfsurgeon.log" "${WORKSPACE}/logs/"
+    else
+      echo "check_elfsurgeon was skipped since the current project is ${PROJECT}"
+    fi
     ;;
 
   22)
