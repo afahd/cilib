@@ -120,7 +120,7 @@ function build_image() {
 
       12)
           echo "Building the rest for master"
-          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_setup_all.sh'"
+          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_setup_all.sh master'"
           ;;
 
       13)
@@ -135,7 +135,7 @@ function build_image() {
 
       15)
           echo "Building the rest for stable_4_3"
-          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_setup_all.sh'"
+          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_setup_all.sh stable_4_3'"
           ;;
 
       16)
@@ -151,7 +151,7 @@ function build_image() {
 
       18)
           echo "Building the rest for stable_5_0"
-          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_setup_all.sh'"
+          retryexec run_cmd_gci ${INSTANCE_IP} "sudo su plumgrid -c 'bash -x ./vm_setup_all.sh stable_5_0'"
           ;;
 
       19)

@@ -1,12 +1,17 @@
 #!/bin/bash -e
 set -e
+branch=$1
 export PATH="/usr/lib/ccache/:${PATH}"
 cd ~/work/iovisor/bld && make
 cd ~/work/iovisor/bld && sudo make install
 mkdir -p ~/work/pg_ui/build && mkdir -p ~/work/sal/build && mkdir -p ~/work/pkg/build && mkdir -p ~/work/pg_cli/build
-bash -c "cd ~/work/pg_ui/build && . /opt/pg/env/alps.bashrc && cmake .."
-cd ~/work/pg_ui/build && make -j 4 -k
-cd ~/work/pg_ui/build && make install
+
+# Adding special condition for master on pgui due to grunt changes
+if [[ $branch != "master" ]]; then
+  bash -c "cd ~/work/pg_ui/build && . /opt/pg/env/alps.bashrc && cmake .."
+  cd ~/work/pg_ui/build && make -j 4 -k
+  cd ~/work/pg_ui/build && make install
+fi
 bash -c "cd ~/work/sal/build && . /opt/pg/env/alps.bashrc && cmake .."
 cd ~/work/sal/build && make -j 4 -k
 cd ~/work/sal/build && make install
