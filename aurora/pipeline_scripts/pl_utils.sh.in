@@ -6,15 +6,24 @@ source ~/.aurora.conf
 function get_db() {
   local pipeline=$1
   local branch=$2
+  local default_gc_path="${HOME}/work/gcloud/build/aurora/pipeline_scripts/"
+  local current_gc_path=@CMAKE_CURRENT_BINARY_DIR@/
+  local gc_path=
+  if [[ -d "${default_gc_path}" ]]; then
+    gc_path="${default_gc_path}"
+  else
+    gc_path="${current_gc_path}"
+  fi
+
   if [[ -n "$branch" ]]; then
-    local db="${DB_PATH}$pipeline-$branch.db"
+    local db="${gc_path}${DB_PATH}${pipeline}-${branch}.db"
     if [[ -e "$db" ]]; then
       echo ${db}
       return 0
     fi
   fi
   if [[ -n "${PIPELINE_DB[$pipeline]}" ]]; then
-    echo ${PIPELINE_DB[$pipeline]}
+    echo "${gc_path}${PIPELINE_DB[$pipeline]}"
   else
     echo "Unknown Pipeline"
     return 1

@@ -1,15 +1,15 @@
 #Database locations
-DB_PATH=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/
-DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/smoke-master.db
-CORELIB_SMOKE_DB=@CMAKE_CURRENT_BINARY_DIR@/corelib/dbs/corelib-smoke-master.db
-CORELIB_EXTENDED_DB=@CMAKE_CURRENT_BINARY_DIR@/corelib/dbs/corelib-extended-master.db
-SMOKE_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/smoke-master.db
-EXTENDED_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/extended-master.db
-UNSTABLE_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/unstable-master.db
-PGUI_SMOKE_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/pgui-smoke-master.db
-PGUI_EXTENDED_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/pgui-extended-master.db
-OMNI_DB=@CMAKE_CURRENT_BINARY_DIR@/alps/dbs/omni-master.db
-NIRVANA_DB=@CMAKE_CURRENT_BINARY_DIR@/nirvana/dbs/nirvana-master.db
+DB_PATH=alps/dbs/
+DB=alps/dbs/smoke-master.db
+CORELIB_SMOKE_DB=corelib/dbs/corelib-smoke-master.db
+CORELIB_EXTENDED_DB=corelib/dbs/corelib-extended-master.db
+SMOKE_DB=alps/dbs/smoke-master.db
+EXTENDED_DB=alps/dbs/extended-master.db
+UNSTABLE_DB=alps/dbs/unstable-master.db
+PGUI_SMOKE_DB=alps/dbs/pgui-smoke-master.db
+PGUI_EXTENDED_DB=alps/dbs/pgui-extended-master.db
+OMNI_DB=alps/dbs/omni-master.db
+NIRVANA_DB=nirvana/dbs/nirvana-master.db
 
 #Database map
 declare -A PIPELINE_DB=(
@@ -48,6 +48,7 @@ ALPS_PATH=/home/${USER}/work/alps
 NUM_LAST_COMMITS="10"
 FIRST_TEST=1
 STEP_SIZE=50
+UPDATE_DB_FAILURE_LIMIT=3
 
 #Iteration map
 declare -A ITERATION_COUNT=(

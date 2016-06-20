@@ -230,6 +230,9 @@ function run_test() {
       build_db.sh -D ${db} -d ${untar_log_dir} > ${untar_log_dir}/DB_REPORT.txt
       cat ${untar_log_dir}/DB_REPORT.txt
       printf "\n\n******* Updation of database has been completed. Please see ${untar_log_dir}/DB_REPORT.txt ******\n\n"
+    else
+      echo "DB_UPDATE: ${DB_UPDATE} NUM_FAILURES: ${num_failures} UPDATE_DB_FAILURE_LIMIT: ${UPDATE_DB_FAILURE_LIMIT}"
+      echo "\n\n******* Skipping Updation of database ******\n\n"
     fi
 
     #rm -rf ${untar_log_dir}
