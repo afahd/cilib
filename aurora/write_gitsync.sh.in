@@ -186,7 +186,7 @@ if [[ -d /home/plumgrid/work/${p}/ ]]; then
     set -x
     sudo add-apt-repository -y ppa:chris-lea/node.js
     sudo apt-get update
-    sudo apt-get install -y nodejs
+    sudo apt-get install -y --force-yes nodejs
     pushd /home/plumgrid/work/pg_ui/devtools/
     sudo npm install npm -g
     npm install grunt --save-dev
