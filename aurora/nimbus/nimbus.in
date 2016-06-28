@@ -15,22 +15,22 @@ Required Arguments:
 Optional Arguments:
   -W, --WORKSPACE       Set the workspace where all the logs will be stored.
                         Logs will be place in /tmp/logs
-  -t, --tag             Add a tag to the instance name. The tag will get a suffix of director, edge
-                        or workload. There should be no other instances with TAG<suffix>. Default is nimbus
+  -t, --tag             Add a tag to the instance name. The tag will get a suffix of drct, edge
+                        or wkld. There should be no other instances with TAG<suffix>. Default is nimbus
   -c, --commit          SHA-1 HASH of the commit to apply
                         Supplying this arguments enables the transfer of local changes to the cloud instance.
                         The changes can be specified by the SHA-1 hash of a local commit.
                         All changes up to that commit are applied on the instance on the corresponding
                         branch.
-  -D, --directors       Number of PG directors to spawn. Default is 1
+  -D, --drcts       Number of PG drcts to spawn. Default is 1
   -E, --edges           Number of PG edges to spawn. Default is 2
   -N, --neutron         To deploy neutron instance or not. Default is 0
   -A, --apex            To deploy CloudApex or not. Default is 0
   -Ss, --start-step     Step number to start execution at. Default is 1
   -Se, --end-step       Step numbet to end execution at. Default is 4
-  --start-plumgrid      Start plumgrid services on directors and edges
-  --stop-plumgrid       Stop plumgrid services on directors and edges
-  --state-dir           Please provide full path of Nimbus state directory if using --start-step other than 1
+  --start-plumgrid      Start plumgrid services on drcts and edges
+  --stop-plumgrid       Stop plumgrid services on drcts and edges
+  --state-dir           Please provide full path of Nimbus state drcty if using --start-step other than 1
   --test-cleanup        Cleanup test cruft. Usually used if a test failed
   --debug               Run in debug mode. Do not delete log files
 BUILDHELP
@@ -53,7 +53,7 @@ while true ; do
      -t| --tag) export TAG=$2 ; shift 2 ;;
      -c| --commit) export COMMIT=$2 ; shift 2 ;;
      -W| --WORKSPACE) export WORKSPACE=$2 ; shift 2 ;;
-     -D| --directors) export NUM_DIRS=$2 ; shift 2 ;;
+     -D| --drcts) export NUM_DIRS=$2 ; shift 2 ;;
      -E| --edges) export NUM_EDGES=$2 ; shift 2 ;;
      -N| --neutron) export NEUTRON=1 ; shift ;;
      --juno) export JUNO=1 ; shift ;;
@@ -110,15 +110,15 @@ if [[ $TAG != "none" ]]; then
 fi
 
 function start_plumgrid(){
-  directors=$(aurora ls instances | grep ".*${TAG}director" | awk '{print $3}')
-  directors_array=($directors)
+  drcts=$(aurora ls instances | grep ".*${TAG}drct" | awk '{print $3}')
+  drcts_array=($drcts)
 
-  for i in "${directors_array[@]}"; do
+  for i in "${drcts_array[@]}"; do
     ssh -o StrictHostKeyChecking=no $username@$i "sudo start plumgrid && sudo start nginx" &
   done
   wait
   if [[ $? -ne 0 ]]; then
-    echo "Starting plumgrid services on directors failed"
+    echo "Starting plumgrid services on drcts failed"
     exit 1
   fi
 
@@ -138,16 +138,16 @@ function start_plumgrid(){
 }
 
 function stop_plumgrid(){
-  directors=$(aurora ls instances | grep ".*${TAG}director" | awk '{print $3}')
-  directors_array=($directors)
+  drcts=$(aurora ls instances | grep ".*${TAG}drct" | awk '{print $3}')
+  drcts_array=($drcts)
 
-  for i in "${directors_array[@]}"; do
+  for i in "${drcts_array[@]}"; do
     ssh -o StrictHostKeyChecking=no $username@$i "sudo stop plumgrid && sudo stop nginx" &
   done
   wait
 
   if [[ $? -ne 0 ]]; then
-    echo "Stopping plumgrid services on directors failed"
+    echo "Stopping plumgrid services on drcts failed"
     exit 1
   fi
 
@@ -166,16 +166,16 @@ function stop_plumgrid(){
 }
 
 function test_cleanup(){
-  directors=$(aurora ls instances | grep ".*${TAG}director" | awk '{print $3}')
-  directors_array=($directors)
+  drcts=$(aurora ls instances | grep ".*${TAG}drct" | awk '{print $3}')
+  drcts_array=($drcts)
 
-  for i in "${directors_array[@]}"; do
+  for i in "${drcts_array[@]}"; do
     ssh -o StrictHostKeyChecking=no $username@$i "sudo /opt/pg/systest/infra/test-cleanup.sh" &
   done
   wait
 
   if [[ $? -ne 0 ]]; then
-    echo "Cleaning up directors failed."
+    echo "Cleaning up drcts failed."
     exit 1
   fi
 
@@ -230,53 +230,53 @@ function copy_wk_key_to_MW(){
   echo "COPYING WORKLOAD KEY TO MW"
   /usr/bin/expect <<EOD
 set timeout 30
-spawn ssh -o StrictHostKeyChecking=no plumgrid@\$middleware_ip "echo \"\$workload_key\" >> ~/.ssh/authorized_keys"
+spawn ssh -o StrictHostKeyChecking=no plumgrid@\$middleware_ip "echo \"\$wkld_key\" >> ~/.ssh/authorized_keys"
 expect "password:"
 send "plumgrid\n"
 expect eof
 EOD
 }
 
-#Need to use high specification director for scale
+#Need to use high specification drct for scale
 for i in {1..$NUM}; do
-  $aurora_run_command -d 100GB -t ${TAG}director  --machine_type 'n1-standard-16' >& $local_log_file.dir\$i.log &
+  $aurora_run_command -d 100GB -t ${TAG}drct  --machine_type 'n1-standard-16' >& $local_log_file.dir\$i.log &
 done
 
 $aurora_run_command -t ${TAG}edge  --machine_type 'n1-standard-16' >& $local_log_file.edge1.log &
-$aurora_run_command -t ${TAG}workload  --machine_type 'n1-standard-4' >& $local_log_file.workload.log &
+$aurora_run_command -t ${TAG}wkld  --machine_type 'n1-standard-4' >& $local_log_file.wkld.log &
 
 wait
 if [[ \$? -ne 0 ]]; then
-  echo "$date_begin:: Encountered error while spawning ${NUM} directors and master edge1 with tag ${TAG}" >> $WORKSPACE/logs/nimbus.log
+  echo "$date_begin:: Encountered error while spawning ${NUM} drcts and master edge1 with tag ${TAG}" >> $WORKSPACE/logs/nimbus.log
   exit 1
 fi
-mkdir -p $state_dir/workload_keys
-ssh-keygen -t rsa -b 2048 -f '$state_dir/workload_keys/id_rsa' -N ''
+mkdir -p $state_dir/wkld_keys
+ssh-keygen -t rsa -b 2048 -f '$state_dir/wkld_keys/id_rsa' -N ''
 
-wlname=\$(grep -o "Warning: Permanently added '.*'" $local_log_file.workload.log | head -n1)
+wlname=\$(grep -o "Warning: Permanently added '.*'" $local_log_file.wkld.log | head -n1)
 if [[ "x\$wlname" == "x" ]]; then
-  echo "$date_begin:: Unable to grep IP address for workload VM with $TAG tag" >> /tmp/nimbus.log
+  echo "$date_begin:: Unable to grep IP address for wkld VM with $TAG tag" >> /tmp/nimbus.log
   exit 1
 fi
 if [[ "\$wlname" =~ ^Warning:\ Permanently\ added\ \'([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\'$ ]]; then
   wlip=\${BASH_REMATCH[1]}
 fi
 
-echo "\$wlip" > $state_dir/workload_ip
+echo "\$wlip" > $state_dir/wkld_ip
 
 # DIRECTOR CONF
-if [[ -z $state_dir/workload_keys/id_rsa.pub ]]; then
-  echo "$date_begin:: Unable to read $state_dir/workload_keys/id_rsa.pub during $TYPE VM with $TAG tag configuration" >> $WORKSPACE/logs/nimbus.log
+if [[ -z $state_dir/wkld_keys/id_rsa.pub ]]; then
+  echo "$date_begin:: Unable to read $state_dir/wkld_keys/id_rsa.pub during $TYPE VM with $TAG tag configuration" >> $WORKSPACE/logs/nimbus.log
 fi
-workload_key=\$(cat $state_dir/workload_keys/id_rsa.pub)
+wkld_key=\$(cat $state_dir/wkld_keys/id_rsa.pub)
 
-directors=\$(aurora ls instances | grep ".*${TAG}director" | awk '{print \$3}')
-directors_array=(\$directors)
+drcts=\$(aurora ls instances | grep ".*${TAG}drct" | awk '{print \$3}')
+drcts_array=(\$drcts)
 
-dir_ips=\$(echo \$directors | tr " " ",")
+dir_ips=\$(echo \$drcts | tr " " ",")
 echo "\$dir_ips" > $state_dir/dir_ips
 
-virtual_ip=\$(aurora ls instances | grep ".*${TAG}director" | awk '{print \$3}' | head -1)
+virtual_ip=\$(aurora ls instances | grep ".*${TAG}drct" | awk '{print \$3}' | head -1)
 echo "\$virtual_ip" > $state_dir/virtual_ip
 
 edge1_log_file=\$(ls ${WORKSPACE}/logs/*.edge1.log)
@@ -309,30 +309,30 @@ echo "\$edgeip" > $state_dir/edge1_ip
 echo -n "\$edgeip" > $state_dir/edge_ips
 
 
-for i in "\${directors_array[@]}"; do
+for i in "\${drcts_array[@]}"; do
   scp -o StrictHostKeyChecking=no /opt/pg/scripts/nimbus_remote_conf $username@\$i:/opt/pg/scripts/. >& /tmp/nimbus_remote_conf.log &
 done
 scp -o StrictHostKeyChecking=no /opt/pg/scripts/nimbus_remote_conf $username@\$edgeip:/opt/pg/scripts/. >& /tmp/nimbus_remote_conf.log &
 scp -o StrictHostKeyChecking=no /opt/pg/scripts/nimbus_remote_conf $username@\$wlip:/opt/pg/scripts/. >& /tmp/nimbus_remote_conf.log &
 
-scp -o StrictHostKeyChecking=no $state_dir/workload_keys/* $username@\$wlip:~/.ssh/. >& /tmp/nimbus_remote_conf.log &
+scp -o StrictHostKeyChecking=no $state_dir/wkld_keys/* $username@\$wlip:~/.ssh/. >& /tmp/nimbus_remote_conf.log &
 wait
 
-for i in "\${directors_array[@]}"; do
+for i in "\${drcts_array[@]}"; do
   ssh -o StrictHostKeyChecking=no $username@\$i "sudo /opt/pg/scripts/nimbus_remote_conf \"DIR\" \$dir_ips \$virtual_ip $middleware_ip >& /tmp/nimbus_remote_conf.log" &
-  ssh -o StrictHostKeyChecking=no $username@\$i "echo \"\$workload_key\" >> ~/.ssh/authorized_keys" &
+  ssh -o StrictHostKeyChecking=no $username@\$i "echo \"\$wkld_key\" >> ~/.ssh/authorized_keys" &
 done
 ssh -o StrictHostKeyChecking=no $username@\$edgeip "sudo /opt/pg/scripts/nimbus_remote_conf \"EDGE\" \$dir_ips \$virtual_ip $middleware_ip >& /tmp/nimbus_remote_conf.log" &
-ssh -o StrictHostKeyChecking=no $username@\$edgeip "echo \"\$workload_key\" >> ~/.ssh/authorized_keys" &
+ssh -o StrictHostKeyChecking=no $username@\$edgeip "echo \"\$wkld_key\" >> ~/.ssh/authorized_keys" &
 
-#Copy workload key to middleware vm
+#Copy wkld key to middleware vm
 if [[ "$APEX" -eq "1" ]]; then
   echo "COPYING WORKLOAD KEY TO MW"
   copy_wk_key_to_MW
 fi
 wait
 if [[ \$? -ne 0 ]]; then
-  echo "$date_begin:: Unable to configure directors and master edge1 with ${TAG} tag" >> $WORKSPACE/logs/nimbus.log
+  echo "$date_begin:: Unable to configure drcts and master edge1 with ${TAG} tag" >> $WORKSPACE/logs/nimbus.log
   exit 1
 fi
 DELIM__
@@ -360,7 +360,7 @@ wait
 key_file=\$(mktemp $WORKSPACE/keys-XXXXX)
 echo plumgrid:\$(cat /home/${USER}/.ssh/id_rsa.pub) > \${key_file}
 echo plumgrid:\$(echo ${COMMON_KEY}) >> \${key_file}
-echo plumgrid:\$(cat $state_dir/workload_pub_key) >> \${key_file}
+echo plumgrid:\$(cat $state_dir/wkld_pub_key) >> \${key_file}
 echo "Creating the instance[\$INSTANCE_NAME] in the cloud"
 tryexec exec_gcloud_cmd instances create "\${INSTANCE_NAME}\${NUM}" -q\
   --machine-type "$MACHINE_TYPE" --network "$NETWORK" --maintenance-policy \
@@ -424,7 +424,7 @@ function launch_middleware(){
 }
 
 function install_middleware_rpm(){
-  # Create a script that will run on the workload vm
+  # Create a script that will run on the wkld vm
   # It will copy the MW deb to MW vm and then install it.
   mw_install_script_path=$(mktemp ${WORKSPACE}/mw-install-XXXXX.sh)
   mw_script_name=$(basename $mw_install_script_path)
@@ -441,17 +441,17 @@ echo "start middleware service"
 ssh -o StrictHostKeyChecking=no plumgrid@$middleware_ip "sudo systemctl start plumgrid-middleware"
 DELIM__
 
-  scp -o StrictHostKeyChecking=no $mw_install_script_path $username@$workload:/tmp/. >& /tmp/mw_install_script.log
-  ssh -o StrictHostKeyChecking=no $username@$workload "bash /tmp/$mw_script_name >& /tmp/mw_install_script.log"
+  scp -o StrictHostKeyChecking=no $mw_install_script_path $username@$wkld:/tmp/. >& /tmp/mw_install_script.log
+  ssh -o StrictHostKeyChecking=no $username@$wkld "bash /tmp/$mw_script_name >& /tmp/mw_install_script.log"
 }
 
 function run_step(){
   local step=$1
   case "$step" in
   1)
-    #verify existing insatnces, if none found launch directors.
+    #verify existing insatnces, if none found launch drcts.
     # STEP 2 CREATE DIRECTOR VMS
-    aurora ls instances | grep -q "$.*${TAG}workload"
+    aurora ls instances | grep -q "$.*${TAG}wkld"
     if [[ $? -eq 0 ]]; then
       echo "Workload VM already exists"
       exit 1
@@ -461,7 +461,7 @@ function run_step(){
       echo "EDGE VM already exists"
       exit 1
     fi
-    aurora ls instances | grep -q ".*${TAG}director"
+    aurora ls instances | grep -q ".*${TAG}drct"
     if [[ $? -eq 0 ]]; then
       echo "Director already exists"
       exit 1
@@ -522,23 +522,23 @@ function run_step(){
 
   4)
     # STEP 4 WORKLOAD CONF
-    if [[ -z $state_dir/workload_ip ]]; then
-      echo "$date_begin:: Unable to ready $state_dir/workload_ip during workload VM with $TAG tag configuration" >> $WORKSPACE/logs/nimbus.log
+    if [[ -z $state_dir/wkld_ip ]]; then
+      echo "$date_begin:: Unable to ready $state_dir/wkld_ip during wkld VM with $TAG tag configuration" >> $WORKSPACE/logs/nimbus.log
     fi
-    workload=$(cat $state_dir/workload_ip)
+    wkld=$(cat $state_dir/wkld_ip)
 
     if [[ -z $state_dir/dir_ips ]]; then
-      echo "$date_begin:: Unable to ready $state_dir/dir_ips during workload VM with $TAG tag configuration" >> $WORKSPACE/logs/nimbus.log
+      echo "$date_begin:: Unable to ready $state_dir/dir_ips during wkld VM with $TAG tag configuration" >> $WORKSPACE/logs/nimbus.log
     fi
-    directors=$(cat $state_dir/dir_ips)
+    drcts=$(cat $state_dir/dir_ips)
 
     if [[ -z $state_dir/edge_ips ]]; then
-      echo "$date_begin:: Unable to ready $state_dir/edge_ips during workload VM with $TAG tag configuration" >> $WORKSPACE/logs/nimbus.log
+      echo "$date_begin:: Unable to ready $state_dir/edge_ips during wkld VM with $TAG tag configuration" >> $WORKSPACE/logs/nimbus.log
     fi
     edges=$(cat $state_dir/edge_ips)
-    scp -r -o StrictHostKeyChecking=no $WORKSPACE $username@$workload:/tmp/
-    scp -o StrictHostKeyChecking=no /opt/pg/scripts/nimbus_remote_conf $username@$workload:/opt/pg/scripts/. >& /tmp/nimbus_remote_conf.log
-    ssh -o StrictHostKeyChecking=no $username@$workload "sudo /opt/pg/scripts/nimbus_remote_conf \"WORKLOAD\" $directors $edges $middleware_ip >& /tmp/nimbus_remote_conf.log"
+    scp -r -o StrictHostKeyChecking=no $WORKSPACE $username@$wkld:/tmp/
+    scp -o StrictHostKeyChecking=no /opt/pg/scripts/nimbus_remote_conf $username@$wkld:/opt/pg/scripts/. >& /tmp/nimbus_remote_conf.log
+    ssh -o StrictHostKeyChecking=no $username@$wkld "sudo /opt/pg/scripts/nimbus_remote_conf \"WORKLOAD\" $drcts $edges $middleware_ip >& /tmp/nimbus_remote_conf.log"
 
     #Install latest MW deb on the MW VM
     if [[ $APEX = "1" ]]; then
@@ -580,7 +580,7 @@ function run_step(){
       #Adding Test Machine Public Key for Neutron
       echo ${neutron_user}:$(cat /home/${USER}/.ssh/id_rsa.pub) > $state_dir/neutron_keys/tmp.key
       #Adding Workload Public Key to Neutron
-      echo ${neutron_user}:$(cat $state_dir/workload_keys/id_rsa.pub) >> $state_dir/neutron_keys/tmp.key
+      echo ${neutron_user}:$(cat $state_dir/wkld_keys/id_rsa.pub) >> $state_dir/neutron_keys/tmp.key
       #Creating Neutron Disk Instance
       tryexec exec_gcloud_cmd disks create "${INSTANCE_NAME}-d1" -q \
       --source-snapshot ${neutron_snapshot} --type "$DISK_TYPE" --size=${neutron_snapshot_size}

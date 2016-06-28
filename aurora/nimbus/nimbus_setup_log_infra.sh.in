@@ -55,13 +55,13 @@ function get_instance_ips_using_regex() {
 function show_nimbus_setup_log_infra_help() {
   cat << HELP
 
-  USAGE: nimbus_setup_log_infra -l <build-id> -p <workload vm port>
+  USAGE: nimbus_setup_log_infra -l <build-id> -p <wkld vm port>
 
   Required Arguments:
   -l, --build-id      Build id for which nimbus was deployed.
 
   Optional Arguments:
-  -p, --wl-port       UDP Port where workload VM is listening to incoming logs.
+  -p, --wl-port       UDP Port where wkld VM is listening to incoming logs.
                       Default is 33333.
 
 HELP
@@ -88,8 +88,8 @@ done
 
 # TODO: Build_ID is required parameter
 MOD_BUILD_ID=$(echo ${BUILD_ID} | sed 's/bld/run/')
-wl_instance_name=${emailid}-${MOD_BUILD_ID}-falworkload
-dir_instance_name=${emailid}-${MOD_BUILD_ID}-faldirector
+wl_instance_name=${emailid}-${MOD_BUILD_ID}-falwkld
+dir_instance_name=${emailid}-${MOD_BUILD_ID}-faldrct
 
 function build_image() {
   local step=$1
