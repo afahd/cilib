@@ -86,21 +86,8 @@ if [[ "$NODE_TYPE" = "DIR" ]]; then
   sudo cp -rf /opt/pg/etc/init/plumgrid-logger.conf /etc/init/.
   sudo sed -i "s/^env mgmt_dev=fabric/env mgmt_dev=eth0/g" /etc/init/plumgrid-logger.conf
 
-  sudo cat >> /etc/logrotate.d/plumgrid-trace_collector <<DELIM__
-# PLUMgrid logrotate configuration file
-# Copyright 2013-2014 PLUMgrid Inc.
-# All rights reserved
-
-compress
-
-/opt/pg/log/trace_collector.12349.log {
-    rotate 500000
-    size 100M
-    postrotate
-        /usr/bin/killall -HUP launch_trace_collector || true
-    endscript
-}
-DELIM__
+  sudo cp -rf /opt/pg/etc/logrotate.d/plumgrid-trace_collector /etc/logrotate.d/plumgrid-trace_collector
+  sudo sed -i 's/rotate 50/rotate 500000/g' /etc/logrotate.d/plumgrid-trace_collector
 
   sudo cp -rf /opt/pg/etc/init/plumgrid-config.conf /etc/init/.
 
