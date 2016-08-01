@@ -16,6 +16,7 @@ instance_rates[N1Standard_2]=0.100
 instance_rates[N1Standard_4]=0.200
 instance_rates[N1Standard_8]=0.400
 instance_rates[N1Standard_16]=0.800
+instance_rates[N1Standard_32]=1.600
 instance_rates[N1Highcpu_2]=0.076
 instance_rates[N1Highcpu_4]=0.152
 instance_rates[N1Highcpu_8]=0.304
