@@ -33,6 +33,7 @@ declare -A BR_CODE=(
 ['stable_5_0']="11"
 ['stable_5_0_0']="12"
 ['stable_5_1_1']="13"
+['stable_5_2_0']="14"
 )
 
 declare -A INIT_SCRIPT=(
@@ -58,9 +59,10 @@ declare -A BRANCH_TO_COMPONENT=(
 ['stable_4_1_3-meli']=fuji-413-chirashi
 ['stable_4_1_3-ntt']=fuji-413-maki
 ['stable_4_3']=godwin-430
-['stable_5_0']=halfdome-510
+['stable_5_0']=halfdome-520
 ['stable_5_0_0']=halfdome-500
 ['stable_5_1_1']=halfdome-511
+['stable_5_2_0']=halfdome-520
 )
 
 COMMON_PROJECTS=("pkg" "pg_cli" "pg_ui" "sal" "alps" "python-plumgridlib" "coral" "corelib")
@@ -75,6 +77,7 @@ declare -A COMPONENT_TO_REPO=(
 ['halfdome-500']=balicek,middle-earth
 ['halfdome-510']=balicek,middle-earth
 ['halfdome-511']=balicek,middle-earth
+['halfdome-520']=balicek,middle-earth
 )
 
 COMMON_CMAKE_PROJECTS=("pkg" "pg_cli" "pg_ui" "sal" "alps" "python-plumgridlib" "corelib" "common-config" "balicek")
