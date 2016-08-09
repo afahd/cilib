@@ -4,5 +4,6 @@ export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH
 
 aurora_run.sh $@ --preemptible
 if [[ $? -ne 0 ]]; then
+  echo "A preempt has occurred, spinning up a non-preemptible instance"
   aurora_run.sh $@
 fi
