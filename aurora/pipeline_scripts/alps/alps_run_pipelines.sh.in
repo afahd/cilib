@@ -134,7 +134,7 @@ function run_test() {
       BASE_SCRIPT="pgui_base_test.sh"
       gen_pgui_tests.sh -b ${BASE_SCRIPT} -d ${script_dir} -r $BASE_SCRIPT_DIR -p $PIPELINE -n ${NUM_INSTANCES}
     else
-      gen_test_scripts.sh -p $PIPELINE -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -f ${FIRST_TEST} -t ${STEP_SIZE} -n ${NUM_INSTANCES} -d ${script_dir} -I ${INITIAL_RUN} --base_script_dir $BASE_SCRIPT_DIR -D ${db}
+      retryexec gen_test_scripts.sh -p $PIPELINE -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -f ${FIRST_TEST} -t ${STEP_SIZE} -n ${NUM_INSTANCES} -d ${script_dir} -I ${INITIAL_RUN} --base_script_dir $BASE_SCRIPT_DIR -D ${db}
     fi
 
     ;;
@@ -194,7 +194,7 @@ function run_test() {
     num_failures=$(get_failing_test_number ${untar_log_dir})
     echo "num_failures=$num_failures"
     #Get total tests ran
-    local num_total_tests=$(get_total_tests_run ${untar_log_dir})
+    num_total_tests=$(get_total_tests_run ${untar_log_dir})
     echo "Total number of tests run = $num_total_tests"
 
     if [[ $num_total_tests -eq 0 ]]; then
@@ -224,7 +224,7 @@ function run_test() {
 
     generate_test_directories ${untar_log_dir} ${WORKSPACE}/test_logs
 
-    if [[ "$num_failures" -le "$UPDATE_DB_FAILURE_LIMIT" && $DB_UPDATE == "true" ]];then
+    if [[ "$num_total_tests" -gt "600" && "$num_failures" -le "$UPDATE_DB_FAILURE_LIMIT" && $DB_UPDATE == "true" ]];then
       # Update database
       echo "Update database ${db} from ${untar_log_dir}"
       build_db.sh -D ${db} -d ${untar_log_dir} > ${untar_log_dir}/DB_REPORT.txt

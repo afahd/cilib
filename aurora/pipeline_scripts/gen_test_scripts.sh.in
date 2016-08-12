@@ -76,6 +76,10 @@ else
     echo "Num of Instances: $NUM_INSTANCES"
     echo "TotalRunTime: $TotalTestRuntime"
 
+    if [[ -z "${TestCount}" || "${TestCount}" -eq "0" ]]; then
+      echo "**** NO TESTS FOUND, exiting **** "
+      exit 1
+    fi
     ITime=${TotalTestRuntime%.*}
     AVGTime=$(expr $ITime / $SPLIT)
     echo "Average Run Time = $AVGTime"
