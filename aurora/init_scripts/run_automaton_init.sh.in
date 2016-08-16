@@ -13,7 +13,7 @@ sudo service lxc-net restart
 . /opt/pg/env/alps.bashrc
 
 project_list=("pg_ui" "sal" "pkg" "pg_cli" "common-config" "balicek" "python-plumgridlib" "corelib" "coral" "alps")
-
+. /home/plumgrid/apt_component.sh
 for project in ${project_list[@]}; do
   if [[ ${project} == "coral" ]]; then
     cd ~/work/coral/devtools
@@ -36,7 +36,6 @@ for project in ${project_list[@]}; do
   fi
 done
 
-. /home/plumgrid/apt_component.sh
 export JENKINS_BUILDER_SCRIPT_DIR=/home/plumgrid/work/builder
 set -e
 ${JENKINS_BUILDER_SCRIPT_DIR}/jenkins-build-pkgs.sh -W "/home/plumgrid/work"
