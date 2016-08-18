@@ -129,7 +129,7 @@ function run_test() {
     elif [[ $PIPELINE == "automaton" || $PIPELINE == "automaton-longevity" || $PIPELINE == "longevity" || $PIPELINE == "falcon" || $PIPELINE == "falcon-longevity" ]]; then
       gen_automaton_tests.sh -b ${BASE_SCRIPT} -i ${TEST_ITERATIONS} -d ${script_dir} -r $BASE_SCRIPT_DIR -p $PIPELINE -n ${NUM_INSTANCES} -l ${USER_BUILD_ID} -T ${TOPOLOGY}
       MACHINE_TYPE="n1-standard-16"
-    elif [[ $PIPELINE == "pgui-smoke" && ( $BRANCH == "master" || $BRANCH == "grunt" || $BRANCH == "react" ) ]]; then
+    elif [[ $PIPELINE == "pgui-smoke" && ( $BRANCH == "master" || $BRANCH == "grunt" || $BRANCH == "react" || $BRANCH == "stable_6_0" ) ]]; then
       echo "pipeline is pgui-smoke on branch grunt"
       BASE_SCRIPT="pgui_base_test.sh"
       gen_pgui_tests.sh -b ${BASE_SCRIPT} -d ${script_dir} -r $BASE_SCRIPT_DIR -p $PIPELINE -n ${NUM_INSTANCES}
