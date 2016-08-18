@@ -44,6 +44,8 @@ NEUTRON=0
 APEX=0
 TAG="n"
 JUNO=0
+KILO=0
+MITAKA=0
 DATE=$(date +"%Y%m%d%H%M%S")
 username="plumgrid"
 
@@ -56,8 +58,10 @@ while true ; do
      -D| --drcts) export NUM_DIRS=$2 ; shift 2 ;;
      -E| --edges) export NUM_EDGES=$2 ; shift 2 ;;
      -N| --neutron) export NEUTRON=1 ; shift ;;
-     --juno) export JUNO=1 ; shift ;;
-     -A| --apex) export APEX=1 ; shift ;;
+     --juno) export JUNO=1; export KILO=0; export MITAKA=0 ; shift ;;
+     --kilo) export KILO=1; export JUNO=0; export MITAKA=0 ; shift ;;
+     --mitaka) export MITAKA=1; export JUNO=0; export KILO=0 ; shift ;;
+      -A| --apex) export APEX=1 ; shift ;;
      -Ss| --start-step) export STEP_ST=$2 ; shift 2 ;;
      -Se| --end-step) export STEP_ED=$2 ; shift 2 ;;
      --start-plumgrid) export START_PLUMGRID=1 ; shift ;;
@@ -551,8 +555,10 @@ function run_step(){
       #######################################################################################################
       # Neutron Compatibility Guide:
       #------------------------------------------------------------------------------------------------------
-      # **Master**      On master branch 4.2 onwards compatibility requires neutron KILO with default
+      # **Master**      On master branch 5.2 onwards compatibility requires neutron MITAKA with default
       #                 aurora instance and default user "plumgrid"
+      #------------------------------------------------------------------------------------------------------
+      # **Stable_5_0**  Till Stable_5_2 compatibility requires neutron KILO with default user "plumgrid"
       #------------------------------------------------------------------------------------------------------
       # **Stable_4_1**  Till stable_4_1 compatibility requires neutron JUNO with default user "ubuntu"
       ########################################################################################################
@@ -561,17 +567,21 @@ function run_step(){
       # STEP 5 LAUNCH NEUTRON SNAPSHOT
       echo "  ===LAUNCHING NEUTRON IN THE ORBIT===">> $WORKSPACE/logs/nimbus.log
       neutron_user="plumgrid"
-      neutron_snapshot="neutron-kilo-snapshot"
-      neutron_snapshot_size="10GB"
+      neutron_snapshot_size="50GB"
 
-      if [[ $JUNO = "1" ]]; then
+      if [[ $MITAKA = "1" ]]; then
+        echo "****************** Deploying Stable 6.0 Onwards Compatible Neutron (MITAKA) Instance *************** "
+        neutron_snapshot="neutron-mitaka1"
+      elif [[ $JUNO = "1" ]]; then
         echo "******************Deploying Stable 4.3 Compatible Neutron Instance*************** "
         neutron_user="ubuntu"
         neutron_snapshot="neutron-snapshot2"
         neutron_snapshot_size="50GB"
-      else
+      elif [[ $KILO = "1" ]]; then
         echo "****************** Deploying Stable 5.0 Onwards Compatible Neutron (KILO) Instance *************** "
+        neutron_snapshot="neutron-kilo-snapshot"
       fi
+
       #Populating Instance Name for neutron
       INSTANCE_NAME=$( echo "${emailid}-${BUILD_NAME}-${TAG}neutron" | sed 's/bld/run/g')
       #Log entry
