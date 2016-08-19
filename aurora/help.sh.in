@@ -22,6 +22,7 @@ COMMAND:
   login               Login to the specified INSTANCE
   load                Shows the resources used by all users.
   spawn               Create gcloud Instance with Arbritary OS.
+  count_preempt       Shows the preempts that happened on a pipeline and the total number of preempts during a specific date.
 
 To Get more specific help for each command, you can run "aurora <COMMAND> help"
 
@@ -43,6 +44,23 @@ Required Arguments:
 EXAMPLE:
   aurora spawn centos-instance centos-6 n1-standard-4
 SPAWNHELP
+}
+
+function count_preempt_help() {
+    cat << COUNTHELP
+
+USAGE: aurora count_preempt -W <WORKSPACE> -d <DATE>
+       Calculates the number of instances that were preempted for a specifc date. The breakdown is pipeline wise,
+       along with the total number of instances that were preempted.
+
+Required Arguments:
+  -W, --WORKSPACE     Set the workspace where all the logs will be stored.
+  -d, --date          The date for the respective day for which preempt count is required
+
+EXAMPLE:
+  aurora count_preempt -W /home/irfan/Desktop/preempt_count -d 2016-08-19
+
+COUNTHELP
 }
 
 function show_build_help() {

@@ -57,6 +57,8 @@ case $1 in
       set_max_instances ${@:2} ;;
     spawn)
       spawn_instance ${@:2} ;;
+    count_preempt)
+      aurora_preempt_count.sh ${@:2} ;;
     help)
       show_aurora_help ;;
     *)

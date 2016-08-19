@@ -1,0 +1,69 @@
+#!/bin/bash
+
+export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:/opt/pg/scripts/gcloud/aurora/pipeline_scripts/:$PATH
+
+source pl_settings.conf
+source help.sh
+
+if [[ $1 == "help" || $1 = "" ]]; then
+  count_preempt_help
+  exit 1
+fi
+
+TEMP=`getopt -o W:d: --long workspace:,date:,\help -n 'aurora_preempt_count.sh' -- "$@"`
+eval set -- "$TEMP"
+while true ; do
+ case "$1" in
+  -W|--workspace) WORKSPACE=$2 ; shift 2 ;;
+  -d|--date) USER_DATE=$2 ; shift 2 ;;
+  -h| --help) count_preempt_help; exit 0; shift ;;
+  --) shift ; break ;;
+    *)
+      echo "Unrecognized option $1"
+       exit 1 ;;
+ esac
+done
+
+if [ ! -d "$WORKSPACE" ]; then
+  mkdir $WORKSPACE
+fi
+
+function get_pl_name() {
+ local pl_code="$1"
+ for i in "${!PL_CODE[@]}"; do
+  if [[ "${PL_CODE[$i]}" == "$pl_code" ]]; then
+   pl_name="$i"
+  fi
+ done
+ echo ${pl_name}
+}
+
+# Get list of all instance preemptedin the zone us-central1-f for a specific date
+gcloud compute operations list --zone us-central1-f | grep compute.instances.preempted | grep ${USER_DATE} > ${WORKSPACE}/preempted_list.txt
+# Get total number of occurrances of preempts
+total_preempts=`cat ${WORKSPACE}/preempted_list.txt | wc -l`
+# Get the names of instances till their pipeline code
+cat ${WORKSPACE}/preempted_list.txt | grep -oh "us-central1-f/instances/jenkins-.*-b-.*-run-.*-p-[0-9]*" > ${WORKSPACE}/pipeline_code_preempted.txt
+
+file="${WORKSPACE}/pipeline_code_preempted.txt"
+
+# Read the file with instance names till pipeline code so that pipelines can be identified for which preempt happened
+while IFS='' read -r line || [[ -n "${line}" ]]; do
+    pipeline_code=`echo ${line##*-}`
+    # Store each preempt of an instance on a pipeline in a file
+    get_pl_name ${pipeline_code} >> ${WORKSPACE}/pipelines.txt
+done < "$file"
+
+# get the uniq pipeline names for which preempts happened
+cat ${WORKSPACE}/pipelines.txt | cut -f 1 | sort | uniq > ${WORKSPACE}/uniq_pipes.txt
+
+while IFS='' read -r uniq_pipe || [[ -n "${uniq_pipe}" ]]; do
+    # Count the preempts per pipeline
+    num_occurance=`cat ${WORKSPACE}/pipelines.txt | grep ^${uniq_pipe}$ | wc -l`
+    echo ${uniq_pipe} ${num_occurance}
+done < "${WORKSPACE}/uniq_pipes.txt"
+
+echo "Total Preempted Instances on ${USER_DATE} = ${total_preempts}"
+
+# Cleaning up the workspace
+rm -rf ${WORKSPACE}/*
