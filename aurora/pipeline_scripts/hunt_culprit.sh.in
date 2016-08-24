@@ -125,7 +125,7 @@ function hunt_culprit_using_bs () {
       mod_commit_hash=${commit_hash:0:5}
       log_dir=${WORKSPACE}/debug_test_$mod_commit_hash/logs
       untar_log_dir=${WORKSPACE}/debug_test_$mod_commit_hash/untar_logs
-      echo "aurora debug-test -l ${BUILD_ID} -i ${TEST_ITERATIONS} -n ${NUM_INSTANCES} -s ${USER_SCRIPT} -e ${commit_hash} -a ${ALPS_PATH} -W ${WORKSPACE}/debug_test_$mod_commit_hash ${KEEP_RUNNING} > ${WORKSPACE}/debug_test_$mod_commit_hash.txt 2>&1 &"
+      echo "aurora debug-test -l ${BUILD_ID} -i ${TEST_ITERATIONS} -n ${NUM_INSTANCES} -s ${USER_SCRIPT} -e ${commit_hash} -a ${ALPS_PATH} $PREEMPTIBLE -W ${WORKSPACE}/debug_test_$mod_commit_hash ${KEEP_RUNNING} > ${WORKSPACE}/debug_test_$mod_commit_hash.txt 2>&1 &"
       aurora debug-test -l ${BUILD_ID} -i ${TEST_ITERATIONS} -n ${NUM_INSTANCES} -s ${USER_SCRIPT} -e ${commit_hash} -a ${ALPS_PATH} $PREEMPTIBLE -W ${WORKSPACE}/debug_test_$mod_commit_hash \
            ${KEEP_RUNNING} > ${WORKSPACE}/debug_test_$mod_commit_hash.txt 2>&1 &
 
