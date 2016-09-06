@@ -88,6 +88,7 @@ if [[ "$NODE_TYPE" = "DIR" ]]; then
 
   sudo cp -rf /opt/pg/etc/logrotate.d/plumgrid-trace_collector /etc/logrotate.d/plumgrid-trace_collector
   sudo sed -i 's/rotate 50/rotate 500000/g' /etc/logrotate.d/plumgrid-trace_collector
+  sudo ln -s /etc/cron.daily/logrotate /etc/cron.hourly/logrotate
 
   sudo cp -rf /opt/pg/etc/init/plumgrid-config.conf /etc/init/.
 
