@@ -1,11 +1,16 @@
-GCLOUD_PROJECT=festive-courier-755
-BASE_LINUX="ubuntu-1204-3-10-39-v3"
+SCALE_PROJECT='pg-scale-test'
+DEFAULT_PROJECT='festive-courier-755'
+GCLOUD_PROJECT=$(gcloud config list core/project | tail -1 | cut -d '=' -f 2 | tr -d ' ')
+BASE_LINUX="https://www.googleapis.com/compute/v1/projects/festive-courier-755/global/images/ubuntu-1204-3-10-39-v3"
 BASE_LINUX1404="ubuntu-14-04"
 MACHINE_TYPE=n1-standard-4
 ZONE=us-central1-f
 REGION=us-central1
 SCOPES=https://www.googleapis.com/auth/cloud-platform
-NETWORK=net-10-10
+declare -A NETWORK=(
+['festive-courier-755']="net-10-10"
+['pg-scale-test']="net-10-64"
+)
 DISK_TYPE=pd-standard
 DISK1_SIZE=30GB
 DISK2_SIZE=75GB

@@ -164,7 +164,7 @@ function run_test() {
     echo plumgrid:$(echo ${COMMON_KEY}) >> ${key_file}
     echo "Creating the instance[$INSTANCE_NAME] in the cloud"
     tryexec exec_gcloud_cmd instances create "${INSTANCE_NAME}" -q\
-      --machine-type "$MACHINE_TYPE" --network "$NETWORK" --scopes "$SCOPES" \
+      --machine-type "$MACHINE_TYPE" --network "${NETWORK[$GCLOUD_PROJECT]}" --scopes "$SCOPES" \
       --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
       --disk "name=${INSTANCE_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip" \
       --metadata-from-file sshKeys=$key_file $PREEMPTIBLE $MAINTENANCE_POLICY

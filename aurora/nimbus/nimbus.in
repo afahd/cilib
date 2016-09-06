@@ -367,7 +367,7 @@ echo plumgrid:\$(echo ${COMMON_KEY}) >> \${key_file}
 echo plumgrid:\$(cat $state_dir/wkld_pub_key) >> \${key_file}
 echo "Creating the instance[\$INSTANCE_NAME] in the cloud"
 tryexec exec_gcloud_cmd instances create "\${INSTANCE_NAME}\${NUM}" -q\
-  --machine-type "$MACHINE_TYPE" --network "$NETWORK" --maintenance-policy \
+  --machine-type "$MACHINE_TYPE" --network "${NETWORK[$GCLOUD_PROJECT]}" --maintenance-policy \
   "MIGRATE" --scopes "$SCOPES" \
   --disk "name=\${INSTANCE_NAME}\${NUM}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
   --disk "name=\${INSTANCE_NAME}\${NUM}-d2" "mode=rw" "boot=no" "auto-delete=yes" --no-address --tags "no-ip" \
@@ -419,7 +419,7 @@ function launch_middleware(){
 
   #Creating Middleware Instance
   tryexec exec_gcloud_cmd instances create "${INSTANCE_NAME}" -q \
-  --image "mw-centos" --machine-type "n1-standard-2" --network "$NETWORK" \
+  --image "mw-centos" --machine-type "n1-standard-2" --network "${NETWORK[$GCLOUD_PROJECT]}" \
   --metadata-from-file sshKeys="$state_dir/middleware_keys/tmp.key"
 
   export middleware_ip=$(get_instance_ip ${INSTANCE_NAME})
@@ -598,7 +598,7 @@ function run_step(){
 
       #Creating Neutron Instance Creation
       tryexec exec_gcloud_cmd instances create "${INSTANCE_NAME}" -q\
-      --machine-type "g1-small" --network "$NETWORK" --maintenance-policy "MIGRATE" --scopes "$SCOPES" \
+      --machine-type "g1-small" --network "${NETWORK[$GCLOUD_PROJECT]}" --maintenance-policy "MIGRATE" --scopes "$SCOPES" \
       --disk "name=${INSTANCE_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" --no-address --tags "no-ip" \
       --metadata-from-file sshKeys="$state_dir/neutron_keys/tmp.key"
 

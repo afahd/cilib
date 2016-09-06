@@ -174,7 +174,7 @@ function build_image() {
     echo plumgrid:$(echo ${COMMON_KEY}) >> ${key_file}
     echo "Creating the instance[$INSTANCE_NAME] in the cloud"
     tryexec exec_gcloud_cmd instances create "${INSTANCE_NAME}" \
-      --machine-type "$MACHINE_TYPE" --network "$NETWORK" --maintenance-policy \
+      --machine-type "$MACHINE_TYPE" --network "${NETWORK[$GCLOUD_PROJECT]}" --maintenance-policy \
       "MIGRATE" --scopes "$SCOPES" -q \
       --disk "name=${INSTANCE_NAME}-d1,mode=rw,boot=yes,auto-delete=yes" \
       --disk "name=${INSTANCE_NAME}-d2,mode=rw,boot=no,auto-delete=yes" --no-address --tags "no-ip" \

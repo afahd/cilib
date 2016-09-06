@@ -35,8 +35,18 @@ function init_id() {
     echo "Wrong email format. Please enter your complete plumgrid.com email"
     exit 1
   fi
+  echo "Are you a scale user: (y/N)"
+
+  read scale
+  if [[ $scale =~ ^(yes|y)$ ]]; then
+    echo "Project set to:$SCALE_PROJECT"
+    gcloud config set project $SCALE_PROJECT
+  else
+    echo "Project set to:$DEFAULT_PROJECT"
+    gcloud config set project $DEFAULT_PROJECT
+  fi
+
   echo "MAX_USER_INSTANCES=15" >> ${conf_file}
-  gcloud config set project $GCLOUD_PROJECT
   gcloud config set compute/zone $ZONE
   gcloud config set compute/region $REGION
   gcloud config set component_manager/fixed_sdk_version 0.9.81
@@ -225,7 +235,7 @@ function spawn_instance() {
   echo plumgrid:$(echo ${COMMON_KEY}) >> ${key_file}
   echo "Creating the instance[$instance_name] in the cloud"
   tryexec exec_gcloud_cmd instances create "${instance_name}"  \
-    --machine-type "$instance_type" --network "$NETWORK" --maintenance-policy \
+    --machine-type "$instance_type" --network "${NETWORK[$GCLOUD_PROJECT]}" --maintenance-policy \
     "MIGRATE" --scopes "$SCOPES" \
     --disk "name=${instance_name}-d1,mode=rw,boot=yes,auto-delete=yes" \
     --disk "name=${instance_name}-d2,mode=rw,boot=no,auto-delete=yes" --no-address --tags "no-ip" \
@@ -436,7 +446,7 @@ function get_instance_ip() {
 # *****************************************************************************
 # Function: is_valid_commit_hash
 # Purpose : Check whether provided commit hash is valid or not.
-# Usage   : get_instance_ip <instance name>
+# Usage   : is_valid_commit_hash
 # Return  : Return 1 in case of valid commit hash. Retrun 0 otherwise.
 # *****************************************************************************
 is_valid_commit_hash() {

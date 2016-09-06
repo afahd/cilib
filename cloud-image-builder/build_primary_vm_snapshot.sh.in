@@ -6,13 +6,10 @@ export PATH=/opt/pg/scripts:/opt/pg/scripts/gcloud/cloud_image_builder:$PATH
 . ~/.aurora.conf
 
 _USER=plumgrid
-declare -A MINOR_STEPS_ST
-declare -A MINOR_STEPS_ED
 BUILD_ENV_USER=${USER}
 
-MAJOR_STEPS="build"
-MINOR_STEPS_ST[build]=1
-MINOR_STEPS_ED[build]=20
+STEPS_ST=1
+STEPS_ED=20
 
 # forward to subshells
 trap "kill 0" SIGINT
@@ -21,11 +18,8 @@ trap "kill 0" SIGTERM
 function usage() {
 cat <<EOF
 usage: $0
--c | --cleanup : Test Cleanup
--Q | --major : Jump to specific major step in the install process
--R | --minor : Jump to specific minor step in the install process
--E | --minor_end : Stop at this step when in debug
--O | --stop : DONT Continue beyond the specifict step to end of the installation
+-R | --start : Jump to specific step in the install process
+-E | --end : Stop at this step when
 -h | --help : help
 EOF
 exit 0
@@ -34,11 +28,8 @@ exit 0
 # Parsing arguments
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -c|--cleanup ) CLEANUP=1;  ;;
-    -Q| --major ) MAJOR_STEPS="$2"; TMP_MAJOR="$2"; shift ;;
-    -R| --minor ) MINOR_STEPS_ST[$TMP_MAJOR]="$2"; shift ;;
-    -E| --minor ) MINOR_STEPS_ED[$TMP_MAJOR]="$2"; shift ;;
-    -O| --stop ) STOP=1; ;;
+    -R| --start ) STEPS_ST="$2"; shift ;;
+    -E| --end ) STEPS_ED="$2"; shift ;;
     -h | --help ) usage; ;;
     -- ) shift; break ;;
     * )
@@ -56,7 +47,7 @@ function build_image() {
       1)
           echo "Creating the disk[${PRIM_INST_NAME}-d1] for the instance in the cloud"
           exec_gcloud_cmd disks create "${PRIM_INST_NAME}-d1" \
-            --source-snapshot  "$BASE_LINUX" --type "$DISK_TYPE" --size="$DISK1_SIZE" -q
+            --image "$BASE_LINUX" --type "$DISK_TYPE" --size="$DISK1_SIZE" -q
           exec_gcloud_cmd disks create "${PRIM_INST_NAME}-d2" \
             --type "$DISK_TYPE" --size="$DISK2_SIZE" -q
         ;;
@@ -65,13 +56,14 @@ function build_image() {
           echo plumgrid:$(cat /home/${USER}/.ssh/id_rsa.pub) > /tmp/keys
           echo plumgrid:$(echo ${COMMON_KEY}) >> /tmp/keys
           exec_gcloud_cmd instances create "${PRIM_INST_NAME}"  \
-            --machine-type "$MACHINE_TYPE" --network "$NETWORK" --maintenance-policy \
+            --machine-type "$MACHINE_TYPE" --network "${NETWORK[$GCLOUD_PROJECT]}" --maintenance-policy \
             "MIGRATE" --scopes "$SCOPES" -q \
             --disk "name=${PRIM_INST_NAME}-d1" "mode=rw" "boot=yes" "auto-delete=yes" \
             --disk "name=${PRIM_INST_NAME}-d2" "mode=rw" "boot=no" "auto-delete=yes" \
             --no-address --tags "no-ip" --metadata-from-file sshKeys=/tmp/keys
         ;;
       3)
+          set -x
           echo "Waiting for the machine to boot up and allow ssh access"
           INSTANCE_IP=$(get_instance_ip ${PRIM_INST_NAME})
           wait_for_instance ${INSTANCE_IP}
@@ -178,23 +170,10 @@ function build_image() {
 esac
 }
 
-for MAJOR_STEP in $MAJOR_STEPS; do
 echo " ====== Starting STEP [$MAJOR_STEP] Number of Steps ::${MINOR_STEPS_ST[$MAJOR_STEP]} -> ${MINOR_STEPS_ED[$MAJOR_STEP]}  ======"
-for MINOR_STEP in `seq ${MINOR_STEPS_ST[$MAJOR_STEP]} ${MINOR_STEPS_ED[$MAJOR_STEP]}`; do
-    printf "\n  === Starting STEP [$MAJOR_STEP][$MINOR_STEP] === \n"
-    case "$MAJOR_STEP" in
-        build)
-            build_image $MINOR_STEP
-            ;;
-        *)
-            echo "UNKNOWN STEP $MAJOR_STEP.$MINOR_STEP"
-            ;;
-    esac
-    if [ -n "$STOP" ] ; then
-        exit
-
-   fi
-done
+for step in `seq ${STEPS_ST} ${STEPS_ED}`; do
+  printf "\n  === Starting STEP [$step] === \n"
+            build_image $step
 done
 
 exit 0
