@@ -412,6 +412,22 @@ function list_primary_snapshots()
 }
 
 # *****************************************************************************
+# Function: list_project
+# Purpose : Lists the gcloud compute project configured
+# Usage   : list_project
+# Prereq:   aurora init has been called.
+# *****************************************************************************
+function list_project()
+{
+  local project_listed=$(gcloud compute project-info describe | grep  ^name:)
+  local project=${project_listed#name: }
+  echo "The currently configured gcloud compute project is:"
+  echo "---------------------"
+  echo "${project}"
+  echo "---------------------"
+}
+
+# *****************************************************************************
 # Function: list_entities
 # Purpose : Parses the options for aurora ls and calls the respective functions
 # Usage   : list_entities <entity type>
@@ -433,6 +449,8 @@ function list_entities()
   case $1 in
     instances|"")
       list_instances $EMAILID;;
+    project)
+      list_project;;
     snapshots)
       list_snapshots $EMAILID;;
     primary-snapshot)

@@ -14,7 +14,7 @@ COMMAND:
 
   download            Download file cloud instance to local machine.
   upload              Upload file to cloud instance from local machine.
-  ls                  List all currently active cloud instances or snapshots
+  ls                  List all currently active gcloud compute project, instances, disks, snapshots and primary snapshot
   cp                  Create a copy of other user's build.
   start               Starts the INSTANCE containing value in REGEX
   shutdown            Shuts down the INSTANCE containing value in REGEX
@@ -182,6 +182,7 @@ USAGE: aurora ls <ENTITY>
        List all currently active cloud instances or snapshots
 
 <ENTITY>              Value can be:
+                      project: Lists the current active gcloud compute project
                       instances: Lists all the instances running.
                       build: Lists the build-ids and their corresponding RefSpec.
                              To see "builds" created by other user, give their
