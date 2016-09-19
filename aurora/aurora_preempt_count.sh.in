@@ -26,6 +26,8 @@ done
 
 if [ ! -d "$WORKSPACE" ]; then
   mkdir $WORKSPACE
+else
+  rm -rf ${WORKSPACE}/*
 fi
 
 function get_pl_name() {
@@ -64,6 +66,3 @@ while IFS='' read -r uniq_pipe || [[ -n "${uniq_pipe}" ]]; do
 done < "${WORKSPACE}/uniq_pipes.txt"
 
 echo "Total Preempted Instances on ${USER_DATE} = ${total_preempts}"
-
-# Cleaning up the workspace
-rm -rf ${WORKSPACE}/*
