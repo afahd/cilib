@@ -625,6 +625,7 @@ function make_tools_iovisor_esper() {
 set -e
 cd /home/plumgrid/work/tools/build
 export PATH="/usr/lib/ccache/:\${PATH}"
+export JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
 sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys D5495F657635B973
 sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 63F65885554E46B2
 sudo apt-get update
