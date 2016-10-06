@@ -150,6 +150,10 @@ function run_test() {
       fi
       #Get the pid of the last background command
       pids+=("$!")
+      # Adding a delay of one hour in case of Falcon Longevity Pipeline
+      if [[ $PIPELINE == "falcon-longevity" ]]; then
+        sleep 1h
+      fi
     done < <(find ${script_dir} -regextype posix-extended  -regex '^.*.sh-[0-9]+$' -print0)
     sleep 30
     ;;
