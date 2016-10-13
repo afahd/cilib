@@ -14,11 +14,7 @@ def clone()
    String branch;
    String build;
     string dir=WORKSPACE
-    File currentDirectory = new File(new File(dir+"/MW/tesing.txt").getAbsolutePath());
-    println(currentDirectory.getCanonicalPath());
-    println(currentDirectory.getAbsolutePath());
-
-   InputStream input = new FileInputStream(new File(dir+"/MW/dependencies.yaml"));
+   InputStream input = new FileInputStream(new File(dir+"/dependencies.yaml"));
    Dependency data = yaml.load(input);
    Set s1 = data.h1.keySet();
    for (int num=0;num<s1.size();num++)
