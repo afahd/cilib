@@ -16,7 +16,7 @@ def clone()
         String workingDir = System.getProperty("user.dir");
         println(workingDir)
     
-    def test1 = readfile "dependencies.yaml"
+    def test1 = readFile "dependencies.yaml"
    echo "$test1"
 
     
