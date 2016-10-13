@@ -8,9 +8,6 @@ public class Dependency {
 }
 def clone()
 {
-    node('local-node')
-    {
-        git "https://github.com/afahd/MW.git"
        Yaml yaml = new Yaml();
        String project;
        String location;
@@ -18,9 +15,10 @@ def clone()
        String build;
         String workingDir = System.getProperty("user.dir");
         println(workingDir)
-
-        File f1 = new File ("/tmp/abc22.txt").createNewFile()  
     
+    def test1 = readfile "dependencies.yaml"
+   echo "$test1"
+
     
         string dir=WORKSPACE
        InputStream input = new FileInputStream(new File(dir+"/dependencies.yaml"));
@@ -35,6 +33,6 @@ def clone()
            echo "Cloning dependencies for $project "
            git branch: branch, url: location
         }
-      }
+    
 }
 return this;
