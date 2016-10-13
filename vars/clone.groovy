@@ -18,7 +18,7 @@ def clone()
         String workingDir = System.getProperty("user.dir");
         println(workingDir)
 
-        File f1 = new File ("/tmp/abc.txt").createNewFile()  
+        File f1 = new File ("/tmp/abc22.txt").createNewFile()  
     
     
         string dir=WORKSPACE
