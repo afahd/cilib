@@ -15,9 +15,11 @@ def clone()
        String build;
         String workingDir = System.getProperty("user.dir");
         println(workingDir)
+            
     
-    def test1 = readFile 'dependencies.yaml'
-   println(test1)
+    println('asdasdasd')
+   println(readFile 'dependencies.yaml')
+    println('defefefef')
 
     
         string dir=WORKSPACE
