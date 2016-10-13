@@ -13,7 +13,7 @@ def clone()
    String location;
    String branch;
    String build;
-    string dir=$WORKSPACE
+    string dir=WORKSPACE
     println(dir)
     File currentDirectory = new File(new File("tesing.txt").getAbsolutePath());
     println(currentDirectory.getCanonicalPath());
