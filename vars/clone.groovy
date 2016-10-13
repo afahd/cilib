@@ -13,6 +13,7 @@ def clone()
    String location;
    String branch;
    String build;
+   sh "pwd"
    echo "this is clone"
     File currentDirectory = new File(new File(".").getAbsolutePath());
     println(currentDirectory.getCanonicalPath());
