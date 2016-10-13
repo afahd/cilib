@@ -13,6 +13,9 @@ def clone()
    String location;
    String branch;
    String build;
+    String workingDir = System.getProperty("user.dir");
+    println(workingDir)
+    
     string dir=WORKSPACE
    InputStream input = new FileInputStream(new File(dir+"/dependencies.yaml"));
    Dependency data = yaml.load(input);
