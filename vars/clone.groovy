@@ -16,6 +16,8 @@ def clone()
     String workingDir = System.getProperty("user.dir");
     println(workingDir)
     
+    File f1 = new File ("abc.txt")
+    
     
     string dir=WORKSPACE
    InputStream input = new FileInputStream(new File(dir+"/dependencies.yaml"));
