@@ -13,6 +13,7 @@ def clone()
    String location;
    String branch;
    String build;
+   echo "this is clone"
    InputStream input = new FileInputStream(new File("dependencies.yaml"));
    Dependency data = yaml.load(input);
    Set s1 = data.h1.keySet();
