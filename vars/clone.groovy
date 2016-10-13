@@ -8,29 +8,32 @@ public class Dependency {
 }
 def clone()
 {
-   Yaml yaml = new Yaml();
-   String project;
-   String location;
-   String branch;
-   String build;
-    String workingDir = System.getProperty("user.dir");
-    println(workingDir)
+    node('local-node')
+    {
+       Yaml yaml = new Yaml();
+       String project;
+       String location;
+       String branch;
+       String build;
+        String workingDir = System.getProperty("user.dir");
+        println(workingDir)
+
+        File f1 = new File ("/tmp/abc.txt").createNewFile()  
     
-    File f1 = new File ("/tmp/abc.txt").createNewFile()  
     
-    
-    string dir=WORKSPACE
-   InputStream input = new FileInputStream(new File(dir+"/dependencies.yaml"));
-   Dependency data = yaml.load(input);
-   Set s1 = data.h1.keySet();
-   for (int num=0;num<s1.size();num++)
-   {
-       project = s1.toArray()[num];
-       location = data.h1.get(project)['location'];
-       branch = data.h1.get(project)['branch'];
-       build = data.h1.get(project)['build'];
-       echo "Cloning dependencies for $project "
-       git branch: branch, url: location
-    }
+        string dir=WORKSPACE
+       InputStream input = new FileInputStream(new File(dir+"/dependencies.yaml"));
+       Dependency data = yaml.load(input);
+       Set s1 = data.h1.keySet();
+       for (int num=0;num<s1.size();num++)
+       {
+           project = s1.toArray()[num];
+           location = data.h1.get(project)['location'];
+           branch = data.h1.get(project)['branch'];
+           build = data.h1.get(project)['build'];
+           echo "Cloning dependencies for $project "
+           git branch: branch, url: location
+        }
+      }
 }
 return this;
