@@ -18,7 +18,7 @@ def clone()
     println(currentDirectory.getCanonicalPath());
     println(currentDirectory.getAbsolutePath());
 
-   InputStream input = new FileInputStream(new File("dependencies.yaml"));
+   InputStream input = new FileInputStream(new File("/dependencies.yaml"));
    Dependency data = yaml.load(input);
    Set s1 = data.h1.keySet();
    for (int num=0;num<s1.size();num++)
