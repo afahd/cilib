@@ -13,15 +13,16 @@ def clone()
        String location;
        String branch;
        String build;
-        String workingDir = System.getProperty("user.dir");
-        println(workingDir)
+       String workingDir = System.getProperty("user.dir");
+       println(workingDir)
             
     
-    println('asdasdasd')
-   println(readFile 'dependencies.yaml')
-    println('defefefef')
-
-    
+        println('asdasdasd')
+        def a = readFile 'dependencies.yaml'
+        println(a)
+        println('defefefef')
+        def b = readFile 'depende1ncies.yaml'
+        println(b)
         string dir=WORKSPACE
        InputStream input = new FileInputStream(new File(dir+"/dependencies.yaml"));
        Dependency data = yaml.load(input);
