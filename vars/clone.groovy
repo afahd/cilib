@@ -14,6 +14,10 @@ def clone()
    String branch;
    String build;
    echo "this is clone"
+    File currentDirectory = new File(new File(".").getAbsolutePath());
+    println(currentDirectory.getCanonicalPath());
+    println(currentDirectory.getAbsolutePath());
+
    InputStream input = new FileInputStream(new File("dependencies.yaml"));
    Dependency data = yaml.load(input);
    Set s1 = data.h1.keySet();
