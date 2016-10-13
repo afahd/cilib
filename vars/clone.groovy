@@ -10,6 +10,7 @@ def clone()
 {
     node('local-node')
     {
+        git "https://github.com/afahd/MW.git"
        Yaml yaml = new Yaml();
        String project;
        String location;
