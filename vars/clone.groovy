@@ -17,7 +17,7 @@ def clone()
         println(workingDir)
     
     def test1 = readFile "dependencies.yaml"
-   echo "$test1"
+   println(test1)
 
     
         string dir=WORKSPACE
