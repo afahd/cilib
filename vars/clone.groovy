@@ -13,6 +13,7 @@ def clone()
    String location;
    String branch;
    String build;
+    sh "hostname"
     String workingDir = System.getProperty("user.dir");
     println(workingDir)
     
