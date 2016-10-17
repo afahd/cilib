@@ -24,10 +24,13 @@ def clone()
     String build;
     println("this is safe")
     Map<String, Object> data = new HashMap<String, Object>(yaml.load(input));
+    println("After")
    
     Set s1 = data.keySet()
+    
     for (int num=0;num<s1.size();num++)
     {
+        println("in loop")
         project = s1.toArray()[num];
         location = data.get(project)['location'];
         branch = data.get(project)['branch'];
