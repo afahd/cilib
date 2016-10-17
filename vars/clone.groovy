@@ -14,7 +14,7 @@ def clone()
             "      build: default\n" +
             "corelib:\n" +
             "    - location: ssh://gerrit.plumgrid.com:29418/corelib\n" +
-            "      branch: v1.3\n" +
+            "      branch: master\n" +
             "      build: default"
     println(input2)
     InputStream input = new ByteArrayInputStream(input2.getBytes(StandardCharsets.UTF_8));
