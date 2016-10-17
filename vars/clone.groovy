@@ -15,21 +15,20 @@ def clone()
     String input2 = readFile 'dependencies.yaml'
     println(input2)
     InputStream input = new ByteArrayInputStream(input2.getBytes(StandardCharsets.UTF_8));
-    //InputStream input = new FileInputStream(new File(dir+"/dependencies.yaml"));
     Yaml yaml = new Yaml();
     String project;
     String location;
     String branch;
     String build;
-    Dependency data = yaml.load(input);
-    println(data.h1)
-    Set s1 = data.h1.keySet();
+
+    Map<String, Object> data = new HashMap<String, Object>(yaml.load(input));
+    Set s1 = data.keySet()
     for (int num=0;num<s1.size();num++)
     {
         project = s1.toArray()[num];
-        location = data.h1.get(project)['location'];
-        branch = data.h1.get(project)['branch'];
-        build = data.h1.get(project)['build'];
+        location = data.get(project)['location'];
+        branch = data.get(project)['branch'];
+        build = data.get(project)['build'];
         echo "Cloning dependencies for $project "
         git branch: branch, url: location
     }
