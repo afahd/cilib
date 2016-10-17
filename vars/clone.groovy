@@ -12,8 +12,9 @@ def clone()
     def a = readFile 'dependencies.yaml'
     println(a)
     
-    InputStream input = readFile 'dependencies.yaml'
-    println(input)
+    InputStream input2 = readFile 'dependencies.yaml'
+    println(input2)
+    InputStream input = new ByteArrayInputStream(input2.getBytes(StandardCharsets.UTF_8));
     //InputStream input = new FileInputStream(new File(dir+"/dependencies.yaml"));
     Yaml yaml = new Yaml();
     String project;
