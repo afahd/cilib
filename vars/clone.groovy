@@ -34,12 +34,15 @@ def clone()
     
     for (int num=0;num<s1.size();num++)
     {
-        project = s1.toArray()[num];
+       project = s1.toArray()[num];
         location = data.get(project)['location'];
         branch = data.get(project)['branch'];
         build = data.get(project)['build'];
+        String git_url = location.replace("[","").replace("]","")
+        String git_branch = branch.replace("[","").replace("]","")
+        
         echo "Cloning dependencies for $project "
-        git branch: branch, url: location
+        git branch: git_branch, url: git_url
     }
 }
 
