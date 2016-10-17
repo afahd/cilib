@@ -9,13 +9,13 @@ public class Dependency {
 def clone()
 {
     echo "Inside clone"
+    def a = readFile 'dependencies.yaml'
+    println(a)
     Yaml yaml = new Yaml();
     String project;
     String location;
     String branch;
     String build;
-    def dep = readFile 'dependencies.yaml'
-    echo "$dep"
     InputStream input = readFile 'dependencies.yaml'
   
     //InputStream input = new FileInputStream(new File(dir+"/dependencies.yaml"));
