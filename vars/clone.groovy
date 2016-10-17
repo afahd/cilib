@@ -13,7 +13,7 @@ def clone()
 {
     String input2 = readFile 'dependencies.yaml'
     println(input2)
-    InputStream input = new ByteArrayInputStream(input2.getBytes());
+    InputStream input = new ByteArrayInputStream(input2.getBytes(StandardCharsets.UTF_8));
     String project;
     String location;
     String branch;
