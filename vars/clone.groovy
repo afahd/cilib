@@ -11,14 +11,15 @@ def clone()
     echo "Inside clone"
     def a = readFile 'dependencies.yaml'
     println(a)
+    
+    InputStream input = readFile 'dependencies.yaml'
+    println(input)
+    //InputStream input = new FileInputStream(new File(dir+"/dependencies.yaml"));
     Yaml yaml = new Yaml();
     String project;
     String location;
     String branch;
     String build;
-    InputStream input = readFile 'dependencies.yaml'
-  
-    //InputStream input = new FileInputStream(new File(dir+"/dependencies.yaml"));
     Dependency data = yaml.load(input);
     Set s1 = data.h1.keySet();
     for (int num=0;num<s1.size();num++)
