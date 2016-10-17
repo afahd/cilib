@@ -11,9 +11,6 @@ public class Dependency {
 }
 def clone()
 {
-    echo "Inside clone"
-    def a = readFile 'dependencies.yaml'
-    println(a)
     
     InputStream input2 = readFile 'dependencies.yaml'
     println(input2)
@@ -25,6 +22,7 @@ def clone()
     String branch;
     String build;
     Dependency data = yaml.load(input);
+    println(data)
     Set s1 = data.h1.keySet();
     for (int num=0;num<s1.size();num++)
     {
