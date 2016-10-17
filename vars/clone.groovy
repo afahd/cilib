@@ -42,7 +42,7 @@ def clone()
         String git_branch = branch.replace("[","").replace("]","")
         
         echo "Cloning dependencies for $project "
-       git branch: 'git_branch', url: 'git_url'
+       git branch: git_branch, url: git_url
     }
 }
 
