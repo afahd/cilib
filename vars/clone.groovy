@@ -22,7 +22,7 @@ def clone()
     String branch;
     String build;
     Dependency data = yaml.load(input);
-    println(data)
+    println(data.h1)
     Set s1 = data.h1.keySet();
     for (int num=0;num<s1.size();num++)
     {
