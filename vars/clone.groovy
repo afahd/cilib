@@ -11,10 +11,9 @@ public class Dependency {
 }
 def clone()
 {
-    
     String input2 = readFile 'dependencies.yaml'
     println(input2)
-    InputStream input = new ByteArrayInputStream(input2.getBytes(StandardCharsets.UTF_8));
+    InputStream input = new ByteArrayInputStream(input2.getBytes());
     Yaml yaml = new Yaml();
     String project;
     String location;
