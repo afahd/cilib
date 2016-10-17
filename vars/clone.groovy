@@ -8,6 +8,7 @@ public class Dependency {
 }
 def clone()
 {
+    echo "Inside clone"
     Yaml yaml = new Yaml();
     String project;
     String location;
@@ -15,7 +16,7 @@ def clone()
     String build;
 
     InputStream input = readFile 'dependencies.yaml'
-    echo "$input"
+  
     //InputStream input = new FileInputStream(new File(dir+"/dependencies.yaml"));
     Dependency data = yaml.load(input);
     Set s1 = data.h1.keySet();
