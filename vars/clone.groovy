@@ -26,7 +26,7 @@ def clone()
     
     for (int num=0;num<s1.size();num++)
     {
-        println("in loop")
+        echo "in for "
         project = s1.toArray()[num];
         location = data.get(project)['location'];
         branch = data.get(project)['branch'];
