@@ -22,11 +22,10 @@ def clone()
     println(data)
    
     Set s1 = data.keySet()
-    println(s1.size())
+    echo "s1.size()"
     
     for (int num=0;num<s1.size();num++)
     {
-        echo "in for "
         project = s1.toArray()[num];
         location = data.get(project)['location'];
         branch = data.get(project)['branch'];
