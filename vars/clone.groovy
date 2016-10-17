@@ -1,4 +1,4 @@
-import java.nio.charset.StandardCharsets
+import java.io.ByteArrayInputStream;
 
 @Grab(group='org.yaml', module='snakeyaml', version='1.17')
 import org.yaml.snakeyaml.*
