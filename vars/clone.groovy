@@ -2,13 +2,7 @@ import java.nio.charset.StandardCharsets
 
 @Grab(group='org.yaml', module='snakeyaml', version='1.17')
 import org.yaml.snakeyaml.*
-
-public class Dependency {
-    public LinkedHashMap h1;
-    Dependency(LinkedHashMap h1) {
-        this.h1 = h1
-    }
-}
+    
 def clone()
 {
     String input2 = readFile 'dependencies.yaml'
