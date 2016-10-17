@@ -27,7 +27,7 @@ def clone()
     println(data)
    
     Set s1 = data.keySet()
-    println(s1)
+    println(s1.size())
     
     for (int num=0;num<s1.size();num++)
     {
