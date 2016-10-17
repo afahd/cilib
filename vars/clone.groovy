@@ -17,9 +17,9 @@ def clone()
     String location;
     String branch;
     String build;
-    println("this is safe")
+    echo "this is safe"
     Map<String, Object> data = new HashMap<String, Object>(yaml.load(input));
-    println(data)
+    echo "$data"
    
     Set s1 = data.keySet()
     echo "testing"
