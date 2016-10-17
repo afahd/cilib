@@ -24,7 +24,7 @@ def clone()
     String build;
     println("this is safe")
     Map<String, Object> data = new HashMap<String, Object>(yaml.load(input));
-    println("After")
+    println(data)
    
     Set s1 = data.keySet()
     
