@@ -12,7 +12,7 @@ public class Dependency {
 def clone()
 {
     
-    InputStream input2 = readFile 'dependencies.yaml'
+    String input2 = readFile 'dependencies.yaml'
     println(input2)
     InputStream input = new ByteArrayInputStream(input2.getBytes(StandardCharsets.UTF_8));
     //InputStream input = new FileInputStream(new File(dir+"/dependencies.yaml"));
