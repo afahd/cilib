@@ -14,7 +14,8 @@ def clone()
     String location;
     String branch;
     String build;
-
+    def dep = readFile 'dependencies.yaml'
+    echo "$dep"
     InputStream input = readFile 'dependencies.yaml'
   
     //InputStream input = new FileInputStream(new File(dir+"/dependencies.yaml"));
