@@ -9,11 +9,11 @@ def clone()
     echo "hello there "
     //String input2 = readFile 'dependencies.yaml'
     String input2 = "tools:\n" +
-            "    - location: ssh://afahd@gerrit.plumgrid.com:29418/tools\n" +
+            "    - location: ssh://gerrit.plumgrid.com:29418/tools\n" +
             "      branch: master\n" +
             "      build: default\n" +
             "corelib:\n" +
-            "    - location: ssh://afahd@gerrit.plumgrid.com:29418/corelib\n" +
+            "    - location: ssh://gerrit.plumgrid.com:29418/corelib\n" +
             "      branch: v1.3\n" +
             "      build: default"
     println(input2)
