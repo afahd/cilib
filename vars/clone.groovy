@@ -31,8 +31,8 @@ def clone()
         location = data.get(project)['location'];
         branch = data.get(project)['branch'];
         build = data.get(project)['build'];
-        //echo "Cloning dependencies for $project "
-        //git branch: branch, url: location
+        echo "Cloning dependencies for $project "
+        git branch: branch, url: location
     }
 }
 
