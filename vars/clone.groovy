@@ -1,7 +1,7 @@
 import java.nio.charset.StandardCharsets
 
-@Grab(group='org.yaml', module='snakeyaml', version='1.17')
-import org.yaml.snakeyaml.*
+//@Grab(group='org.yaml', module='snakeyaml', version='1.17')
+//import org.yaml.snakeyaml.*
 
 @NonCPS
 def loop()
@@ -38,7 +38,7 @@ def clone()
     //InputStream input = new ByteArrayInputStream(input2.getBytes(StandardCharsets.UTF_8));
     //println(input)
    
-    Yaml yaml = new Yaml();
+    //Yaml yaml = new Yaml();
     //Map<String, Object> yaml_map = new HashMap<String, Object>(yaml.load(input2));
     println("this is after")
     //println(yaml_map);
