@@ -1,7 +1,5 @@
 #!groovy
 
-import utils;
-
 def call(body) {
 
   def config = [:]
@@ -10,7 +8,8 @@ def call(body) {
   body()
 
 
-  GetPropertyList.test()
+  def a = new ultis.GetPropertyList
+  a.test()
 
   node {
     stage 'build'
