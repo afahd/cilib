@@ -14,9 +14,4 @@ def GetPropertyList(java.util.LinkedHashMap conf) {
 	return projectProperties;
 }
 
-
-def test() {
-	println "test";
-}
-
 return this;
