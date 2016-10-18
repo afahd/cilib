@@ -1,6 +1,6 @@
 #!groovy
 
-import utils.SetJobProperties
+import utils.GetPropertyList
 
 def call(body) {
 
@@ -10,7 +10,7 @@ def call(body) {
   body()
 
 
-  SetJobProperties(config)
+  properties(GetPropertyList(config))
 
   node {
     stage 'build'

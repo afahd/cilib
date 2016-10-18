@@ -1,4 +1,4 @@
-def GetPropertyList(def config) {
+class GetPropertyList(def config) {
 	// Define the constant properties
 	def projectProperties = []
 	// Save artifacts for 15 days
@@ -10,9 +10,4 @@ def GetPropertyList(def config) {
 		 triggerOnEvents: [commentAddedContains('.*runpipeline: ${config.name}.*'), patchsetCreated(excludeDrafts: true, excludeNoCodeChange: true, excludeTrivialRebase: false)])]))
 	}
 	return projectProperties
-}
-
-
-def SetJobProperties(def config) {
-	properties(GetPropertyList(config))
 }
