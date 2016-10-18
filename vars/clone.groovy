@@ -29,6 +29,7 @@ def git_clone(Map<String, Object> data)
 
 def clonning(String s1, String s2)
 {
+    println(s1)
     git branch: 's1', url: "s2"
 }
 
