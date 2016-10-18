@@ -26,7 +26,7 @@ def git_clone(Map<String, Object> data)
         //println(git_branch)
         echo "Cloning dependencies for $project "
         //clonning(git_branch,git_url)
-        //git branch: 'git_branch', url: "git_url"
+        git branch: 'git_branch', url: "git_url"
     }
 }
 
