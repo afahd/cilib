@@ -26,7 +26,7 @@ def git_clone(Map<String, Object> data)
         //println(git_branch)
         echo "Cloning dependencies for $project "
         //clonning(git_branch,git_url)
-        git branch: 'git_branch', url: "git_url"
+        //git branch: 'git_branch', url: "git_url"
     }
 }
 
@@ -45,7 +45,11 @@ def clone()
     println(yaml_map);
      Set s1 = yaml_map.keySet()
     println(s1.size())
-    git_clone(yaml_map) 
+    for (int i =0; i<s1.size();i++)
+    {
+        println(i)
+    }
+    //git_clone(yaml_map) 
 }
 
 return this;
