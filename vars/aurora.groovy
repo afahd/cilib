@@ -9,7 +9,7 @@ def call(body) {
 
 
   def a = new utils.GetPropertyList()
-  properties(utils.GetPropertyList.GetPropertyList(config))
+  properties(a.GetPropertyList(config))
 
   node {
     stage 'build'

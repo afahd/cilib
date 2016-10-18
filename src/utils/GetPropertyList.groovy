@@ -1,6 +1,6 @@
 package utils;
 
-def static GetPropertyList(def conf) {
+def GetPropertyList(def conf) {
 	// Define the constant properties
 	def projectProperties = []
 	// Save artifacts for 15 days
