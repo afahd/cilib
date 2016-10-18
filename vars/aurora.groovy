@@ -10,7 +10,8 @@ def call(body) {
   body()
 
 
-  properties(GetPropertyList.test())
+  test()
+  GetPropertyList.test()
 
   node {
     stage 'build'
