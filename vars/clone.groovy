@@ -13,8 +13,6 @@ def git_clone(Map<String, Object> data)
     println(s1.size())
     for (int num=0;num<s1.size();num++)
     {
-        println(num)
-        println(s1.toList()[num])
         project = s1.toList()[num];
         println(project)
         location = data.get(project)['location'];
@@ -24,12 +22,13 @@ def git_clone(Map<String, Object> data)
         println(git_url)
         String git_branch = branch.replace("[","").replace("]","")
         println(git_branch)
-        //echo "Cloning dependencies for $project "
-        //clonning(git_branch,git_url)
+        echo "Cloning dependencies for $project "
+        clonning(git_branch,git_url)
         //git branch: 'git_branch', url: "git_url"
     }
 }
 
+@NonCPS
 def clonning(String s1, String s2)
 {
     println(s1)
