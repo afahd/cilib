@@ -19,15 +19,14 @@ def git_clone(Map<String, Object> data)
         build = data.get(project)['build'];
         String git_url = location.replace("[","").replace("]","")
         println(git_url)
-        String git_branch = branch.replace("[","").replace("]","")
+        String git_branch = branch.replace("[","").replace("]","") 0
         println(git_branch)
         echo "Cloning dependencies for $project "
-        clonning(git_branch,git_url)
+        //clonning(git_branch,git_url)
         //git branch: 'git_branch', url: "git_url"
     }
 }
 
-@NonCPS
 def clonning(String s1, String s2)
 {
     println(s1)
