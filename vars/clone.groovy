@@ -33,7 +33,6 @@ def git_clone(Map<String, Object> data)
 
 def clone()
 {
-    echo "hello there "
     String input2 = readFile 'dependencies.yaml'
     println(input2)
     //InputStream input = new ByteArrayInputStream(input2.getBytes(StandardCharsets.UTF_8));
@@ -45,7 +44,7 @@ def clone()
     println(yaml_map);
      Set s1 = yaml_map.keySet()
     println(s1.size())
-    for (int i =0; i<s1.size();i++)
+    for (int i =0; i<2;i++)
     {
         println(i)
     }
