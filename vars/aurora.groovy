@@ -9,6 +9,8 @@ def call(body) {
   body.delegate = config
   body()
 
+  println config.getClass()
+
   properties(GetPropertyList.GetPropertyList(config))
 
   node {
