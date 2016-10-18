@@ -40,10 +40,11 @@ def cloneDependencies()
     List project_list = getProjects(dep_input)
     for(int i=0; i<project_list.size();i++)
     {
-        location = getLocation(project_list.get(i),dep_input)
-        branch = getBranch(project_list.get(i),dep_input)
+        def project_name = project_list.get(i)
+        location = getLocation(project_name,dep_input)
+        branch = getBranch(project_name,dep_input)
         echo "Cloning dependencies from $location "
-        sh "mkdir $project_list.get(i); pushd $project_list.get(i)"
+        sh "mkdir $project_name; pushd $project_name"
         // built in git function to clone a repository
         git branch: "$branch", url: "$location"
         sh "popd"
