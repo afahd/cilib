@@ -9,8 +9,7 @@ def call(body) {
   body.delegate = config
   body()
 
-
-  properties(GetPropertyList(config))
+  properties(GetPropertyList.GetPropertyList(config))
 
   node {
     stage 'build'
