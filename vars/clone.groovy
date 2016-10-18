@@ -27,6 +27,7 @@ def git_clone(Map<String, Object> data)
     }
 }
 
+@NonCPS
 def clonning(String s1, String s2)
 {
     println(s1)
