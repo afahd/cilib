@@ -11,9 +11,10 @@ def git_clone(Map<String, Object> data)
     String build;
     Set s1 = data.keySet()
     println(s1.size())
-    for (int num=1;num<s1.size();num++)
+    for (int num=0;num<s1.size();num++)
     {
         project = s1.toArray()[num];
+        println(project)
         location = data.get(project)['location'];
         branch = data.get(project)['branch'];
         build = data.get(project)['build'];
