@@ -47,10 +47,9 @@ def cloneDependencies()
         sh "mkdir -p $WORKSPACE/$project_name;"
         dir ("$project_name")
         {
-        // built in git function to clone a repository
+            // built in git function to clone a repository
             git branch: "$branch", url: "$location"
         }
-        //sh "cd $WORKSPACE"
     }
 }
 
