@@ -37,7 +37,7 @@ def cloneDependencies()
 {
     // Built in readFile for groovy that read a file and returns a string
     String dep_input = readFile 'dependencies.yaml'
-    List project_list = getProject(dep_input)
+    List project_list = getProjects(dep_input)
     for(int i=0; i<project_list.size();i++)
     {
         location = getLocation(project_list.get(i),dep_input)
