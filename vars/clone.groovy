@@ -14,7 +14,7 @@ def git_clone(Map<String, Object> data)
     for (int num=0;num<s1.size();num++)
     {
         println(s1.toList()[num])
-        project = s1.toArray()[num];
+        project = s1.toList()[num];
         println(project)
         location = data.get(project)['location'];
         branch = data.get(project)['branch'];
