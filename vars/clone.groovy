@@ -22,7 +22,7 @@ def git_clone(Map<String, Object> data)
         String git_branch = branch.replace("[","").replace("]","")
         println(git_branch)
         echo "Cloning dependencies for $project "
-        git branch: 'git_branch', url: "git_url"
+        //git branch: 'git_branch', url: "git_url"
     }
 }
 
