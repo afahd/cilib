@@ -39,7 +39,7 @@ def clone()
     //println(input)
    
     Yaml yaml = new Yaml();
-    //Map<String, Object> yaml_map = new HashMap<String, Object>(yaml.load(input2));
+    Map<String, Object> yaml_map = new HashMap<String, Object>(yaml.load(input2));
     println("this is after")
     println(yaml_map);
      Set s1 = yaml_map.keySet()
