@@ -4,14 +4,14 @@ import java.nio.charset.StandardCharsets
 import org.yaml.snakeyaml.*
 
 @NonCPS
-def git_clone(Map<String, Object> data)
+def loop()
 {   String project;
     String location;
     String branch;
     String build;
     println("here")
-    Set s1 = data.keySet()
-    println(s1.size())
+    //Set s1 = data.keySet()
+    //println(s1.size())
  
     for (int num=0;num<2;num++)
     {
@@ -39,11 +39,11 @@ def clone()
     //println(input)
    
     Yaml yaml = new Yaml();
-    Map<String, Object> yaml_map = new HashMap<String, Object>(yaml.load(input2));
+    //Map<String, Object> yaml_map = new HashMap<String, Object>(yaml.load(input2));
     println("this is after")
-    println(yaml_map);
-     Set s1 = yaml_map.keySet()
-    println(s1.size())
+    //println(yaml_map);
+     //Set s1 = yaml_map.keySet()
+    //println(s1.size())
     for (int i =0; i<2;i++)
     {
         println(i)
