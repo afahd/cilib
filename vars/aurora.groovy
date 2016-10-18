@@ -10,7 +10,6 @@ def call(body) {
   body()
 
 
-  test()
   GetPropertyList.test()
 
   node {
