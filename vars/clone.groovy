@@ -35,11 +35,11 @@ def clone()
     echo "hello there "
     String input2 = readFile 'dependencies.yaml'
     println(input2)
-    InputStream input = new ByteArrayInputStream(input2.getBytes(StandardCharsets.UTF_8));
-    println(input)
+    //InputStream input = new ByteArrayInputStream(input2.getBytes(StandardCharsets.UTF_8));
+    //println(input)
    
     Yaml yaml = new Yaml();
-    transient Map<String, Object> yaml_map = new HashMap<String, Object>(yaml.load(input));
+    Map<String, Object> yaml_map = new HashMap<String, Object>(yaml.load(input2));
     println("this is after")
     git_clone(yaml_map) 
 }
