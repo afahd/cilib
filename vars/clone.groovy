@@ -3,6 +3,7 @@ import java.nio.charset.StandardCharsets
 @Grab(group='org.yaml', module='snakeyaml', version='1.17')
 import org.yaml.snakeyaml.*
 
+@NonCPS
 def git_clone(Map<String, Object> data)
 {   String project;
     String location;
