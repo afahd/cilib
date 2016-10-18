@@ -43,6 +43,8 @@ def clone()
     Map<String, Object> yaml_map = new HashMap<String, Object>(yaml.load(input2));
     println("this is after")
     println(yaml_map);
+     Set s1 = yaml_map.keySet()
+    println(s1.size())
     git_clone(yaml_map) 
 }
 
