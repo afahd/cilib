@@ -8,7 +8,7 @@ def call(body) {
   body()
 
 
-  def a = new ultis.GetPropertyList
+  def a = new ultis.GetPropertyList()
   a.test()
 
   node {
