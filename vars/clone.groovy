@@ -47,7 +47,7 @@ def cloneDependencies()
         sh "mkdir -p $WORKSPACE/$project_name; pushd $WORKSPACE/$project_name"
         // built in git function to clone a repository
         git branch: "$branch", url: "$location"
-        sh "popd"
+        sh "cd $WORKSPACE"
     }
 }
 
