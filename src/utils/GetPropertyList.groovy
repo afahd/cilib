@@ -1,6 +1,6 @@
 package utils;
 
-def GetPropertyList(LinkedHashMap conf) {
+def GetPropertyList(java.util.LinkedHashMap conf) {
 	// Define the constant properties
 	def projectProperties = []
 	// Save artifacts for 15 days
