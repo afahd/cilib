@@ -1,4 +1,6 @@
-class GetPropertyList(def config) {
+package utils;
+
+def GetPropertyList(def config) {
 	// Define the constant properties
 	def projectProperties = []
 	// Save artifacts for 15 days
@@ -9,5 +11,8 @@ class GetPropertyList(def config) {
 		 compareType: 'PLAIN', pattern: '$env.GERRIT_PROJECT', filePaths: [[compareType: 'REG_EXP', pattern: '${config.trigger_path}']]]],
 		 triggerOnEvents: [commentAddedContains('.*runpipeline: ${config.name}.*'), patchsetCreated(excludeDrafts: true, excludeNoCodeChange: true, excludeTrivialRebase: false)])]))
 	}
-	return projectProperties
+	return projectProperties;
 }
+
+
+return this
