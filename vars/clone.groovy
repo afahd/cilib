@@ -4,6 +4,27 @@ import java.nio.charset.StandardCharsets
 import org.yaml.snakeyaml.*
 
 @NonCPS
+def git_clone(Map<String, Object> data)
+{   String project;
+    String location;
+    String branch;
+    String build;
+    Set s1 = data.keySet()
+    for (int num=0;num<s1.size();num++)
+    {
+        project = s1.toArray()[num];
+        location = data.get(project)['location'];
+        branch = data.get(project)['branch'];
+        build = data.get(project)['build'];
+        String git_url = location.replace("[","").replace("]","")
+        println(git_url)
+        String git_branch = branch.replace("[","").replace("]","")
+        println(git_branch)
+        echo "Cloning dependencies for $project "
+        git branch: 'git_branch', url: "git_url"
+    }
+}
+
 def clone()
 {
     echo "hello there "
@@ -21,29 +42,8 @@ def clone()
     println(input)
    
     Yaml yaml = new Yaml();
-    String project;
-    String location;
-    String branch;
-    String build;
-    echo "this is safe"
-    Map<String, Object> data = new HashMap<String, Object>(yaml.load(input));
-    echo "$data"
-   
-    Set s1 = data.keySet()
-    echo "testing"
-    
-    for (int num=0;num<s1.size();num++)
-    {
-       project = s1.toArray()[num];
-        location = data.get(project)['location'];
-        branch = data.get(project)['branch'];
-        build = data.get(project)['build'];
-        String git_url = location.replace("[","").replace("]","")
-        String git_branch = branch.replace("[","").replace("]","")
-        
-        echo "Cloning dependencies for $project "
-       git branch: git_branch, url: git_url
-    }
+    Map<String, Object> yaml_map = new HashMap<String, Object>(yaml.load(input));
+    git_clone(yaml_map) 
 }
 
 return this;
