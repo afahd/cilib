@@ -1,6 +1,6 @@
 #!groovy
 
-import utils.GetPropertyList
+import utils;
 
 def call(body) {
 
