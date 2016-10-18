@@ -44,7 +44,7 @@ def cloneDependencies()
         location = getLocation(project_name,dep_input)
         branch = getBranch(project_name,dep_input)
         echo "Cloning dependencies from $location "
-        sh "mkdir -p $WORKSPACE/$project_name; pushd $WORKSPACE/$project_name"
+        sh "mkdir -p $WORKSPACE/$project_name; cd $WORKSPACE/$project_name;"
         // built in git function to clone a repository
         git branch: "$branch", url: "$location"
         sh "cd $WORKSPACE"
