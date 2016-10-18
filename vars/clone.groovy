@@ -13,6 +13,7 @@ def git_clone(Map<String, Object> data)
     println(s1.size())
     for (int num=0;num<s1.size();num++)
     {
+        println(s1.toList()[num])
         project = s1.toArray()[num];
         println(project)
         location = data.get(project)['location'];
