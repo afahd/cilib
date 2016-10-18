@@ -11,7 +11,7 @@ def call(body) {
 
   println config.getClass()
 
-  properties(GetPropertyList.GetPropertyList(config))
+  properties(GetPropertyList.test(config))
 
   node {
     stage 'build'

@@ -15,4 +15,8 @@ def GetPropertyList(java.util.LinkedHashMap conf) {
 }
 
 
+def test() {
+	println "test"
+}
+
 return this
