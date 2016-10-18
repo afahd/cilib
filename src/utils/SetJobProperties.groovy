@@ -13,6 +13,6 @@ def GetPropertyList(def config) {
 }
 
 
-SetJobProperties(def config) {
+def SetJobProperties(def config) {
 	properties(GetPropertyList(config))
 }
