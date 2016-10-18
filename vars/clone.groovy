@@ -40,8 +40,10 @@ def clone()
     {
         location = get_location(l1.get(i),input2)
         branch = get_branch(l1.get(i),input2)
+        echo "$location"
+        echo "$branch"
         echo "Cloning dependencies from $location "
-        git branch: '$branch', url: "$location"
+        git branch: "$branch", url: "$location"
     }
 }
 
