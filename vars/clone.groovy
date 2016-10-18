@@ -1,48 +1,49 @@
 import java.nio.charset.StandardCharsets
 
+// Importing external jar file with the help of grapes
 @Grab(group='org.yaml', module='snakeyaml', version='1.17')
 import org.yaml.snakeyaml.*
 
+// Any function which does pure groovy related work is marked as NonCP
 @NonCPS
-List get_project(String s2)
+List getProjects(String dep_file)
 {
     Yaml yaml = new Yaml();
-    Map<String, Object> yaml_map = new HashMap<String, Object>(yaml.load(s2));
-    List keys = new ArrayList(yaml_map.keySet());
-    return keys
+    Map<String, Object> yaml_map = new HashMap<String, Object>(yaml.load(dep_file));
+    List projects_list = new ArrayList(yaml_map.keySet());
+    return projects_list
 }
 
 @NonCPS
-String get_location(String proj, String input)
+String getLocation(String proj, String dep_file)
 {
     Yaml yaml = new Yaml();
-    Map<String, Object> yaml_map = new HashMap<String, Object>(yaml.load(input));
+    Map<String, Object> yaml_map = new HashMap<String, Object>(yaml.load(dep_file));
     String git_url = yaml_map.get(proj)['location']
+    // Removing special characters [ and ] 
     return git_url.replace("[","").replace("]","")
-
 }
 
 @NonCPS
-String get_branch(String proj, String input)
+String getBranch(String proj, String dep_file)
 {
     Yaml yaml = new Yaml();
-    Map<String, Object> yaml_map = new HashMap<String, Object>(yaml.load(input));
+    Map<String, Object> yaml_map = new HashMap<String, Object>(yaml.load(dep_file));
     String git_branch = yaml_map.get(proj)['branch']
     return git_branch.replace("[","").replace("]","")
-
 }    
 
-def clone()
+def cloneDependencies()
 {
-    String input2 = readFile 'dependencies.yaml'
-   List l1 = get_project(input2)
-    for(int i=0; i<l1.size();i++)
+    // Built in readFile for groovy that read a file and returns a string
+    String dep_input = readFile 'dependencies.yaml'
+    List project_list = getProject(dep_input)
+    for(int i=0; i<project_list.size();i++)
     {
-        location = get_location(l1.get(i),input2)
-        branch = get_branch(l1.get(i),input2)
-        echo "$location"
-        echo "$branch"
+        location = getLocation(project_list.get(i),dep_input)
+        branch = getBranch(project_list.get(i),dep_input)
         echo "Cloning dependencies from $location "
+        // built in git function to clone a repository
         git branch: "$branch", url: "$location"
     }
 }
