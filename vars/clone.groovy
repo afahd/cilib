@@ -11,10 +11,7 @@ def git_clone(Map<String, Object> data)
     Set s1 = data.keySet()
     println(s1.size())
  
-    for (String s : s1) {
-     println(s);
-    }
-    for (int num=0;num<s1.size();num++)
+    for (int num=0;num<2;num++)
     {
         project = s1.toList()[num];
         //println(project)
