@@ -41,39 +41,39 @@ def checkDependency()
 List cloneDependencies(String repo)
 {
     echo "$repo"
-    //if(checkDependency())
-    //{
         // Built in readFile for groovy that read a file and returns a string
         dir ("$repo")
         {
-            sh "pwd"
-            String dep_input = readFile "dependencies.yaml"
-            List project_list = getProjects(dep_input)
-            for(int i=0; i<project_list.size();i++)
+            if (checkDependency())
             {
-                def project_name = project_list.get(i)
-                location = getLocation(project_name,dep_input)
-                branch = getBranch(project_name,dep_input)
-                echo "Cloning dependencies from $location "
-                sh "mkdir -p $WORKSPACE/$project_name;"
-                dir ("$WORKSPACE/$project_name")
+                sh "pwd"
+                String dep_input = readFile "dependencies.yaml"
+                List project_list = getProjects(dep_input)
+                for(int i=0; i<project_list.size();i++)
                 {
-                    // built in git function to clone a repository
-                    git branch: "$branch", url: "$location"
-                    if(checkDependency())
+                    def project_name = project_list.get(i)
+                    location = getLocation(project_name,dep_input)
+                    branch = getBranch(project_name,dep_input)
+                    echo "Cloning dependencies from $location "
+                    sh "mkdir -p $WORKSPACE/$project_name;"
+                    dir ("$WORKSPACE/$project_name")
                     {
-                        echo "File exists"
-                    }
-                    else
-                    {
-                        echo "Does not exist"
-                    }
+                        // built in git function to clone a repository
+                        git branch: "$branch", url: "$location"
+                        if(checkDependency())
+                        {
+                            echo "File exists"
+                        }
+                        else
+                        {
+                            echo "Does not exist"
+                        }
 
+                    }
                 }
+                return project_list
             }
-            return project_list
         }
-    //}
 }
 
 def clone()
