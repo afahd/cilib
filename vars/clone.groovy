@@ -69,6 +69,12 @@ def cloneDependencies()
 
 def clone()
 {
+    sh "mkdir -p $WORKSPACE/Test2;"
+    dir ("Test2")
+    {
+        git branch: "master", url: "https://github.com/afahd/Test2.git"
+    }
+    
     List projects = []
     projects.push("Test2")
 }
