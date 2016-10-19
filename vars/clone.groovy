@@ -57,7 +57,6 @@ def cloneDependencies()
             if(checkDependency())
             {
                 echo "File exists"
-                cloneDependencies()
             }
             else
             {
@@ -66,6 +65,12 @@ def cloneDependencies()
             
         }
     }
+}
+
+def clone()
+{
+    List projects = []
+    projects.push("Test2")
 }
 
 return this;
