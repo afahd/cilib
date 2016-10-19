@@ -83,7 +83,8 @@ def clone()
     projects.push("Test2")
     
     List new_list = cloneDependencies("Test2")
-    echo ("$new_list")
+    List newer_list = cloneDependencies("$new_list.get(0)")
+    echo ("$newer_list")
     
     
     
