@@ -40,13 +40,11 @@ def checkDependency()
 
 List cloneDependencies(String repo)
 {
-    echo "$repo"
         // Built in readFile for groovy that read a file and returns a string
         dir ("$repo")
         {
             if (checkDependency())
             {
-                sh "pwd"
                 String dep_input = readFile "dependencies.yaml"
                 List project_list = getProjects(dep_input)
                 for(int i=0; i<project_list.size();i++)
@@ -60,15 +58,6 @@ List cloneDependencies(String repo)
                     {
                         // built in git function to clone a repository
                         git branch: "$branch", url: "$location"
-                        if(checkDependency())
-                        {
-                            echo "File exists"
-                        }
-                        else
-                        {
-                            echo "Does not exist"
-                        }
-
                     }
                 }
                 return project_list
@@ -76,16 +65,16 @@ List cloneDependencies(String repo)
         }
 }
 
-def clone()
+def clone(String repo_name)
 {
-    sh "mkdir -p $WORKSPACE/Test2;"
-    dir ("Test2")
+    sh "mkdir -p $WORKSPACE/$repo_name;"
+    dir ("$repo_name")
     {
-        git branch: "master", url: "https://github.com/afahd/Test2.git"
+        git branch: "master", url: "https://github.com/afahd/$repo_name.git"
     }
     
     List projects = []
-    projects.push("Test2")
+    projects.push("$repo_name")
     
     while(!projects.isEmpty())
     {
@@ -98,14 +87,7 @@ def clone()
             echo ("$projects")
         }
     }
-    
-    //List new_list = cloneDependencies("Test2")
-    //def value = new_list.get(0);
-    //List newer_list = cloneDependencies("$value")
-    //echo ("$newer_list")
-    
-    
-    
+      
 }
 
 return this;
