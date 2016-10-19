@@ -40,6 +40,7 @@ def checkDependency()
 
 List cloneDependencies(String repo)
 {
+    echo "$repo"
     // Built in readFile for groovy that read a file and returns a string
     dir ("$repo")
     {
