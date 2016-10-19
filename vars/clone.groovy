@@ -41,8 +41,8 @@ def checkDependency()
 List cloneDependencies(String repo)
 {
     echo "$repo"
-    if(checkDependency())
-    {
+    //if(checkDependency())
+    //{
         // Built in readFile for groovy that read a file and returns a string
         dir ("$repo")
         {
@@ -73,7 +73,7 @@ List cloneDependencies(String repo)
             }
             return project_list
         }
-    }
+    //}
 }
 
 def clone()
