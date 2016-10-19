@@ -57,6 +57,7 @@ def cloneDependencies()
             if(checkDependency())
             {
                 echo "File exists"
+                cloneDependencies()
             }
             else
             {
