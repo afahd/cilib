@@ -31,7 +31,12 @@ String getBranch(String proj, String dep_file)
     Map<String, Object> yaml_map = new HashMap<String, Object>(yaml.load(dep_file));
     String git_branch = yaml_map.get(proj)['branch']
     return git_branch.replace("[","").replace("]","")
-}    
+}
+
+def checkDependency()
+{
+    return fileExists('dependencies.yaml')
+}
 
 def cloneDependencies()
 {
@@ -49,6 +54,15 @@ def cloneDependencies()
         {
             // built in git function to clone a repository
             git branch: "$branch", url: "$location"
+            if(checkDependency)
+            {
+                echo "File exists"
+            }
+            else
+            {
+                echo "Does not exist"
+            }
+            
         }
     }
 }
