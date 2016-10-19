@@ -65,12 +65,12 @@ List cloneDependencies(String repo)
         }
 }
 
-def clone(String repo_name)
+def clone(String repo_name, String repo_url)
 {
     sh "mkdir -p $WORKSPACE/$repo_name;"
     dir ("$repo_name")
     {
-        git branch: "master", url: "https://github.com/afahd/$repo_name.git"
+        git branch: "master", url: "$repo_url"
     }
     
     List projects = []
