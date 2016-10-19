@@ -92,7 +92,7 @@ def clone()
         echo ("$projects")
         List new_list = cloneDependencies(projects.get(0));
         projects.remove(0);
-        if(!new_list.isEmpty())
+        if(new_list != null)
         {
             projects.addAll(new_list)
             echo ("$projects")
