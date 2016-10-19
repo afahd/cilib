@@ -45,7 +45,7 @@ List cloneDependencies(String repo)
     dir ("$repo")
     {
         sh "pwd"
-        String dep_input = readFile "$repo/dependencies.yaml"
+        String dep_input = readFile "dependencies.yaml"
         List project_list = getProjects(dep_input)
         for(int i=0; i<project_list.size();i++)
         {
