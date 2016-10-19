@@ -86,15 +86,17 @@ def clone()
     
     while(!projects.isEmpty())
     {
+        echo ("$projects")
         List new_list = cloneDependencies(projects.get(0));
         projects.remove(0);
         projects.addAll(new_list)
+        echo ("$projects")
     }
     
-    List new_list = cloneDependencies("Test2")
-    def value = new_list.get(0);
-    List newer_list = cloneDependencies("$value")
-    echo ("$newer_list")
+    //List new_list = cloneDependencies("Test2")
+    //def value = new_list.get(0);
+    //List newer_list = cloneDependencies("$value")
+    //echo ("$newer_list")
     
     
     
