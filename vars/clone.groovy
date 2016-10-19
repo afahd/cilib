@@ -44,6 +44,7 @@ List cloneDependencies(String repo)
     // Built in readFile for groovy that read a file and returns a string
     dir ("$repo")
     {
+        sh "pwd"
         String dep_input = readFile 'dependencies.yaml'
         List project_list = getProjects(dep_input)
         for(int i=0; i<project_list.size();i++)
