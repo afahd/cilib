@@ -54,7 +54,7 @@ def cloneDependencies()
         {
             // built in git function to clone a repository
             git branch: "$branch", url: "$location"
-            if(checkDependency)
+            if(checkDependency())
             {
                 echo "File exists"
             }
