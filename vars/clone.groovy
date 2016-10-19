@@ -38,32 +38,36 @@ def checkDependency()
     return fileExists('dependencies.yaml')
 }
 
-def cloneDependencies()
+List cloneDependencies(String repo)
 {
     // Built in readFile for groovy that read a file and returns a string
-    String dep_input = readFile 'dependencies.yaml'
-    List project_list = getProjects(dep_input)
-    for(int i=0; i<project_list.size();i++)
+    dir ("$repo")
     {
-        def project_name = project_list.get(i)
-        location = getLocation(project_name,dep_input)
-        branch = getBranch(project_name,dep_input)
-        echo "Cloning dependencies from $location "
-        sh "mkdir -p $WORKSPACE/$project_name;"
-        dir ("$project_name")
+        String dep_input = readFile 'dependencies.yaml'
+        List project_list = getProjects(dep_input)
+        for(int i=0; i<project_list.size();i++)
         {
-            // built in git function to clone a repository
-            git branch: "$branch", url: "$location"
-            if(checkDependency())
+            def project_name = project_list.get(i)
+            location = getLocation(project_name,dep_input)
+            branch = getBranch(project_name,dep_input)
+            echo "Cloning dependencies from $location "
+            sh "mkdir -p $WORKSPACE/$project_name;"
+            dir ("$project_name")
             {
-                echo "File exists"
+                // built in git function to clone a repository
+                git branch: "$branch", url: "$location"
+                if(checkDependency())
+                {
+                    echo "File exists"
+                }
+                else
+                {
+                    echo "Does not exist"
+                }
+
             }
-            else
-            {
-                echo "Does not exist"
-            }
-            
         }
+        return project_list
     }
 }
 
@@ -77,6 +81,12 @@ def clone()
     
     List projects = []
     projects.push("Test2")
+    
+    List new_list = cloneDependencies("Test2")
+    echo ("$new_list")
+    
+    
+    
 }
 
 return this;
