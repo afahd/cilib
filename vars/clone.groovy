@@ -65,7 +65,7 @@ List cloneDependencies(String repo)
         }
 }
 
-def clone(String repo_name, String repo_url)
+def cloneProject(String repo_name, String repo_url)
 {
     sh "mkdir -p $WORKSPACE/$repo_name;"
     dir ("$repo_name")
@@ -78,13 +78,11 @@ def clone(String repo_name, String repo_url)
     
     while(!projects.isEmpty())
     {
-        echo ("$projects")
-        List new_list = cloneDependencies(projects.get(0));
+        List dependent_list = cloneDependencies(projects.get(0));
         projects.remove(0);
-        if(new_list != null)
+        if(dependent_list != null)
         {
-            projects.addAll(new_list)
-            echo ("$projects")
+            projects.addAll(dependent_list)
         }
     }
       
