@@ -52,7 +52,7 @@ List cloneDependencies(String repo)
             branch = getBranch(project_name,dep_input)
             echo "Cloning dependencies from $location "
             sh "mkdir -p $WORKSPACE/$project_name;"
-            dir ("$project_name")
+            dir ("$WORKSPACE/$project_name")
             {
                 // built in git function to clone a repository
                 git branch: "$branch", url: "$location"
