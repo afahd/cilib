@@ -26,7 +26,7 @@ def call(body) {
       def string_out = readFile('logs/build_id')
       def build_id = string_out.replace("BUILD-ID=","")
       stage 'tests'
-      sh "aurora test -l "$build_id" -p "corelib" -b "master" -t "local" -n 4 -i 1"
+      sh "aurora test" "-l $build_id" "-p corelib" "-b master" "-t local" "-n 4" "-i 1"
     }
      
   }
