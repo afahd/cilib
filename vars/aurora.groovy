@@ -11,11 +11,11 @@ def call(body) {
     
     dir('andromeda') 
     {
-      //git branch: 'refs/changes/80/26680/6', url: 'ssh://afahd@gerrit.plumgrid.com:29418/andromeda'
+      git branch: 'master', url: 'ssh://afahd@gerrit.plumgrid.com:29418/andromeda'
       //checkout ('FETCH_HEAD')
       
       checkout([$class: 'GitSCM', 
-          extensions: [$class: 'CleanBeforeCheckout'],
+                extensions: [[$class: 'CleanBeforeCheckout']],
           userRemoteConfigs: [[url: 'ssh://afahd@gerrit.plumgrid.com:29418/andromeda',refspec:'refs/changes/80/26680/6']]
       ])
     } 
