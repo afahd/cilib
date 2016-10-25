@@ -11,8 +11,8 @@ def call(body) {
     
     dir('andromeda') 
     {
-      git branch: 'refs/changes/80/26680/6', url: 'ssh://afahd@gerrit.plumgrid.com:29418/andromeda'
-      checkout('FETCH_HEAD')
+      git branch: 'master', url: 'ssh://afahd@gerrit.plumgrid.com:29418/andromeda'
+      //checkout('FETCH_HEAD')
       sh "git fetch ssh://afahd@gerrit.plumgrid.com:29418/andromeda refs/changes/80/26680/6 && git checkout FETCH_HEAD" 
      
     } 
