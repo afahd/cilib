@@ -15,7 +15,7 @@ def call(body) {
       sh "mkdir -p build;"
       dir ('build')
       {
-        sh "cmake..; make install;"
+        sh 'cmake..; make install;'
       }
       
     }
