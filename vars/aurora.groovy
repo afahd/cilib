@@ -15,7 +15,6 @@ def call(body) {
       //checkout ('FETCH_HEAD')
       
       checkout([$class: 'GitSCM', 
-          extensions: [[$class: 'CleanCheckout']], 
           userRemoteConfigs: [[url: 'ssh://afahd@gerrit.plumgrid.com:29418/andromeda',refspec:'refs/changes/80/26680/6']]
       ])
     } 
