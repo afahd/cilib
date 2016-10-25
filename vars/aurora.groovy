@@ -19,8 +19,6 @@ def call(body) {
       sh 'aurora --help'
     }
     
-    
-   
     echo "$args.name"
     stage 'build'
     echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC"
