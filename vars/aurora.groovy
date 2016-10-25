@@ -19,6 +19,7 @@ def call(body) {
       sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..; make install;'
       echo "$args.name"
       stage 'build'
+      sh "which gcloud"
       echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC"
       sh "aurora build -p corelib -b master -t testing"
     }
