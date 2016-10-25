@@ -17,12 +17,12 @@ def call(body) {
     withEnv(["PATH=/opt/pg/scripts:$PATH"]) {
       echo "$PATH"
       sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..; make install;'
-      sh 'aurora --help'
+      echo "$args.name"
+      stage 'build'
+      echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC"
+      sh "aurora build -p corelib -b master -t testing"
     }
-    
-    echo "$args.name"
-    stage 'build'
-    echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC"
+     
   }
 }
 
