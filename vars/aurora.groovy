@@ -15,6 +15,7 @@ def call(body) {
     } 
     
     withEnv(['export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH']) {
+      echo "$PATH"
       sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..; make install;'
       sh 'aurora --help'
     }
