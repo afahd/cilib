@@ -12,10 +12,14 @@ def call(body) {
     dir('andromeda') 
     {
       git branch: 'master', url: 'ssh://afahd@gerrit.plumgrid.com:29418/andromeda'
-    }  
+    } 
     
-    sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..; make install;'
-    sh 'aurora --help'
+    withEnv(['export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH']) {
+      sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..; make install;'
+      sh 'aurora --help'
+    }
+    
+    
    
     echo "$args.name"
     stage 'build'
