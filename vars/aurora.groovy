@@ -6,11 +6,10 @@ def call(body) {
   body.resolveStrategy = Closure.DELEGATE_FIRST
   body.delegate = config
   body()
-
-  //def a = new utils.GetPropertyList()
-  //properties(a.GetPropertyList(config))
-
-  node {
+  node('local-node') {
+    
+    
+    
     stage 'build'
     echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC"
   }
