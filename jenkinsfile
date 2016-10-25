@@ -1,0 +1,7 @@
+aurora
+{
+  name = 'andromeda-smoke'
+  type = 'review'
+  timeout = 60
+  trigger_path = '*.sh'
+}
