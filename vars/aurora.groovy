@@ -8,17 +8,13 @@ def call(body) {
   body()
   
   node {
-    git'ssh://gerrit.plumgrid.com:29418/andromeda'
-    dir ('gcloud')
+    
+    dir('andromeda') 
     {
-      //def value = "$pwd/build/"
-      sh "mkdir -p build;"
-      dir ('build')
-      {
-        sh 'cmake..; make install;'
-      }
-      
-    }
+      git branch: 'master', url: 'ssh://gerrit.plumgrid.com:29418/coral'
+    }  
+    sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..; make install;'
+   
     echo "$args.name"
     stage 'build'
     echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC"
