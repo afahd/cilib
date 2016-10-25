@@ -11,7 +11,7 @@ def call(body) {
     
     dir('andromeda') 
     {
-      git branch: 'master', url: 'ssh://gerrit.plumgrid.com:29418/coral'
+      git branch: 'master', url: 'ssh://gerrit.plumgrid.com:29418/andromeda'
     }  
     sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..; make install;'
    
