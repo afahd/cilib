@@ -16,7 +16,8 @@ def call(body) {
       
       checkout([$class: 'GitSCM', 
                 extensions: [[$class: 'CleanBeforeCheckout']],
-          userRemoteConfigs: [[url: 'ssh://afahd@gerrit.plumgrid.com:29418/andromeda',refspec:'refs/changes/80/26680/6']]
+                userRemoteConfigs: [[url: 'ssh://afahd@gerrit.plumgrid.com:29418/andromeda']],
+                branches: [[name:'refs/changes/80/26680/6']]
       ])
     } 
     
