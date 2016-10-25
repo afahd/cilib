@@ -7,7 +7,7 @@ def call(body) {
   body.delegate = args
   body()
   
-  node {
+  node('gcloud-slave') {
     
     dir('andromeda') 
     {
