@@ -14,6 +14,7 @@ def call(body) {
       git branch: 'master', url: 'ssh://gerrit.plumgrid.com:29418/andromeda'
     }  
     sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..; make install;'
+    sh 'aurora --help'
    
     echo "$args.name"
     stage 'build'
