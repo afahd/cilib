@@ -11,7 +11,8 @@ def call(body) {
     git'ssh://gerrit.plumgrid.com:29418/andromeda'
     dir ('gcloud')
     {
-      sh "mkdir $pwd/build;" 
+      def value = "$pwd/build/"
+      sh "mkdir $value" 
     }
     echo "$args.name"
     stage 'build'
