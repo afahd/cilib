@@ -11,8 +11,13 @@ def call(body) {
     
     dir('andromeda') 
     {
-      git branch: 'refs/changes/80/26680/6', url: 'ssh://afahd@gerrit.plumgrid.com:29418/andromeda'
-      checkout ('FETCH_HEAD')
+      //git branch: 'refs/changes/80/26680/6', url: 'ssh://afahd@gerrit.plumgrid.com:29418/andromeda'
+      //checkout ('FETCH_HEAD')
+      
+      checkout([$class: 'GitSCM', 
+          extensions: [[$class: 'CleanCheckout']], 
+          userRemoteConfigs: [[url: 'https://github.com/user/repo.git',refspec:'refs/changes/80/26680/6']]
+      ])
     } 
     
     withEnv(["PATH=/opt/plumgrid/google-cloud-sdk/bin/:/opt/pg/scripts:$PATH"]) 
