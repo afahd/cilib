@@ -22,7 +22,7 @@ def call(body) {
       echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC"
       //sh "aurora build -p corelib -b master -t core"
       def string_out = readFile('logs/build_id')
-      def build_id = stringout.replace("BUILD-ID=","")
+      def build_id = string_out.replace("BUILD-ID=","")
       echo "$build_id"
       
     }
