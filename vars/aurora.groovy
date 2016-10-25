@@ -11,7 +11,7 @@ def call(body) {
     
     dir('andromeda') 
     {
-      git branch: 'master', url: 'ssh://afahd@gerrit.plumgrid.com:29418/andromeda'
+      //git branch: 'master', url: 'ssh://afahd@gerrit.plumgrid.com:29418/andromeda'
       sh 'git clone ssh://afahd@gerrit.plumgrid.com:29418/andromeda'
     }  
     
