@@ -12,7 +12,11 @@ def call(body) {
     dir ('gcloud')
     {
       //def value = "$pwd/build/"
-      sh "ls; mkdir -p build; cd build; cmake..; make install;"
+      sh "mkdir -p build;"
+      dir ('build')
+      {
+        sh "cmake..; make install;"
+      }
       
     }
     echo "$args.name"
