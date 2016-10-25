@@ -14,7 +14,7 @@ def call(body) {
       git branch: 'master', url: 'ssh://afahd@gerrit.plumgrid.com:29418/andromeda'
     } 
     
-    withEnv(['export PATH=@CMAKE_BINARY_DIR@/:/opt/pg/scripts:$PATH']) {
+    withEnv(["PATH=/opt/pg/scripts:$PATH"]) {
       echo "$PATH"
       sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..; make install;'
       sh 'aurora --help'
