@@ -7,7 +7,7 @@ def call(body) {
   body.delegate = args
   body()
   
-  node('local-node') {
+  node {
     git'ssh://gerrit.plumgrid.com:29418/andromeda'
     dir ('gcloud')
     {
