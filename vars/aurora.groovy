@@ -30,7 +30,7 @@ def call(body) {
   
   node('gcloud-slave') {
     
-    timeout("$timeout") 
+    timeout(60) 
     {
       
       stage 'clone'
