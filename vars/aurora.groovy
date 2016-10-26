@@ -26,7 +26,7 @@ def call(body) {
       def string_out = readFile('logs/build_id')
       def build_id = string_out.replace("BUILD-ID=","")
       stage 'tests'
-      sh "aurora test -p corelib -b master -t "$args.test_tag" -n "$args.num_instances" -i "$args.iterations" -l $build_id"
+      sh "aurora test -p corelib -b master -t $args.test_tag -n $args.num_instances -i $args.iterations -l $build_id"
     }
     
     archiveArtifacts 'logs/'
