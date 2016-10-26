@@ -7,10 +7,17 @@ def call(body) {
   body.delegate = args
   body()
   
+  def iter = 1
+  
   if (config.trigger_path != null)
   {
     def a = new utils.GetPropertyList()
     properties(a.GetPropertyList(config))
+  }
+  
+  if (config.iterations != null)
+  {
+    iter = config.iterations 
   }
   
   node('gcloud-slave') {
@@ -35,7 +42,7 @@ def call(body) {
         def build_id = string_out.replace("BUILD-ID=","")
 
         stage 'test'
-        sh "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.ctest_tag -n $args.num_instances -i $args.iterations -A $args.test_args -l $build_id "
+        sh "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.ctest_tag -n $args.num_instances -i $iter -A $args.test_args -l $build_id "
       }
 
       archiveArtifacts "$args.archive"
