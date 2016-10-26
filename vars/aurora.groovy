@@ -9,15 +9,15 @@ def call(body) {
   
   def iter = 1
   
-  if (config.trigger_path != null)
+  if (args.trigger_path != null)
   {
     def a = new utils.GetPropertyList()
-    properties(a.GetPropertyList(config))
+    properties(a.GetPropertyList(args))
   }
   
-  if (config.iterations != null)
+  if (args.iterations != null)
   {
-    iter = config.iterations 
+    iter = args.iterations 
   }
   
   node('gcloud-slave') {
