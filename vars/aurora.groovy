@@ -8,6 +8,7 @@ def call(body) {
   body()
   
   def iter = 1
+  def timeout = 60
   
   if (args.trigger_path != null)
   {
@@ -20,9 +21,16 @@ def call(body) {
     iter = args.iterations 
   }
   
+  echo "$iter"
+  
+  if (args.timeout != null)
+  {
+    timeout = args.timeout 
+  }
+  
   node('gcloud-slave') {
     
-    timeout(args.timeout) 
+    timeout(timeout) 
     {
       
       stage 'clone'
