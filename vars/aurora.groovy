@@ -15,9 +15,9 @@ def call(body) {
       git branch: 'master', url: 'ssh://afahd@gerrit.plumgrid.com:29418/andromeda'
     } 
     
-    withEnv(["PATH=/opt/plumgrid/google-cloud-sdk/bin/:/opt/pg/scripts:$PATH"]) 
+    withEnv(["PATH=$WORKSPACE/andromeda/gcloud/build/:/opt/pg/scripts:$PATH"]) 
     {
-      sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..; make install;'
+      sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..;'
       echo "$args.name"
       stage 'build'
       echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC"
