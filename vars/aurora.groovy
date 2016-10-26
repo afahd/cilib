@@ -8,7 +8,6 @@ def call(body) {
   body()
   
   def iter = 1
-  int timeout = 60
   
   if (args.trigger_path != null)
   {
@@ -21,19 +20,7 @@ def call(body) {
     iter = args.iterations 
   }
   
-  echo "$iter"
-  
-  if (args.timeout != null)
-  {
-    timeout = args.timeout 
-  }
-  
-  echo "$timeout"
-  
   node('gcloud-slave') {
-    
-    timeout(timeout)
-    {
       
       stage 'clone'
       dir('andromeda') 
@@ -57,7 +44,6 @@ def call(body) {
 
       archiveArtifacts "$args.archive"
       step([$class: 'WsCleanup'])
-    }
      
   }
 }
