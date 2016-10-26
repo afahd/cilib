@@ -32,8 +32,8 @@ def call(body) {
   
   node('gcloud-slave') {
     
-    timeout(60) 
-    {
+    //timeout(60) 
+    //{
       
       stage 'clone'
       dir('andromeda') 
@@ -57,7 +57,7 @@ def call(body) {
 
       archiveArtifacts "$args.archive"
       step([$class: 'WsCleanup'])
-    }
+    //}
      
   }
 }
