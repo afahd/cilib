@@ -17,6 +17,7 @@ def call(body) {
     
     withEnv(["PATH=$WORKSPACE/andromeda/gcloud/build/:/opt/pg/scripts:$PATH"]) 
     {
+      echo "$PATH"
       sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..;'
       echo "$args.name"
       stage 'build'
