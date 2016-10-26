@@ -28,6 +28,8 @@ def call(body) {
     timeout = args.timeout 
   }
   
+  echo "$timeout"
+  
   node('gcloud-slave') {
     
     timeout(60) 
