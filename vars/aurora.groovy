@@ -8,6 +8,7 @@ def call(body) {
   body()
   
   node('gcloud-slave') {
+    deleteDir()
     stage 'clone'
     dir('andromeda') 
     {
