@@ -103,7 +103,7 @@ def call(body) {
       }
       //step([$class: 'WsCleanup'])
       //echo "This is done"
-      currentBuild.result = 'FAILURE'
+      currentBuild.result = 'UNSTABLE'
   }
 }
 
