@@ -104,6 +104,7 @@ def call(body) {
         }
       }
     echo "$archive"
+    archive = 'logs/**
       if (fileExists(archive))
       {
         archiveArtifacts "archive"
