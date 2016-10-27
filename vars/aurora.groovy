@@ -32,6 +32,12 @@ def call(body) {
     archive = args.archive 
   }
   
+  // Check if timeout to archive given
+  if (args.timeout != null)
+  {
+    time = args.timeout 
+  }
+  
   // Check if no empty variable exists 
   if (GERRIT_REFSPEC == null)
   {
