@@ -103,8 +103,8 @@ def call(body) {
          error 'Build_id file missing' 
         }
       }
-      def archive2 = 'logs/xml_logs/'
-      echo "$archive2"
+      def archive2 = 'logs/'
+      
       archiveArtifacts 'archive2'
       //step([$class: 'WsCleanup']) 
   }
