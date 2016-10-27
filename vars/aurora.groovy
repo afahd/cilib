@@ -92,10 +92,10 @@ def call(body) {
           echo "Starting aurora test, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH ctest_tag:$args.ctest_tag"
           //sh "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.ctest_tag -n $args.num_instances -i $iter  '-A $args.test_args' -l $build_id "
         }
-        else
-        {
-         error 'Build_id file missing' 
-        }
+        //else
+        //{
+         //error 'Build_id file missing' 
+        //}
       }
       archiveArtifacts "$archive"
       step([$class: 'WsCleanup'])
