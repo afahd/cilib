@@ -40,7 +40,7 @@ def call(body) {
         def build_id = "123"
         stage 'test'
         
-        String testing = "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.ctest_tag -n $args.num_instances -i $iter -A $args.test_args -l $build_id"
+        String testing = "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.ctest_tag -n $args.num_instances -i $iter -l $build_id -A $args.test_args "
         echo "$testing"
         sh "$testing"
       }
