@@ -100,7 +100,7 @@ def call(body) {
       archiveArtifacts "$archive"
       step([$class: 'WsCleanup'])
       echo "This is done"
-      //currentBuild.result = 'SUCCESS'
+      currentBuild.result = 'SUCCESS'
   }
 }
 
