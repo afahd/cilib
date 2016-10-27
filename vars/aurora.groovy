@@ -99,7 +99,7 @@ def call(body) {
       }
       archiveArtifacts "$archive"
       step([$class: 'WsCleanup'])
-      currentBuild.result = 'UNSTABLE'
+      currentBuild.result = 'SUCCESS'
   }
 }
 
