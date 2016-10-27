@@ -47,7 +47,7 @@ def call(body) {
         stage 'build'
         echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC"
         //sh "aurora build -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME+$BUILD_NUMBER -r $GERRIT_REFSPEC"
-        if (fileExists 'logs/build_id')
+        if (fileExists ('logs/build_id'))
         {
           def string_out = readFile('logs/build_id')
           def build_id = string_out.replace("BUILD-ID=","")
