@@ -42,6 +42,7 @@ def call(body) {
         
         String testing = "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.ctest_tag -n $args.num_instances -i $iter -A $args.test_args -l $build_id"
         echo "$testing"
+        sh "$testing"
       }
 
       archiveArtifacts "$args.archive"
