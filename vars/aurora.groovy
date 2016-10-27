@@ -8,6 +8,7 @@ def call(body) {
   body()
   
   def iter = 1
+  def archive = 'logs/'
   
   if (args.trigger_path != null)
   {
@@ -20,10 +21,16 @@ def call(body) {
     iter = args.iterations 
   }
   
-  if (args.num_instances != null)
+  if (args.archive != null)
+  {
+    archive = args.iterations 
+  }
+  
+  if (args.num_instances == null)
   {
    error 'Number of instances are not defined'
   }
+  
   
   node('gcloud-slave') {
       
@@ -43,12 +50,21 @@ def call(body) {
         def string_out = readFile('logs/build_id')
         def build_id = string_out.replace("BUILD-ID=","")
         
+        if (build_id == null)
+        {
+         error 'Build ID not found'
+        }
+        if (args.ctest_tag == null)
+        {
+         error 'No ctest_tag found '
+        }
+        
         stage 'test'    
         echo "Starting aurora test, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH ctest_tag:$args.ctest_tag"
         sh "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.ctest_tag -n $args.num_instances -i $iter -l $build_id -A $args.test_args "
       }
 
-      archiveArtifacts "$args.archive"
+      archiveArtifacts "$archive"
       step([$class: 'WsCleanup'])
      
   }
