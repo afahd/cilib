@@ -104,7 +104,7 @@ def call(body) {
         }
       }
     
-      archiveArtifacts allowEmptyArchive: true, artifacts: archive, defaultExcludes: false, onlyIfSuccessful: true
+      archiveArtifacts allowEmptyArchive: true, artifacts: archive
       //step([$class: 'WsCleanup']) 
   }
 }
