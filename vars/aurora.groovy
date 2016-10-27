@@ -104,11 +104,13 @@ def call(body) {
         }
       }
     echo "$archive"
-    def archive2 = 'logs/**'
+    def archive2 = 'logs/**/'
       if (fileExists(archive2))
       {
+        echo "inside"
         archiveArtifacts "archive2"
       }
+    echo "outside"
       //step([$class: 'WsCleanup']) 
   }
 }
