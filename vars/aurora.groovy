@@ -67,8 +67,8 @@ def call(body) {
         //if (fileExists ('logs/build_id'))
         //{
           // Reading file and extracting build name 
-          def string_out = readFile('logs/build_id')
-          def build_id = string_out.replace("BUILD-ID=","")
+          //def string_out = readFile('logs/build_id')
+          //def build_id = string_out.replace("BUILD-ID=","")
           
           // In case build_id file has empty file
           //if (build_id == null)
