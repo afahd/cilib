@@ -108,7 +108,6 @@ def call(body) {
         archiveArtifacts "archive"
       }
       step([$class: 'WsCleanup']) 
-      
-  }
+   
 }
 
