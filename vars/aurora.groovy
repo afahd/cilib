@@ -93,7 +93,7 @@ def call(body) {
           sh "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.ctest_tag -n $args.num_instances -i $iter  '-A $args.test_args' -l $build_id "
           
           // In case test failed set build status to unstable
-          if(fileExists("logs/.*FAIL.*")
+          if(fileExists("logs/.*FAIL.*"))
           {
             currentBuild.result = 'UNSTABLE'
           }
