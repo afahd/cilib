@@ -53,7 +53,7 @@ def call(body) {
   
   node('gcloud-slave')
   {
-    timeout(timeout)
+    timeout(60)
     {
       step([$class: 'WsCleanup'])
       stage 'Clone'
