@@ -22,8 +22,7 @@ def call(body) {
   
   if (args.num_instances != null)
   {
-    echo "Number of instances are not defined"
-    exit 0
+   error 'Number of instances are not defined'
   }
   
   node('gcloud-slave') {
