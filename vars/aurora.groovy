@@ -97,8 +97,8 @@ def call(body) {
          //error 'Build_id file missing' 
         //}
       }
-      archiveArtifacts "$archive"
-      step([$class: 'WsCleanup'])
+      //archiveArtifacts "$archive"
+      //step([$class: 'WsCleanup'])
       //echo "This is done"
       //currentBuild.result = 'SUCCESS'
   }
