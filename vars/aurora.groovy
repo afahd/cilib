@@ -10,7 +10,7 @@ def call(body) {
   // Default Values
   def iter = 1
   def archive = "logs/"
-  def timeout = 60
+ 
   
   // Check if trigger path modified 
   if (args.trigger_path != null)
@@ -23,12 +23,6 @@ def call(body) {
   if (args.iterations != null)
   {
     iter = args.iterations 
-  }
-  
-  // Check if number of timeout given
-  if (args.timeout != null)
-  {
-    timeout = args.timeout 
   }
   
   // Check if artifacts to archive given
