@@ -27,7 +27,7 @@ def call(body) {
   // Check if artifacts to archive given
   if (args.archive != null)
   {
-    archive = args.iterations 
+    archive = args.archive 
   }
   
   // Check if no empty variable exists 
