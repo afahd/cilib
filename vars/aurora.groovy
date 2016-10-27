@@ -97,7 +97,7 @@ def call(body) {
          //error 'Build_id file missing' 
         //}
       }
-      if (fileExists($archive))
+      if (fileExists(archive))
       {
         archiveArtifacts "archive"
       }
