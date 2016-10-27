@@ -103,13 +103,8 @@ def call(body) {
          error 'Build_id file missing' 
         }
       }
-    def archive2 = "logs/**/"
-      if (fileExists(archive2))
-      {
-        echo "inside"
-        archiveArtifacts "archive2"
-      }
-    echo "outside"
+      def archive2 = "logs/**/"
+      archiveArtifacts "archive2"
       //step([$class: 'WsCleanup']) 
   }
 }
