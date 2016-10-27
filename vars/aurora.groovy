@@ -105,7 +105,7 @@ def call(body) {
       }
       def archive2 = 'logs/'
       
-      archiveArtifacts 'archive2'
+      archiveArtifacts allowEmptyArchive: true, artifacts: archive2, defaultExcludes: false, onlyIfSuccessful: true
       //step([$class: 'WsCleanup']) 
   }
 }
