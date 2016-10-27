@@ -31,6 +31,21 @@ def call(body) {
    error 'Number of instances are not defined'
   }
   
+  if (GERRIT_REFSPEC == null)
+  {
+   error 'No GERRIT_REFSPEC found'
+  }
+  
+   if (GERRIT_BRANCH == null)
+  {
+   error 'No GERRIT_BRANCH found'
+  }
+  
+   if (GERRIT_PROJECT == null)
+  {
+   error 'No GERRIT_PROJECT found'
+  }
+  
   
   node('gcloud-slave') {
       
@@ -46,7 +61,7 @@ def call(body) {
 
         stage 'build'
         echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC"
-        //sh "aurora build -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME+$BUILD_NUMBER -r $GERRIT_REFSPEC"
+        sh "aurora build -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME+$BUILD_NUMBER -r $GERRIT_REFSPEC"
         if (fileExists ('logs/build_id'))
         {
           def string_out = readFile('logs/build_id')
@@ -62,11 +77,11 @@ def call(body) {
           }
           stage 'test'    
           echo "Starting aurora test, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH ctest_tag:$args.ctest_tag"
-          //sh "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.ctest_tag -n $args.num_instances -i $iter -l $build_id -A $args.test_args "
+          sh "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.ctest_tag -n $args.num_instances -i $iter -l $build_id -A $args.test_args "
         }
         else
         {
-         error ('Build_id file missing') 
+         echo "Build_id file missing" 
         }
       }
 
