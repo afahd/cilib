@@ -10,6 +10,7 @@ def call(body) {
   // Default Values
   def iter = 1
   def archive = "logs/"
+  def timeout = 60
  
   
   // Check if trigger path modified 
@@ -47,7 +48,7 @@ def call(body) {
   
   node('gcloud-slave')
   {
-    timeout(60)
+    timeout(timeout)
     {
       step([$class: 'WsCleanup'])
       stage 'Clone'
