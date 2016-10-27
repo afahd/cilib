@@ -103,7 +103,7 @@ def call(body) {
          error 'Build_id file missing' 
         }
       }
-      def archive2 = 'logs/'
+      def archive2 = 'logs'
       
       archiveArtifacts allowEmptyArchive: true, artifacts: archive2, defaultExcludes: false, onlyIfSuccessful: true
       //step([$class: 'WsCleanup']) 
