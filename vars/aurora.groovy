@@ -103,9 +103,8 @@ def call(body) {
          error 'Build_id file missing' 
         }
       }
-    
       archiveArtifacts allowEmptyArchive: true, artifacts: archive
-      //step([$class: 'WsCleanup']) 
+      step([$class: 'WsCleanup']) 
   }
 }
 
