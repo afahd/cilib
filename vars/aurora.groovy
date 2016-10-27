@@ -64,40 +64,40 @@ def call(body) {
         //sh "aurora build -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME+$BUILD_NUMBER -r $GERRIT_REFSPEC"
         
         // Aurora build creates a build_id file in WORKSPACE/logs/ the file consists of BUILD ID created by aurora
-        //if (fileExists ('logs/build_id'))
-        //{
+        if (fileExists ('logs/build_id'))
+        {
           // Reading file and extracting build name 
-          //def string_out = readFile('logs/build_id')
-          //def build_id = string_out.replace("BUILD-ID=","")
+          def string_out = readFile('logs/build_id')
+          def build_id = string_out.replace("BUILD-ID=","")
           
           // In case build_id file has empty file
-          //if (build_id == null)
-          //{
-           //error 'Build ID value not found'
-          //}
+          if (build_id == null)
+          {
+           error 'Build ID value not found'
+          }
           
           // In case no ctest_tag is provided
-          //if (args.ctest_tag == null)
-          //{
-           //error 'No ctest_tag found '
-          //}
+          if (args.ctest_tag == null)
+          {
+           error 'No ctest_tag found '
+          }
           
           // In case no number of instances specified
-          //if (args.num_instances == null)
-          //{
-          // error 'Number of instances are not defined'
-          //}
+          if (args.num_instances == null)
+          {
+           error 'Number of instances are not defined'
+          }
   
           stage 'test'    
           echo "Starting aurora test, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH ctest_tag:$args.ctest_tag"
           //sh "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.ctest_tag -n $args.num_instances -i $iter  '-A $args.test_args' -l $build_id "
-        //}
+        }
         //else
         //{
          //error 'Build_id file missing' 
         //}
       }
-      //archiveArtifacts "$archive"
+      archiveArtifacts "$archive"
       //step([$class: 'WsCleanup'])
       //echo "This is done"
       //currentBuild.result = 'SUCCESS'
