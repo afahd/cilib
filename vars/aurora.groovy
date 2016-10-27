@@ -88,14 +88,25 @@ def call(body) {
            error 'Number of instances are not defined'
           }
   
-          stage 'test'    
-          echo "Starting aurora test, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH ctest_tag:$args.ctest_tag"
-          //sh "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.ctest_tag -n $args.num_instances -i $iter  '-A $args.test_args' -l $build_id "
+          try {
+            stage 'test'    
+            echo "Starting aurora test, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH ctest_tag:$args.ctest_tag"
+            //sh "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.ctest_tag -n $args.num_instances -i $iter  '-A $args.test_args' -l $build_id "
+          
+          } catch (err) {
+              echo "Caught: ${err}"
+              //currentBuild.result = 'UNSTABLE'
+          }
           
           // In case test failed set build status to unstable
           if(fileExists("logs/.*FAIL.*"))
           {
+            echo "exist"
             currentBuild.result = 'UNSTABLE'
+          }
+          else
+          {
+            echo "does not exist" 
           }
         }
         else
