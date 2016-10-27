@@ -46,6 +46,8 @@ def call(body) {
   
   node('gcloud-slave')
   {
+    timeout(60)
+    {
       step([$class: 'WsCleanup'])
       stage 'Clone'
       
@@ -105,6 +107,7 @@ def call(body) {
       }
       archiveArtifacts allowEmptyArchive: true, artifacts: archive
       step([$class: 'WsCleanup']) 
+    }
   }
 }
 
