@@ -99,7 +99,7 @@ def call(body) {
           }
           
           // In case test failed set build status to unstable
-          if(fileExists("logs/"))
+          if(fileExists("logs/*FAIL"))
           {
             echo "exist"
             currentBuild.result = 'UNSTABLE'
