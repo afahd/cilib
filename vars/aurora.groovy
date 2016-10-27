@@ -105,7 +105,7 @@ def call(body) {
       }
       def archive2 = 'logs/xml_logs/'
       echo "$archive2"
-      archiveArtifacts "archive2"
+      archiveArtifacts 'archive2'
       //step([$class: 'WsCleanup']) 
   }
 }
