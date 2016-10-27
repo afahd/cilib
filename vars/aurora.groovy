@@ -39,7 +39,7 @@ def call(body) {
         def build_id = string_out.replace("BUILD-ID=","")
 
         stage 'test'
-        sh "aurora test -l $build_id" "-p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.ctest_tag -n $args.num_instances -i $iter -A $args.test_args"
+        sh "aurora test -l $build_id -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.ctest_tag -n $args.num_instances -i $iter -A $args.test_args"
       }
 
       archiveArtifacts "$args.archive"
