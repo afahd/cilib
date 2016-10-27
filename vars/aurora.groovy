@@ -9,7 +9,7 @@ def call(body) {
   
   // Default Values
   def iter = 1
-  def archive = 'logs/'
+  def archive = "logs/"
   
   // Check if trigger path modified 
   if (args.trigger_path != null)
@@ -97,6 +97,7 @@ def call(body) {
          //error 'Build_id file missing' 
         //}
       }
+    echo "$archive"
       if (fileExists(archive))
       {
         archiveArtifacts "archive"
