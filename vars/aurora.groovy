@@ -103,8 +103,7 @@ def call(body) {
          error 'Build_id file missing' 
         }
       }
-    echo "$archive"
-    def archive2 = 'logs/**/'
+    def archive2 = "logs/**/"
       if (fileExists(archive2))
       {
         echo "inside"
