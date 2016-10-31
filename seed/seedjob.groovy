@@ -22,9 +22,9 @@ folder('corelib') {
     description('pipeplines for corelib')
 }
 
-folder('corelib/'GERRIT_BRANCH) {
+folder("corelib/$GERRIT_BRANCH") {
     displayName('corelib')
-    description('Pipelines for GERRIT_BRANCH')
+    description("Pipelines for $GERRIT_BRANCH")
 }
 
 new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
