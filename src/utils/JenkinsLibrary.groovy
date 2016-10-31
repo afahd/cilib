@@ -102,7 +102,7 @@ def valueExist (def orignal_value, def argument)
 
 def checkGerritArguments()
 {
-    echo "$GERRIT_REFSPEC"
+   def GERRIT_REFSPEC = null
     if (GERRIT_REFSPEC == null)
     {
      error 'No GERRIT_REFSPEC found'
