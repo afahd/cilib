@@ -23,7 +23,7 @@ folder('corelib') {
 }
 
 folder("corelib/$GERRIT_BRANCH") {
-    displayName('corelib')
+    displayName("$GERRIT_BRANCH")
     description("Pipelines for $GERRIT_BRANCH")
 }
 
