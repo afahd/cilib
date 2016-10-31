@@ -17,20 +17,14 @@ checkout.consumeProcessOutput(sout, serr)
 checkout.waitFor()
 println "out> $sout err> $serr"
 
-folder('project-a') {
-    displayName('Project A')
-    description('Folder for project A')
-}
-
-folder('project-a/testing') {
-    displayName('Project Testing')
-    description('Testing for project A')
-}
-
-
-folder('corelib/master') {
+folder('corelib') {
     displayName('corelib')
-    description('Pipelines for corelib')
+    description('pipeplines for corelib')
+}
+
+folder('corelib/'GERRIT_BRANCH) {
+    displayName('corelib')
+    description('Pipelines for GERRIT_BRANCH')
 }
 
 new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
