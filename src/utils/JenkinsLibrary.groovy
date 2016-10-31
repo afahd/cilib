@@ -102,7 +102,6 @@ def valueExist (def orignal_value, def argument)
 
 def checkGerritArguments()
 {
-   def GERRIT_REFSPEC = null
     if (GERRIT_REFSPEC == null)
     {
      error 'No GERRIT_REFSPEC found'
