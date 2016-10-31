@@ -17,6 +17,17 @@ checkout.consumeProcessOutput(sout, serr)
 checkout.waitFor()
 println "out> $sout err> $serr"
 
+folder('project-a') {
+    displayName('Project A')
+    description('Folder for project A')
+}
+
+folder('project-a/testing') {
+    displayName('Project Testing')
+    description('Testing for project A')
+}
+
+
 folder('corelib/master') {
     displayName('corelib')
     description('Pipelines for corelib')
