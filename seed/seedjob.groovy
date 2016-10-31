@@ -17,18 +17,13 @@ checkout.consumeProcessOutput(sout, serr)
 checkout.waitFor()
 println "out> $sout err> $serr"
 
-folder('corelib') {
-    displayName('corelib')
-    description('Pipelines for corelib')
-}
-
 new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     println "Jenkins File Text:"
     println file.text
     def config = new ConfigSlurper().parse(file.text)
     if (config.containsKey("aurora")) {
         println "Going to generate aurora based job:$config.aurora.name"
-        pipelineJob("corelib/$config.aurora.name") {
+        pipelineJob("$config.aurora.name") {
             logRotator(15,-1,-1,-1)
             definition {
                 cpsScm {
@@ -48,56 +43,47 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                     scriptPath("jenkins/jenkinsfiles/" + org.apache.commons.io.FilenameUtils.getBaseName(file.name))
                 }
             }
+            if( config.aurora.type == "review" )
+            {
             triggers {
-                if( config.aurora.type == "review" )
-                {
-                    gerrit {
-                        configure { GerritTrigger ->
-                            GerritTrigger / 'triggerOnEvents'
-                            {
-                                'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginCommentAddedContainsEvent'
-                                    {
-                                        commentAddedCommentContains(".*runpipeline: ${config.aurora.name}.*")
-                                    }
-                                'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginPatchsetCreatedEvent'
-                                    {
-                                        excludeDrafts("True")
-                                        excludeTrivialRebase("False")
-                                        excludeNoCodeChange("True")
-                                    }
+                gerrit {
+                    configure { GerritTrigger ->
+                        GerritTrigger / 'triggerOnEvents' {
+                            'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginCommentAddedContainsEvent' {
+                                commentAddedCommentContains(".*runpipeline: ${config.aurora.name}.*")
                             }
-                            GerritTrigger << gerritProjects
-                            {
-                                'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.GerritProject'
-                                {
-                                    compareType("PLAIN")
-                                    pattern(GERRIT_PROJECT)
-                                    branches
-                                    {
-                                        'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.Branch'
-                                            {
-                                                compareType("PLAIN")
-                                                pattern("${GERRIT_BRANCH}")
-                                            }
+                            'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginPatchsetCreatedEvent' {
+                                excludeDrafts("True")
+                                excludeTrivialRebase("False")
+                                excludeNoCodeChange("True")
+                            }
+                        }
+                        GerritTrigger << gerritProjects {
+                            'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.GerritProject' {
+                                compareType("PLAIN")
+                                pattern(GERRIT_PROJECT)
+                                branches{
+                                    'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.Branch' {
+                                        compareType("REG_EXP")
+                                        pattern(".*")
+
                                     }
-                                    if ( config.aurora.trigger_path != null )
-                                    {
-                                        filePaths
-                                        {
-                                            'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.FilePath'
-                                                {
-                                                    compareType("REG_EXP")
-                                                    pattern(config.aurora.trigger_path)
-                                                }
+                                }
+                                if ( config.aurora.trigger_path != null ) {
+                                    filePaths {
+                                        'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.FilePath' {
+                                            compareType("REG_EXP")
+                                            pattern(config.aurora.trigger_path)
                                         }
                                     }
                                 }
+
                             }
                         }
                     }
                 }
-                // TODO: PERIODIC PIPELINES
             }
+        }
         }
     }
 }
