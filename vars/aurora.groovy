@@ -23,7 +23,7 @@ def call(body) {
     lib.checkGerritArguments()
   }
 
-  node('slave-cloud')
+  node('gcloud-slave')
   {
     timeout(time)
     {
