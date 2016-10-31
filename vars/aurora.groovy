@@ -14,7 +14,7 @@ def call(body) {
   
   def a = new utils.JenkinsLibrary()
   
-  time = a.valueExist(15,30)
+  time = a.valueExist(15,null)
   echo "$time"
 
   // // Check if number of iterations given
