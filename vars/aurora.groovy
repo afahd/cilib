@@ -11,8 +11,10 @@ def call(body) {
   def iter = 1
   def archive = "logs/"
   def time = 60
-
-  time = JenkinsLibrary.valueExist(15,30)
+  
+  def a = new utils.JenkinsLibrary()
+  
+  time = a.valueExist(15,30)
   echo "$time"
 
   // // Check if number of iterations given
