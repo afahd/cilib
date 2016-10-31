@@ -26,8 +26,8 @@ folder('corelib') {
         description("Pipelines for $GERRIT_BRANCH")
     }
 }
-
-
+def lib = new utils.JenkinsLibrary()
+def days = 15 
 
 new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     println "Jenkins File Text:"
@@ -35,8 +35,9 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     def config = new ConfigSlurper().parse(file.text)
     if (config.containsKey("aurora")) {
         println "Going to generate aurora based job:$config.aurora.name"
-        pipelineJob("corelib/$config.aurora.name") {
-            logRotator(15,-1,-1,-1)
+        pipelineJob("corelib/$GERRIT_BRANCH/$config.aurora.name") {
+            def daysToKeep = lib.valueExist(days,config.aurora.days_to_keep)
+            logRotator(daysToKeep,-1,-1,-1)
             definition {
                 cpsScm {
                     scm {
