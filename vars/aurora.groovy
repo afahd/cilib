@@ -14,7 +14,7 @@ def call(body) {
   
   def a = new utils.JenkinsLibrary()
   
-  a.checkGerritArguments
+  a.checkGerritArguments()
 
 
   // // Check if number of iterations given
