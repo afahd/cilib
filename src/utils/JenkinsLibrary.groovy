@@ -88,4 +88,16 @@ def cloneProject(String repo_name, String repo_url)
     }
 }
 
+def valueExist (def orignal_value, def argument)
+{
+    if (argument != null)
+    {
+        return argument
+    }
+    else
+    {
+        return orignal_value
+    }
+}
+
 return this;
