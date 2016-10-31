@@ -54,7 +54,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                 }
             }
             triggers {
-                if (config.aurora.type == "review")
+                if( config.aurora.type == "review" )
                 {
                     gerrit {
                         configure { GerritTrigger ->
