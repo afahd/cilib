@@ -11,126 +11,95 @@ def call(body) {
   def iter = 1
   def archive = "logs/"
   def time = 60
-  
-  def a = new utils.JenkinsLibrary()
-  
-  GERRIT_BRANCH = null
-  
-  a.checkGerritArguments()
+  // Loading Jenkins library
+  def lib = new utils.JenkinsLibrary()
 
+  iter = lib.valueExist(iter,args.iterations)
+  archive = lib.valueExist(archive,args.archive)
+  time = lib.valueExist(time,args.timeout)
 
-  // // Check if number of iterations given
-  // if (args.iterations != null)
-  // {
-  //   iter = args.iterations
-  // }
+  if (args.type == 'review')
+  {
+    lib.checkGerritArguments()
+  }
 
-  // // Check if artifacts to archive given
-  // if (args.archive != null)
-  // {
-  //   archive = args.archive
-  // }
+  node('slave-cloud')
+  {
+    timeout(time)
+    {
+      step([$class: 'WsCleanup'])
+      stage 'Clone'
 
-  // // Check if timeout to archive given
-  // if (args.timeout != null)
-  // {
-  //   time = args.timeout
-  // }
+      dir('andromeda')
+      {
+        git branch: 'master', url: 'ssh://afahd@gerrit.plumgrid.com:29418/andromeda'
+      }
 
-  // if (args.type == 'review')
-  // {
-  //   // Check if no empty variable exists
-  //   if (GERRIT_REFSPEC == null)
-  //   {
-  //    error 'No GERRIT_REFSPEC found'
-  //   }
-  //   if (GERRIT_BRANCH == null)
-  //   {
-  //    error 'No GERRIT_BRANCH found'
-  //   }
-  //   if (GERRIT_PROJECT == null)
-  //   {
-  //    error 'No GERRIT_PROJECT found'
-  //   }
-  // }
+      withEnv(["PATH=/opt/plumgrid/google-cloud-sdk/bin:$WORKSPACE/andromeda/gcloud/build:/opt/pg/scripts:$PATH"])
+      {
+        stage 'Build'
+        sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..;'
 
-  // node('slave-cloud')
-  // {
-  //   timeout(time)
-  //   {
-  //     step([$class: 'WsCleanup'])
-  //     stage 'Clone'
+        stage 'Aurora build'
+        echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC tag:$JOB_BASE_NAME+$BUILD_NUMBER"
 
-  //     dir('andromeda')
-  //     {
-  //       git branch: 'master', url: 'ssh://gerrit.plumgrid.com:29418/andromeda'
-  //     }
+        try
+        {
+          sh "aurora build -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME+$BUILD_NUMBER -r $GERRIT_REFSPEC"
+        }
+        catch (error)
+        {
+          echo "Aurora Build Failed! Cleaning up instances"
+          sh "aurora cleanup $JOB_BASE_NAME+$BUILD_NUMBER"
+        }
 
-  //     withEnv(["PATH=/home/plumgrid/google-cloud-sdk/bin:$WORKSPACE/andromeda/gcloud/build:/opt/pg/scripts:$PATH"])
-  //     {
-  //       stage 'Build'
-  //       sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..;'
+        // Aurora build creates a build_id file in WORKSPACE/logs/ the file consists of BUILD ID created by aurora
+        if (fileExists ('logs/build_id'))
+        {
+          // Reading file and extracting build name
+          def string_out = readFile('logs/build_id')
+          def build_id = string_out.replace("BUILD-ID=","")
 
-  //       stage 'Aurora build'
-  //       echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC tag:$JOB_BASE_NAME+$BUILD_NUMBER"
+          // In case build_id file has empty file
+          if (build_id == null)
+          {
+           error 'Build ID value not found'
+          }
 
-  //       try
-  //       {
-  //         sh "aurora build -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME+$BUILD_NUMBER -r $GERRIT_REFSPEC"
-  //       }
-  //       catch (error)
-  //       {
-  //         echo "Aurora Build Failed! Cleaning up instances"
-  //         sh "aurora cleanup $JOB_BASE_NAME+$BUILD_NUMBER"
-  //       }
+          // In case no ctest_tag is provided
+          if (args.ctest_tag != null)
+          {
+            // In case no number of instances specified
+            if (args.num_instances == null)
+            {
+             error 'Number of instances are not defined'
+            }
 
-  //       // Aurora build creates a build_id file in WORKSPACE/logs/ the file consists of BUILD ID created by aurora
-  //       if (fileExists ('logs/build_id'))
-  //       {
-  //         // Reading file and extracting build name
-  //         def string_out = readFile('logs/build_id')
-  //         def build_id = string_out.replace("BUILD-ID=","")
+            try
+            {
+              stage 'test'
+              echo "Starting aurora test, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH ctest_tag:$args.ctest_tag"
+              sh "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.ctest_tag -n $args.num_instances -i $iter  '-A $args.test_args' -l $build_id "
 
-  //         // In case build_id file has empty file
-  //         if (build_id == null)
-  //         {
-  //          error 'Build ID value not found'
-  //         }
-
-  //         // In case no ctest_tag is provided
-  //         if (args.ctest_tag != null)
-  //         {
-  //           // In case no number of instances specified
-  //           if (args.num_instances == null)
-  //           {
-  //            error 'Number of instances are not defined'
-  //           }
-
-  //           try
-  //           {
-  //             stage 'test'
-  //             echo "Starting aurora test, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH ctest_tag:$args.ctest_tag"
-  //             sh "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.ctest_tag -n $args.num_instances -i $iter  '-A $args.test_args' -l $build_id "
-
-  //           } catch (err)
-  //           {
-  //               echo "Aurora Test failed with: ${err}"
-  //               currentBuild.result = 'UNSTABLE'
-  //               sh "aurora cleanup $build_id"
-  //           }
-  //         }
-  //         else
-  //         {
-  //           echo "Aurora Test did not start since no test tag provided"
-  //         }
-  //       }
-  //       else
-  //       {
-  //        error 'Build_id file missing'
-  //       }
-  //     }
-  //     archiveArtifacts allowEmptyArchive: true, artifacts: archive
-  //     step([$class: 'WsCleanup'])
-  //   }
-  // }
+            } catch (err)
+            {
+                echo "Aurora Test failed with: ${err}"
+                currentBuild.result = 'UNSTABLE'
+                sh "aurora cleanup $build_id"
+            }
+          }
+          else
+          {
+            echo "Aurora Test did not start since no test tag provided"
+          }
+        }
+        else
+        {
+         error 'Build_id file missing'
+        }
+      }
+      archiveArtifacts allowEmptyArchive: true, artifacts: archive
+      step([$class: 'WsCleanup'])
+    }
+  }
 }
