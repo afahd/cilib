@@ -20,11 +20,6 @@ println "out> $sout err> $serr"
 folder('corelib') {
     displayName('corelib')
     description('Pipelines for corelib')
-    folder(GERRIT_BRANCH)
-    {
-        displayName(GERRIT_BRANCH)
-        description('Corelib Pipelines for GERRIT_BRANCH')
-    }
 }
 
 new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
