@@ -14,6 +14,8 @@ def call(body) {
   
   def a = new utils.JenkinsLibrary()
   
+  GERRIT_BRANCH = null
+  
   a.checkGerritArguments()
 
 
