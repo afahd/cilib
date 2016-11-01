@@ -27,11 +27,24 @@ folder("$GERRIT_PROJECT/$GERRIT_BRANCH")
     description("Pipelines for $GERRIT_PROJECT and branch: $GERRIT_BRANCH")
 }
 
-def days = 15
+def days = 15 
 def exc_drafts = "true"
 def exc_triv_rebase = "false"
 def exc_no_code_chng = "true"
-def voting = "false"
+def email = ""
+
+def ci_list = readFileFromWorkspace('ci_enabled.list')
+String[] split_file = ci_list.split(System.getProperty("line.separator"));
+for (def line:split_file)
+{
+    if (line.contains("$GERRIT_PROJECT $GERRIT_BRANCH"))
+    {
+        String[] line_split = line.split(" ")
+        email = line_split.getAt(2)
+        
+    }
+}
+println email
 
 new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     println "Jenkins File Text:"
@@ -105,7 +118,8 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                             onUnstable(valueExist(voting, config.aurora.voting))
                             onNotBuilt(valueExist(voting, config.aurora.voting))
                         }
-                        GerritTrigger << buildUnstableMessage("UNSTABLE (see extended build output for details)")
+                        GerritTrigger << buildFailureMessage("build FAILED (see extended build output for details) Contact [Pipeline Owners: $email] or comment runpipeline: ${config.aurora.name} to re-trigger the pipeline")
+                        GerritTrigger << buildSuccessfulMessage("SUCCESS (see extended build output for details)")
                         GerritTrigger << buildNotBuiltMessage("NOT BUILT")
                         GerritTrigger << buildUnstableMessage("UNSTABLE (see extended build output for details)")
 
