@@ -34,7 +34,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     println file.text
     def config = new ConfigSlurper().parse(file.text)
     println "testing"
-    println config.aurora.test.isEmpty()
+    println config.aurora.name.isEmpty()
     if (config.containsKey("aurora")) {
         println "Going to generate aurora based job:$config.aurora.name"
         pipelineJob("corelib/$GERRIT_BRANCH/$config.aurora.name") {
