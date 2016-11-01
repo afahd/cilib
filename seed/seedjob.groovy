@@ -42,10 +42,10 @@ for (def line:split_file)
     {
         String[] line_split = line.split(" ")
         email = line_split.getAt(2)
-        println email
+        
     }
 }
-
+println email
 
 new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     println "Jenkins File Text:"
