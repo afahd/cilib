@@ -32,7 +32,8 @@ def exc_drafts = "false"
 def exc_triv_rebase = "false"
 def exc_no_code_chng = "false"
 
-
+def test = ReadFile('ci_enabled.list')
+println test
 
 new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     println "Jenkins File Text:"
