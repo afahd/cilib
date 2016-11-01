@@ -17,34 +17,20 @@ checkout.consumeProcessOutput(sout, serr)
 checkout.waitFor()
 println "out> $sout err> $serr"
 
-folder('andromeda') {
-    displayName('andromeda')
-    description("pipeplines for $GERRIT_PROJECT")
-    folder("andromeda/$GERRIT_BRANCH") 
+folder('corelib') {
+    displayName('corelib')
+    description('pipeplines for corelib')
+    folder("corelib/$GERRIT_BRANCH")
     {
         displayName("$GERRIT_BRANCH")
-        description("Pipelines for andromeda and branch: $GERRIT_BRANCH")
+        description("Pipelines for corelib and branch: $GERRIT_BRANCH")
     }
 }
 
-def days = 15 
-def exc_drafts = "true"
+def days = 15
+def exc_drafts = "false"
 def exc_triv_rebase = "false"
-def exc_no_code_chng = "true"
-def email = ""
-
-def ci_list = readFileFromWorkspace('ci_enabled.list')
-String[] split_file = ci_list.split(System.getProperty("line.separator"));
-for (def line:split_file)
-{
-    if (line.contains("$GERRIT_PROJECT $GERRIT_BRANCH"))
-    {
-        String[] line_split = line.split(" ")
-        email = line_split.getAt(2)
-        
-    }
-}
-println email
+def exc_no_code_chng = "false"
 
 new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     println "Jenkins File Text:"
@@ -52,7 +38,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     def config = new ConfigSlurper().parse(file.text)
     if (config.containsKey("aurora")) {
         println "Going to generate aurora based job:$config.aurora.name"
-        pipelineJob("andromeda/$GERRIT_BRANCH/$config.aurora.name") {
+        pipelineJob("corelib/$GERRIT_BRANCH/$config.aurora.name") {
             def daysToKeep = valueExist(days,config.aurora.days_to_keep)
             logRotator(daysToKeep,-1,-1,-1)
             definition {
@@ -84,7 +70,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                                 commentAddedCommentContains(".*runpipeline: ${config.aurora.name}.*")
                             }
                             'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginPatchsetCreatedEvent' {
-                                
+
                                 excludeDrafts(valueExist(exc_drafts, config.aurora.exclude_drafts))
                                 excludeTrivialRebase(valueExist(exc_triv_rebase, config.aurora.exclude_trivialrebase))
                                 excludeNoCodeChange(valueExist(exc_no_code_chng, config.aurora.exclude_nocodechange))
