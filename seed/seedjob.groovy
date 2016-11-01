@@ -105,7 +105,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                             onUnstable(valueExist(voting, config.aurora.voting))
                             onNotBuilt(valueExist(voting, config.aurora.voting))
                         }
-                        GerritTrigger << buildUnstableMessage = "UNSTABLE (see extended build output for details)</buildUnstableMessage"
+                        GerritTrigger << buildUnstableMessage("UNSTABLE (see extended build output for details)</buildUnstableMessage")
 
                     }
                 }
