@@ -18,7 +18,7 @@ checkout.waitFor()
 println "out> $sout err> $serr"
 
 folder("$GERRIT_PROJECT") {
-    displayName("$GERRIT_PROJECT")
+    displayName("andromeda")
     description("pipeplines for $GERRIT_PROJECT")
     folder("$GERRIT_PROJECT/$GERRIT_BRANCH")
     {
