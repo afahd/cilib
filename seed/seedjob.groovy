@@ -34,11 +34,11 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     println file.text
     def config = new ConfigSlurper().parse(file.text)
     println "testing"
-    println config.aurora.name.isEmpty()
+    println config.aurora.days_to_kepp.isEmpty()
     if (config.containsKey("aurora")) {
         println "Going to generate aurora based job:$config.aurora.name"
         pipelineJob("corelib/$GERRIT_BRANCH/$config.aurora.name") {
-            def daysToKeep = valueExist(days,"$config.aurora.days_to_keep")
+            def daysToKeep = valueExist(days,config.aurora.days_to_keep)
             logRotator(daysToKeep,-1,-1,-1)
             definition {
                 cpsScm {
