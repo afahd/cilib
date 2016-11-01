@@ -19,7 +19,7 @@ println "out> $sout err> $serr"
 
 folder("$GERRIT_PROJECT") {
     displayName("GERRIT_PROJECT")
-    description("pipeplines for GERRIT_PROJECT")
+    description("pipeplines for $GERRIT_PROJECT")
     folder("$GERRIT_PROJECT/$GERRIT_BRANCH")
     {
         displayName("$GERRIT_BRANCH")
