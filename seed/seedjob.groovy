@@ -27,10 +27,24 @@ folder("$GERRIT_PROJECT/$GERRIT_BRANCH")
     description("Pipelines for $GERRIT_PROJECT and branch: $GERRIT_BRANCH")
 }
 
-def days = 15
-def exc_drafts = "false"
+def days = 15 
+def exc_drafts = "true"
 def exc_triv_rebase = "false"
-def exc_no_code_chng = "false"
+def exc_no_code_chng = "true"
+def email = ""
+
+def ci_list = readFileFromWorkspace('ci_enabled.list')
+String[] split_file = ci_list.split(System.getProperty("line.separator"));
+for (def line:split_file)
+{
+    if (line.contains("$GERRIT_PROJECT $GERRIT_BRANCH"))
+    {
+        String[] line_split = line.split(" ")
+        email = line_split.getAt(2)
+        
+    }
+}
+println email
 
 new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     println "Jenkins File Text:"
