@@ -106,7 +106,7 @@ def valueExist(def orignal_value, def argument)
 {
     println orignal_value
     println argument
-    if (argument != null)
+    if (argument != null && argument.isNumber())
     {
         return argument
     }
