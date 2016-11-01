@@ -53,6 +53,11 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     if (config.containsKey("aurora")) {
         println "Going to generate aurora based job:$config.aurora.name"
         pipelineJob("$GERRIT_PROJECT/$GERRIT_BRANCH/$config.aurora.name") {
+            properties {
+                 ownership {
+            primaryOwnerId('aleerizw@gmail.com')
+                 }
+            }
             def daysToKeep = valueExist(days,config.aurora.days_to_keep)
             logRotator(daysToKeep,-1,-1,-1)
             definition {
