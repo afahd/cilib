@@ -34,7 +34,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     println file.text
     def config = new ConfigSlurper().parse(file.text)
     println "testing"
-    println "$config.aurora.test"
+    println "$config.aurora.test.toString()"
     if (config.containsKey("aurora")) {
         println "Going to generate aurora based job:$config.aurora.name"
         pipelineJob("corelib/$GERRIT_BRANCH/$config.aurora.name") {
@@ -106,8 +106,6 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
 
 def valueExist(def orignal_value, def argument)
 {
-    println orignal_value
-    println argument
     if (argument != null && argument.isNumber())
     {
         return argument
