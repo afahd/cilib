@@ -20,11 +20,11 @@ println "out> $sout err> $serr"
 folder("$GERRIT_PROJECT") {
     displayName("GERRIT_PROJECT")
     description("pipeplines for GERRIT_PROJECT")
-    //folder("coral/$GERRIT_BRANCH")
-    //{
-      //  displayName("$GERRIT_BRANCH")
-       // description("Pipelines for coral and branch: $GERRIT_BRANCH")
-    //}
+    folder("$GERRIT_PROJECT/$GERRIT_BRANCH")
+    {
+        displayName("$GERRIT_BRANCH")
+        description("Pipelines for $GERRIT_PROJECT and branch: $GERRIT_BRANCH")
+    }
 }
 
 def days = 15
