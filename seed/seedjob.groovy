@@ -53,6 +53,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                                 name(GERRIT_PROJECT)
                                 url(repoUrl)
                             }
+                            branch (GERRIT_BRANCH)
                             extensions {
                                 choosingStrategy {
                                     gerritTrigger()
@@ -85,8 +86,8 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                                 pattern(GERRIT_PROJECT)
                                 branches{
                                     'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.Branch' {
-                                        compareType("REG_EXP")
-                                        pattern(".*")
+                                        compareType("PLAIN")
+                                        pattern(GERRIT_BRANCH)
 
                                     }
                                 }
@@ -111,7 +112,6 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
 
 def valueExist(def orignal_value, def argument)
 {
-    println argument.isEmpty()
     if (argument.isEmpty())
     {
          return orignal_value
