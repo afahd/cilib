@@ -31,11 +31,20 @@ def days = 15
 def exc_drafts = "false"
 def exc_triv_rebase = "false"
 def exc_no_code_chng = "false"
+def email = ""
 
-def test = readFileFromWorkspace('ci_enabled.list')
-println test
-String[] lines = test.split(System.getProperty("line.separator"));
-println lines
+def ci_list = readFileFromWorkspace('ci_enabled.list')
+String[] split_file = ci_list.split(System.getProperty("line.separator"));
+for (def line:split_file)
+{
+    if (line.contains("pg_ui master"))
+    {
+        String[] line_split = line.split(" ")
+        email = line_split.getAt(2)
+    }
+}
+
+println email
 
 new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     println "Jenkins File Text:"
