@@ -75,8 +75,8 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                             'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginPatchsetCreatedEvent' {
                                 
                                 excludeDrafts(valueExist(exc_drafts, config.aurora.exclude_drafts))
-                                excludeTrivialRebase("False")
-                                excludeNoCodeChange("True")
+                                excludeTrivialRebase(valueExist(exc_triv_rebase, config.aurora.exclude_trivialrebase))
+                                excludeNoCodeChange(valueExist(exc_no_code_chng, config.aurora.exclude_nocodechange))
                             }
                         }
                         GerritTrigger << gerritProjects {
