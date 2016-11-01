@@ -23,12 +23,13 @@ folder('corelib') {
     folder("corelib/$GERRIT_BRANCH") 
     {
         displayName("$GERRIT_BRANCH")
-        description("Pipelines for $GERRIT_BRANCH")
+        description("Pipelines for corelib and branch: $GERRIT_BRANCH")
     }
 }
 
 def days = 15 
-
+println "testing"
+println "$config.aurora.test"
 new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     println "Jenkins File Text:"
     println file.text
@@ -66,6 +67,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                                 commentAddedCommentContains(".*runpipeline: ${config.aurora.name}.*")
                             }
                             'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginPatchsetCreatedEvent' {
+                                
                                 excludeDrafts("True")
                                 excludeTrivialRebase("False")
                                 excludeNoCodeChange("True")
