@@ -34,6 +34,8 @@ def exc_no_code_chng = "false"
 
 def test = readFileFromWorkspace('ci_enabled.list')
 println test
+String[] lines = test.split(System.getProperty("line.separator"));
+println lines
 
 new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     println "Jenkins File Text:"
