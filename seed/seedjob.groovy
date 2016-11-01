@@ -17,13 +17,13 @@ checkout.consumeProcessOutput(sout, serr)
 checkout.waitFor()
 println "out> $sout err> $serr"
 
-folder("$GERRIT_PROJECT") {
-    displayName("$GERRIT_PROJECT")
+folder("andromeda") {
+    displayName("andromeda")
     description("pipeplines for $GERRIT_PROJECT")
-    folder("$GERRIT_PROJECT/$GERRIT_BRANCH") 
+    folder("andromeda/$GERRIT_BRANCH") 
     {
         displayName("$GERRIT_BRANCH")
-        description("Pipelines for $GERRIT_PROJECT and branch: $GERRIT_BRANCH")
+        description("Pipelines for andromeda and branch: $GERRIT_BRANCH")
     }
 }
 
@@ -50,8 +50,6 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     println "Jenkins File Text:"
     println file.text
     def config = new ConfigSlurper().parse(file.text)
-    println "testing"
-    println config.aurora.days_to_kepp.isEmpty()
     if (config.containsKey("aurora")) {
         println "Going to generate aurora based job:$config.aurora.name"
         pipelineJob("$GERRIT_PROJECT/$GERRIT_BRANCH/$config.aurora.name") {
