@@ -17,13 +17,13 @@ checkout.consumeProcessOutput(sout, serr)
 checkout.waitFor()
 println "out> $sout err> $serr"
 
-folder('corelib') {
-    displayName('corelib')
-    description('pipeplines for corelib')
-    folder("corelib/$GERRIT_BRANCH")
+folder('andromeda') {
+    displayName('andromeda')
+    description('pipeplines for andromeda')
+    folder("andromeda/$GERRIT_BRANCH")
     {
         displayName("$GERRIT_BRANCH")
-        description("Pipelines for corelib and branch: $GERRIT_BRANCH")
+        description("Pipelines for andromeda and branch: $GERRIT_BRANCH")
     }
 }
 
@@ -38,7 +38,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     def config = new ConfigSlurper().parse(file.text)
     if (config.containsKey("aurora")) {
         println "Going to generate aurora based job:$config.aurora.name"
-        pipelineJob("corelib/$GERRIT_BRANCH/$config.aurora.name") {
+        pipelineJob("andromeda/$GERRIT_BRANCH/$config.aurora.name") {
             def daysToKeep = valueExist(days,config.aurora.days_to_keep)
             logRotator(daysToKeep,-1,-1,-1)
             definition {
