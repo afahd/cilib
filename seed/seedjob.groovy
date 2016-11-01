@@ -17,9 +17,9 @@ checkout.consumeProcessOutput(sout, serr)
 checkout.waitFor()
 println "out> $sout err> $serr"
 
-folder('coral') {
-    displayName('coral')
-    description('pipeplines for coral')
+folder("$GERRIT_PROJECT") {
+    displayName("GERRIT_PROJECT")
+    description("pipeplines for GERRIT_PROJECT")
     //folder("coral/$GERRIT_BRANCH")
     //{
       //  displayName("$GERRIT_BRANCH")
