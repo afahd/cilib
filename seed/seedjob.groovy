@@ -17,27 +17,27 @@ checkout.consumeProcessOutput(sout, serr)
 checkout.waitFor()
 println "out> $sout err> $serr"
 
-folder('corelib') {
-    displayName('corelib')
-    description('pipeplines for corelib')
-    folder("corelib/$GERRIT_BRANCH") 
+folder("$GERRIT_PROJECT") {
+    displayName("$GERRIT_PROJECT")
+    description("pipeplines for $GERRIT_PROJECT")
+    folder("$GERRIT_PROJECT/$GERRIT_BRANCH") 
     {
         displayName("$GERRIT_BRANCH")
-        description("Pipelines for corelib and branch: $GERRIT_BRANCH")
+        description("Pipelines for $GERRIT_PROJECT and branch: $GERRIT_BRANCH")
     }
 }
 
 def days = 15 
-def exc_drafts = "false"
+def exc_drafts = "true"
 def exc_triv_rebase = "false"
-def exc_no_code_chng = "false"
+def exc_no_code_chng = "true"
 def email = ""
 
 def ci_list = readFileFromWorkspace('ci_enabled.list')
 String[] split_file = ci_list.split(System.getProperty("line.separator"));
 for (def line:split_file)
 {
-    //println line
+    println line
     if (line.contains("pg_ui master"))
     {
         String[] line_split = line.split(" ")
@@ -46,7 +46,6 @@ for (def line:split_file)
     }
 }
 
-println email
 
 new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     println "Jenkins File Text:"
