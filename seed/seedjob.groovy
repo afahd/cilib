@@ -37,11 +37,12 @@ def ci_list = readFileFromWorkspace('ci_enabled.list')
 String[] split_file = ci_list.split(System.getProperty("line.separator"));
 for (def line:split_file)
 {
-    println line
+    //println line
     if (line.contains("pg_ui master"))
     {
         String[] line_split = line.split(" ")
         email = line_split.getAt(2)
+        println email
     }
 }
 
