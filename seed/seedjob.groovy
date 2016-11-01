@@ -122,6 +122,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                         GerritTrigger << buildSuccessfulMessage("SUCCESS (see extended build output for details)")
                         GerritTrigger << buildNotBuiltMessage("NOT BUILT")
                         GerritTrigger << buildUnstableMessage("UNSTABLE (see extended build output for details)")
+                        GerritTrigger << buildUnsuccessfulFilepath("status-message.log")
 
                     }
                 }
