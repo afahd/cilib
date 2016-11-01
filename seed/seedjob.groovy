@@ -16,17 +16,18 @@ def checkout = "git checkout FETCH_HEAD".execute(null, new File(projectRoot))
 checkout.consumeProcessOutput(sout, serr)
 checkout.waitFor()
 println "out> $sout err> $serr"
-GERRIT_PROJECT = "coral2"
+
 folder("$GERRIT_PROJECT") {
-    displayName("GERRIT_PROJECT")
+    displayName("$GERRIT_PROJECT")
     description("pipeplines for $GERRIT_PROJECT")
-    
-}
-folder("$GERRIT_PROJECT/$GERRIT_BRANCH")
+    folder("$GERRIT_PROJECT/$GERRIT_BRANCH")
     {
         displayName("$GERRIT_BRANCH")
         description("Pipelines for $GERRIT_PROJECT and branch: $GERRIT_BRANCH")
     }
+    
+}
+
 def days = 15
 def exc_drafts = "false"
 def exc_triv_rebase = "false"
