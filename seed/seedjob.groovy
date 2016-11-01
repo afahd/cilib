@@ -128,6 +128,23 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                 }
             }
         }
+        publishers {
+        extendedEmail {
+            recipientList('afahd@plumgrid.com')
+            defaultSubject('Oops')
+            defaultContent('Something broken')
+            contentType('text/html')
+            triggers {
+                failure {
+                    subject('Subject')
+                    content('Body')
+                    sendTo {
+                        recipientList()
+                    }
+                }
+            }
+        }
+    }
         }
     }
 }
