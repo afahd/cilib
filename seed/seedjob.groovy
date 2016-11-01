@@ -37,7 +37,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
         println "Going to generate aurora based job:$config.aurora.name"
         pipelineJob("corelib/$GERRIT_BRANCH/$config.aurora.name") {
             int daysToKeep = valueExist(days,config.aurora.days_to_keep)
-            logRotator(daysToKeep,-1,-1,-1)
+            logRotator(daysToKeep.toInteger(),-1,-1,-1)
             definition {
                 cpsScm {
                     scm {
