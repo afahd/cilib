@@ -28,6 +28,11 @@ folder('corelib') {
 }
 
 def days = 15 
+def exc_drafts = "false"
+def exc_triv_rebase = "false"
+def exc_no_code_chng = "false"
+
+
 
 new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     println "Jenkins File Text:"
@@ -69,7 +74,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                             }
                             'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginPatchsetCreatedEvent' {
                                 
-                                excludeDrafts("True")
+                                excludeDrafts(valueExist(exc_drafts, config.aurora.exclude_drafts))
                                 excludeTrivialRebase("False")
                                 excludeNoCodeChange("True")
                             }
