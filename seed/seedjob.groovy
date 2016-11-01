@@ -17,15 +17,15 @@ checkout.consumeProcessOutput(sout, serr)
 checkout.waitFor()
 println "out> $sout err> $serr"
 
+GERRIT_PROJECT = "alps"
 folder("$GERRIT_PROJECT") {
     displayName("$GERRIT_PROJECT")
     description("pipeplines for $GERRIT_PROJECT")
-    folder("$GERRIT_PROJECT/$GERRIT_BRANCH")
-    {
-        displayName("$GERRIT_BRANCH")
-        description("Pipelines for $GERRIT_PROJECT and branch: $GERRIT_BRANCH")
-    }
-    
+}
+folder("$GERRIT_PROJECT/$GERRIT_BRANCH")
+{
+    displayName("$GERRIT_BRANCH")
+    description("Pipelines for $GERRIT_PROJECT and branch: $GERRIT_BRANCH")
 }
 
 def days = 15
