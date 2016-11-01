@@ -1,4 +1,4 @@
-ssh://gerrit.plumgrid.com:29418/pg_ui master   ui_group@plumgrid.com,afahd@plumgrid.com
-ssh://gerrit.plumgrid.com:29418/alps  master   alps@plumgrid.com
+ssh://gerrit.plumgrid.com:29418/pg_ui master ui_group@plumgrid.com,afahd@plumgrid.com
+ssh://gerrit.plumgrid.com:29418/alps  master alps@plumgrid.com
 ssh://gerrit.plumgrid.com:29418/alps  stable_6 alps@plumgrid.com
 ssh://gerrit.plumgrid.com:29418/alps  stable_5 alps@plumgrid.com
