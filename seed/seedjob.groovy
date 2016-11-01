@@ -19,12 +19,12 @@ println "out> $sout err> $serr"
 
 folder('coral') {
     displayName('coral')
-    description('pipeplines for andromeda')
-    folder("coral/$GERRIT_BRANCH")
-    {
-        displayName("$GERRIT_BRANCH")
-        description("Pipelines for coral and branch: $GERRIT_BRANCH")
-    }
+    description('pipeplines for coral')
+    //folder("coral/$GERRIT_BRANCH")
+    //{
+      //  displayName("$GERRIT_BRANCH")
+       // description("Pipelines for coral and branch: $GERRIT_BRANCH")
+    //}
 }
 
 def days = 15
