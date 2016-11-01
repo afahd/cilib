@@ -106,7 +106,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
 
 def valueExist(def orignal_value, def argument)
 {
-    if (argument != null && argument.isNumber())
+    if (argument != null && !argument.isEmpty())
     {
         return argument
     }
