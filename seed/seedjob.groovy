@@ -17,8 +17,8 @@ checkout.consumeProcessOutput(sout, serr)
 checkout.waitFor()
 println "out> $sout err> $serr"
 
-folder("andromeda") {
-    displayName("andromeda")
+folder('andromeda') {
+    displayName('andromeda')
     description("pipeplines for $GERRIT_PROJECT")
     folder("andromeda/$GERRIT_BRANCH") 
     {
