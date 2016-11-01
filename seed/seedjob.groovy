@@ -16,7 +16,7 @@ def checkout = "git checkout FETCH_HEAD".execute(null, new File(projectRoot))
 checkout.consumeProcessOutput(sout, serr)
 checkout.waitFor()
 println "out> $sout err> $serr"
-
+GERRIT_PROJECT = "coral"
 folder("$GERRIT_PROJECT") {
     displayName("GERRIT_PROJECT")
     description("pipeplines for $GERRIT_PROJECT")
