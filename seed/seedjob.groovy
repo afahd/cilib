@@ -28,9 +28,10 @@ folder("$GERRIT_PROJECT/$GERRIT_BRANCH")
 }
 
 def days = 15
-def exc_drafts = "false"
+def exc_drafts = "true"
 def exc_triv_rebase = "false"
-def exc_no_code_chng = "false"
+def exc_no_code_chng = "true"
+def voting = "false"
 
 new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     println "Jenkins File Text:"
@@ -99,10 +100,10 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                             }
                         }
                         GerritTrigger << skipVote {
-                            onSuccessful("true")
-                            onFailed("true")
-                            onUnstable("true")
-                            onNotBuilt("true")
+                            onSuccessful(valueExist(voting, config.aurora.voting))
+                            onFailed(valueExist(voting, config.aurora.voting))
+                            onUnstable(valueExist(voting, config.aurora.voting))
+                            onNotBuilt(valueExist(voting, config.aurora.voting))
                         }
 
                     }
