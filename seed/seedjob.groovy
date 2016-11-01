@@ -28,12 +28,13 @@ folder('corelib') {
 }
 
 def days = 15 
-println "testing"
-println "$config.aurora.test"
+
 new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     println "Jenkins File Text:"
     println file.text
     def config = new ConfigSlurper().parse(file.text)
+    println "testing"
+    println "$config.aurora.test"
     if (config.containsKey("aurora")) {
         println "Going to generate aurora based job:$config.aurora.name"
         pipelineJob("corelib/$GERRIT_BRANCH/$config.aurora.name") {
