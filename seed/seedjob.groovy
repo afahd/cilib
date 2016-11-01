@@ -17,7 +17,6 @@ checkout.consumeProcessOutput(sout, serr)
 checkout.waitFor()
 println "out> $sout err> $serr"
 
-GERRIT_PROJECT = "alps"
 folder("$GERRIT_PROJECT") {
     displayName("$GERRIT_PROJECT")
     description("pipeplines for $GERRIT_PROJECT")
@@ -33,79 +32,79 @@ def exc_drafts = "false"
 def exc_triv_rebase = "false"
 def exc_no_code_chng = "false"
 
-// new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
-//     println "Jenkins File Text:"
-//     println file.text
-//     def config = new ConfigSlurper().parse(file.text)
-//     if (config.containsKey("aurora")) {
-//         println "Going to generate aurora based job:$config.aurora.name"
-//         pipelineJob("coral/$GERRIT_BRANCH/$config.aurora.name") {
-//             def daysToKeep = valueExist(days,config.aurora.days_to_keep)
-//             logRotator(daysToKeep,-1,-1,-1)
-//             definition {
-//                 cpsScm {
-//                     scm {
-//                         git {
-//                             remote {
-//                                 name(GERRIT_PROJECT)
-//                                 url(repoUrl)
-//                             }
-//                             branch (GERRIT_BRANCH)
-//                             extensions {
-//                                 choosingStrategy {
-//                                     gerritTrigger()
-//                                 }
-//                             }
-//                         }
-//                     }
-//                     scriptPath("jenkins/jenkinsfiles/" + org.apache.commons.io.FilenameUtils.getBaseName(file.name))
-//                 }
-//             }
-//             if( config.aurora.type == "review" )
-//             {
-//             triggers {
-//                 gerrit {
-//                     configure { GerritTrigger ->
-//                         GerritTrigger / 'triggerOnEvents' {
-//                             'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginCommentAddedContainsEvent' {
-//                                 commentAddedCommentContains(".*runpipeline: ${config.aurora.name}.*")
-//                             }
-//                             'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginPatchsetCreatedEvent' {
+new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
+    println "Jenkins File Text:"
+    println file.text
+    def config = new ConfigSlurper().parse(file.text)
+    if (config.containsKey("aurora")) {
+        println "Going to generate aurora based job:$config.aurora.name"
+        pipelineJob("coral/$GERRIT_BRANCH/$config.aurora.name") {
+            def daysToKeep = valueExist(days,config.aurora.days_to_keep)
+            logRotator(daysToKeep,-1,-1,-1)
+            definition {
+                cpsScm {
+                    scm {
+                        git {
+                            remote {
+                                name(GERRIT_PROJECT)
+                                url(repoUrl)
+                            }
+                            branch (GERRIT_BRANCH)
+                            extensions {
+                                choosingStrategy {
+                                    gerritTrigger()
+                                }
+                            }
+                        }
+                    }
+                    scriptPath("jenkins/jenkinsfiles/" + org.apache.commons.io.FilenameUtils.getBaseName(file.name))
+                }
+            }
+            if( config.aurora.type == "review" )
+            {
+            triggers {
+                gerrit {
+                    configure { GerritTrigger ->
+                        GerritTrigger / 'triggerOnEvents' {
+                            'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginCommentAddedContainsEvent' {
+                                commentAddedCommentContains(".*runpipeline: ${config.aurora.name}.*")
+                            }
+                            'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginPatchsetCreatedEvent' {
 
-//                                 excludeDrafts(valueExist(exc_drafts, config.aurora.exclude_drafts))
-//                                 excludeTrivialRebase(valueExist(exc_triv_rebase, config.aurora.exclude_trivialrebase))
-//                                 excludeNoCodeChange(valueExist(exc_no_code_chng, config.aurora.exclude_nocodechange))
-//                             }
-//                         }
-//                         GerritTrigger << gerritProjects {
-//                             'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.GerritProject' {
-//                                 compareType("PLAIN")
-//                                 pattern(GERRIT_PROJECT)
-//                                 branches{
-//                                     'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.Branch' {
-//                                         compareType("PLAIN")
-//                                         pattern(GERRIT_BRANCH)
+                                excludeDrafts(valueExist(exc_drafts, config.aurora.exclude_drafts))
+                                excludeTrivialRebase(valueExist(exc_triv_rebase, config.aurora.exclude_trivialrebase))
+                                excludeNoCodeChange(valueExist(exc_no_code_chng, config.aurora.exclude_nocodechange))
+                            }
+                        }
+                        GerritTrigger << gerritProjects {
+                            'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.GerritProject' {
+                                compareType("PLAIN")
+                                pattern(GERRIT_PROJECT)
+                                branches{
+                                    'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.Branch' {
+                                        compareType("PLAIN")
+                                        pattern(GERRIT_BRANCH)
 
-//                                     }
-//                                 }
-//                                 if ( config.aurora.trigger_path != null ) {
-//                                     filePaths {
-//                                         'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.FilePath' {
-//                                             compareType("REG_EXP")
-//                                             pattern(config.aurora.trigger_path)
-//                                         }
-//                                     }
-//                                 }
+                                    }
+                                }
+                                if ( config.aurora.trigger_path != null ) {
+                                    filePaths {
+                                        'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.FilePath' {
+                                            compareType("REG_EXP")
+                                            pattern(config.aurora.trigger_path)
+                                        }
+                                    }
+                                }
 
-//                             }
-//                         }
-//                     }
-//                 }
-//             }
-//         }
-//         }
-//     }
-// }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        }
+    }
+}
 
 def valueExist(def orignal_value, def argument)
 {
