@@ -119,7 +119,8 @@ def checkGerritArguments()
 def errorToGerrit(String statement)
 {
     echo "$statement"
-    writeFile file: 'status-message.log', text: "$statement"
+    def older_data = readFile "$WORKSPACE/status-message.log"
+    writeFile file: 'status-message.log', text: "$older_data $statement"
     currentBuild.result = 'FAILURE'
 }
 
