@@ -124,4 +124,20 @@ def errorToGerrit(String statement)
     currentBuild.result = 'FAILURE'
 }
 
+def sendEmail(String build_result,owners)
+{
+    def subject = "[Jenkins] New build for $PROJECT_NAME (# $BUILD_NUMBER)  - $BUILD_STATUS!"
+    def body = "Hi,\n" +
+                "build and testing completed for ${PROJECT_NAME}, build # ${BUILD_NUMBER}.\n" +
+                "\n" +
+                "Build status is: ${BUILD_STATUS}\n" +
+                "\n" +
+                "Check the console output at $BUILD_URL for more information.\n" +
+                "\n" +
+                "--\n" +
+                "Jenkins CI"
+
+    emailext body: "$body", subject: "$subject", to: '$owners'
+}
+
 return this;
