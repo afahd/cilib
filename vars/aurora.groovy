@@ -50,7 +50,7 @@ def call(body) {
         {
           echo "Aurora Build Failed! Cleaning up instances"
           writeFile file: 'status-message.log', text: 'Aurora Build Failed! Cleaning up instances'
-          
+          currentBuild.result = 'FAILURE'
           //sh "aurora cleanup $JOB_BASE_NAME+$BUILD_NUMBER"
         }
 
