@@ -113,12 +113,11 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                                 }
                             }
                             GerritTrigger << skipVote {
-                                config.aurora.voting = "false"
+                                config.aurora.voting = "true"
                                 if (!config.aurora.voting.isEmpty())
                                 {
-                                    voting = config.aurora.voting.toBoolean()
+                                    voting = !config.aurora.voting.toBoolean()
                                     println voting
-                                    println !voting
                                 }
                             
                                 
