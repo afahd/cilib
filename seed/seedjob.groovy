@@ -42,7 +42,6 @@ for (def line:split_file)
     {
         String[] line_split = line.split(" ")
         email = line_split.getAt(2)
-
     }
 }
 
@@ -74,9 +73,9 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                     scriptPath("jenkins/jenkinsfiles/" + org.apache.commons.io.FilenameUtils.getBaseName(file.name))
                 }
             }
-            if( config.aurora.type == "review" )
-            {
                 triggers {
+                    if( config.aurora.type == "review" )
+                   {
                     gerrit {
                         configure { GerritTrigger ->
                             GerritTrigger / 'triggerOnEvents' {
@@ -113,7 +112,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                                 }
                             }
                             GerritTrigger << skipVote {
-                                
+                             
                                 if (!config.aurora.voting.isEmpty())
                                 {
                                     voting = !config.aurora.voting.toBoolean()
