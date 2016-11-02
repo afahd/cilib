@@ -39,6 +39,7 @@ def exc_drafts = "true"
 def exc_triv_rebase = "false"
 def exc_no_code_chng = "true"
 boolean voting = true
+def voting_status=""
 def email = ""
 
 // Reading ci enabled list and extracting emails of owners
@@ -141,6 +142,10 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                                 {
                                     voting = !config.aurora.voting.toBoolean()
                                 }
+                                if (voting)
+                                {
+                                    voting_status = " ***[NON-VOTING]*** "
+                                }
                                 // Skip vote when voting set to false
                                 onSuccessful(voting)
                                 onFailed(voting)
@@ -148,7 +153,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                                 onNotBuilt(voting)
                             }
                             // Assigning custom build message to be posted to gerrit
-                            GerritTrigger << buildFailureMessage("build FAILED (see extended build output for details) Contact [Pipeline Owners: $email] or comment runpipeline: ${config.aurora.name} to re-trigger the pipeline")
+                            GerritTrigger << buildFailureMessage("build FAILED (see extended build output for details) ${voting_status} Contact [Pipeline Owners: $email] or comment runpipeline: ${config.aurora.name} to re-trigger the pipeline")
                             GerritTrigger << buildSuccessfulMessage("SUCCESS (see extended build output for details)")
                             GerritTrigger << buildNotBuiltMessage("NOT BUILT")
                             GerritTrigger << buildUnstableMessage("UNSTABLE (see extended build output for details)")
