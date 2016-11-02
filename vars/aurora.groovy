@@ -62,7 +62,7 @@ def call(body) {
           // In case build_id file has empty file
           if (build_id == null)
           {
-           error 'Build ID value not found'
+            lib.errorToGerrit("Build ID value not found")
           }
 
           // In case no ctest_tag is provided
@@ -71,8 +71,7 @@ def call(body) {
             // In case no number of instances specified
             if (args.num_instances == null)
             {
-             echo 'Number of instances are not defined'
-             writeFile file: 'status-message.log', text: 'Number of instances are not defined'
+              lib.errorToGerrit("Number of instances are not defined")
             }
 
             try
@@ -83,20 +82,19 @@ def call(body) {
 
             } catch (err)
             {
-                echo "Aurora Test failed with: ${err}"
-                writeFile file: 'status-message.log', text: 'Aurora Test failed with: ${err}'
+                lib.errorToGerrit("Aurora Test failed with: ${err}")
                 currentBuild.result = 'UNSTABLE'
                 sh "aurora cleanup $build_id"
             }
           }
           else
           {
-            echo "Aurora Test did not start since no test tag provided"
+            lib.errorToGerrit("Aurora Test did not start since no test tag provided")
           }
         }
         else
         {
-         echo 'Build_id file missing'
+          lib.errorToGerrit("Build_id file missing")
         }
       }
       
