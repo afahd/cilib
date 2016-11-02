@@ -120,7 +120,7 @@ def errorToGerrit(String statement)
 {
     echo "$statement"
     def older_data = readFile "$WORKSPACE/status-message.log"
-    writeFile file: 'status-message.log', text: "$older_data $statement"
+    writeFile file: 'status-message.log', text: "$older_data \n $statement"
     currentBuild.result = 'FAILURE'
 }
 
