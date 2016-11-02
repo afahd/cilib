@@ -113,10 +113,11 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                                 }
                             }
                             GerritTrigger << skipVote {
-                                onSuccessful(valueExist(voting, !config.aurora.non_voting))
-                                onFailed(valueExist(voting, !config.aurora.non_voting))
-                                onUnstable(valueExist(voting, !config.aurora.non_voting))
-                                onNotBuilt(valueExist(voting, !config.aurora.non_voting))
+                                def negated_value = negate(config.aurora.voting)
+                                onSuccessful(valueExist(voting, negated_value))
+                                onFailed(valueExist(voting, negated_value))
+                                onUnstable(valueExist(voting, negated_value))
+                                onNotBuilt(valueExist(voting, negated_value))
                             }
                             GerritTrigger << buildFailureMessage("build FAILED (see extended build output for details) Contact [Pipeline Owners: $email] or comment runpipeline: ${config.aurora.name} to re-trigger the pipeline")
                             GerritTrigger << buildSuccessfulMessage("SUCCESS (see extended build output for details)")
@@ -129,6 +130,18 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                 }
             }
         }
+    }
+}
+
+def negate (def value)
+{
+    if(value.isEmpty())
+    {
+        return value
+    }
+    else
+    {
+        return !value
     }
 }
 
