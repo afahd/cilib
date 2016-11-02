@@ -138,6 +138,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                             GerritTrigger << skipVote {
                                 // Set pipeline voting or non voting
                                 // Job set as non voting by default
+                                config.aurora.voting = true
                                 if (!config.aurora.voting.isEmpty())
                                 {
                                     voting = !config.aurora.voting.toBoolean()
