@@ -96,12 +96,13 @@ def call(body) {
         }
         else
         {
-         error 'Build_id file missing'
+         echo 'Build_id file missing'
         }
       }
       
       def status = readFile "$WORKSPACE/status-message.log"
       echo "$status"
+      setGerritReview unsuccessfulMessage: "$status"
       archiveArtifacts allowEmptyArchive: true, artifacts: archive
       step([$class: 'WsCleanup'])
     }
