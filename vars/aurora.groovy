@@ -48,10 +48,8 @@ def call(body) {
         }
         catch (error)
         {
-          echo "Aurora Build Failed! Cleaning up instances"
-          writeFile file: 'status-message.log', text: 'Aurora Build Failed! Cleaning up instances'
-          currentBuild.result = 'FAILURE'
-          //sh "aurora cleanup $JOB_BASE_NAME+$BUILD_NUMBER"
+          lib.errorToGerrit("Aurora build failed, Cleaning up instances")
+          sh "aurora cleanup $JOB_BASE_NAME+$BUILD_NUMBER"
         }
 
         // Aurora build creates a build_id file in WORKSPACE/logs/ the file consists of BUILD ID created by aurora
@@ -73,7 +71,8 @@ def call(body) {
             // In case no number of instances specified
             if (args.num_instances == null)
             {
-             error 'Number of instances are not defined'
+             echo 'Number of instances are not defined'
+             writeFile file: 'status-message.log', text: 'Number of instances are not defined'
             }
 
             try
@@ -85,6 +84,7 @@ def call(body) {
             } catch (err)
             {
                 echo "Aurora Test failed with: ${err}"
+                writeFile file: 'status-message.log', text: 'Aurora Test failed with: ${err}'
                 currentBuild.result = 'UNSTABLE'
                 sh "aurora cleanup $build_id"
             }
