@@ -148,6 +148,7 @@ def negate (def value)
 
 def valueExist(def orignal_value, def argument)
 {
+    println argument
     if (argument.isEmpty())
     {
          return orignal_value
