@@ -116,4 +116,11 @@ def checkGerritArguments()
     }
 }
 
+def errorToGerrit(String statement)
+{
+    echo "$statement"
+    writeFile file: 'status-message.log', text: "$statement"
+    currentBuild.result = 'FAILURE'
+}
+
 return this;
