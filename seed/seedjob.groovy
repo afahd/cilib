@@ -113,7 +113,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                                 }
                             }
                             GerritTrigger << skipVote {
-                                def negated_value = negate(config.aurora.voting)
+                                boolean negated_value = negate(config.aurora.voting)
                                 onSuccessful(valueExist(voting, negated_value))
                                 onFailed(valueExist(voting, negated_value))
                                 onUnstable(valueExist(voting, negated_value))
@@ -133,7 +133,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     }
 }
 
-def negate (def value)
+def negate (boolean value)
 {
     println value
     if(value.isEmpty())
