@@ -27,10 +27,11 @@ folder("$GERRIT_PROJECT/$GERRIT_BRANCH")
     description("Pipelines for $GERRIT_PROJECT and branch: $GERRIT_BRANCH")
 }
 
-def days = 15 
+def days = 15
 def exc_drafts = "true"
 def exc_triv_rebase = "false"
 def exc_no_code_chng = "true"
+def voting = "true"
 def email = ""
 
 def ci_list = readFileFromWorkspace('ci_enabled.list')
@@ -41,10 +42,9 @@ for (def line:split_file)
     {
         String[] line_split = line.split(" ")
         email = line_split.getAt(2)
-        
+
     }
 }
-println email
 
 new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     println "Jenkins File Text:"
@@ -76,58 +76,58 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
             }
             if( config.aurora.type == "review" )
             {
-            triggers {
-                gerrit {
-                    configure { GerritTrigger ->
-                        GerritTrigger / 'triggerOnEvents' {
-                            'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginCommentAddedContainsEvent' {
-                                commentAddedCommentContains(".*runpipeline: ${config.aurora.name}.*")
-                            }
-                            'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginPatchsetCreatedEvent' {
-
-                                excludeDrafts(valueExist(exc_drafts, config.aurora.exclude_drafts))
-                                excludeTrivialRebase(valueExist(exc_triv_rebase, config.aurora.exclude_trivialrebase))
-                                excludeNoCodeChange(valueExist(exc_no_code_chng, config.aurora.exclude_nocodechange))
-                            }
-                        }
-                        GerritTrigger << gerritProjects {
-                            'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.GerritProject' {
-                                compareType("PLAIN")
-                                pattern(GERRIT_PROJECT)
-                                branches{
-                                    'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.Branch' {
-                                        compareType("PLAIN")
-                                        pattern(GERRIT_BRANCH)
-
-                                    }
+                triggers {
+                    gerrit {
+                        configure { GerritTrigger ->
+                            GerritTrigger / 'triggerOnEvents' {
+                                'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginCommentAddedContainsEvent' {
+                                    commentAddedCommentContains(".*runpipeline: ${config.aurora.name}.*")
                                 }
-                                if ( config.aurora.trigger_path != null ) {
-                                    filePaths {
-                                        'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.FilePath' {
-                                            compareType("REG_EXP")
-                                            pattern(config.aurora.trigger_path)
+                                'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginPatchsetCreatedEvent' {
+
+                                    excludeDrafts(valueExist(exc_drafts, config.aurora.exclude_drafts))
+                                    excludeTrivialRebase(valueExist(exc_triv_rebase, config.aurora.exclude_trivialrebase))
+                                    excludeNoCodeChange(valueExist(exc_no_code_chng, config.aurora.exclude_nocodechange))
+                                }
+                            }
+                            GerritTrigger << gerritProjects {
+                                'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.GerritProject' {
+                                    compareType("PLAIN")
+                                    pattern(GERRIT_PROJECT)
+                                    branches{
+                                        'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.Branch' {
+                                            compareType("PLAIN")
+                                            pattern(GERRIT_BRANCH)
+
                                         }
                                     }
+                                    if ( config.aurora.trigger_path != null ) {
+                                        filePaths {
+                                            'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.FilePath' {
+                                                compareType("REG_EXP")
+                                                pattern(config.aurora.trigger_path)
+                                            }
+                                        }
+                                    }
+
                                 }
-
                             }
-                        }
-                        GerritTrigger << skipVote {
-                            onSuccessful(valueExist(voting, config.aurora.voting))
-                            onFailed(valueExist(voting, config.aurora.voting))
-                            onUnstable(valueExist(voting, config.aurora.voting))
-                            onNotBuilt(valueExist(voting, config.aurora.voting))
-                        }
-                        GerritTrigger << buildFailureMessage("build FAILED (see extended build output for details) Contact [Pipeline Owners: $email] or comment runpipeline: ${config.aurora.name} to re-trigger the pipeline")
-                        GerritTrigger << buildSuccessfulMessage("SUCCESS (see extended build output for details)")
-                        GerritTrigger << buildNotBuiltMessage("NOT BUILT")
-                        GerritTrigger << buildUnstableMessage("UNSTABLE (see extended build output for details)")
-                        GerritTrigger << buildUnsuccessfulFilepath("status-message.log")
+                            GerritTrigger << skipVote {
+                                onSuccessful(valueExist(voting, !config.aurora.non_voting))
+                                onFailed(valueExist(voting, !config.aurora.non_voting))
+                                onUnstable(valueExist(voting, !config.aurora.non_voting))
+                                onNotBuilt(valueExist(voting, !config.aurora.non_voting))
+                            }
+                            GerritTrigger << buildFailureMessage("build FAILED (see extended build output for details) Contact [Pipeline Owners: $email] or comment runpipeline: ${config.aurora.name} to re-trigger the pipeline")
+                            GerritTrigger << buildSuccessfulMessage("SUCCESS (see extended build output for details)")
+                            GerritTrigger << buildNotBuiltMessage("NOT BUILT")
+                            GerritTrigger << buildUnstableMessage("UNSTABLE (see extended build output for details)")
+                            GerritTrigger << buildUnsuccessfulFilepath("status-message.log")
 
+                        }
                     }
                 }
             }
-        }
         }
     }
 }
