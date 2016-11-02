@@ -135,6 +135,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
 
 def negate (def value)
 {
+    println value
     if(value.isEmpty())
     {
         return value
