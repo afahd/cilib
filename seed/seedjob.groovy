@@ -113,11 +113,22 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                                 }
                             }
                             GerritTrigger << skipVote {
-                                boolean negated_value = negate(config.aurora.voting)
-                                onSuccessful(valueExist(voting, negated_value))
-                                onFailed(valueExist(voting, negated_value))
-                                onUnstable(valueExist(voting, negated_value))
-                                onNotBuilt(valueExist(voting, negated_value))
+                                if (config.aurora.voting.isEmpty())
+                                {
+                                    println voting
+                   
+                                }
+                                else
+                                {
+                                    voting = config.aurora.voting
+                                    println voting
+                                }
+                            
+                                
+                                onSuccessful(voting)
+                                onFailed(voting)
+                                onUnstable(voting)
+                                onNotBuilt(voting)
                             }
                             GerritTrigger << buildFailureMessage("build FAILED (see extended build output for details) Contact [Pipeline Owners: $email] or comment runpipeline: ${config.aurora.name} to re-trigger the pipeline")
                             GerritTrigger << buildSuccessfulMessage("SUCCESS (see extended build output for details)")
@@ -133,22 +144,8 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     }
 }
 
-def negate (boolean value)
-{
-    println value
-    if(value.isEmpty())
-    {
-        return value
-    }
-    else
-    {
-        return !value
-    }
-}
-
 def valueExist(def orignal_value, def argument)
 {
-    println argument
     if (argument.isEmpty())
     {
          return orignal_value
