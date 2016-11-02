@@ -31,7 +31,7 @@ def days = 15
 def exc_drafts = "true"
 def exc_triv_rebase = "false"
 def exc_no_code_chng = "true"
-def voting = "true"
+boolean voting = true
 def email = ""
 
 def ci_list = readFileFromWorkspace('ci_enabled.list')
@@ -116,8 +116,9 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                                 config.aurora.voting = "false"
                                 if (!config.aurora.voting.isEmpty())
                                 {
-                                    voting = !config.aurora.voting
+                                    voting = config.aurora.voting.toBoolean()
                                     println voting
+                                    println !voting
                                 }
                             
                                 
