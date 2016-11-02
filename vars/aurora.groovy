@@ -49,9 +49,10 @@ def call(body) {
         catch (error)
         {
           echo "Aurora Build Failed! Cleaning up instances"
-          writeFile("$WORKSPACE/status-message.log","Aurora Build Failed! Cleaning up instances")
           
-          sh "aurora cleanup $JOB_BASE_NAME+$BUILD_NUMBER"
+          writeFile('status-message.log','Aurora Build Failed! Cleaning up instances')
+          
+          //sh "aurora cleanup $JOB_BASE_NAME+$BUILD_NUMBER"
         }
 
         // Aurora build creates a build_id file in WORKSPACE/logs/ the file consists of BUILD ID created by aurora
