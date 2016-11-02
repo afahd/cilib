@@ -100,8 +100,8 @@ def call(body) {
         }
       }
       
-      def status = readFile("$WORKSPACE/status-message.log"
-      println status
+      def status = readFile("$WORKSPACE/status-message.log")
+      echo "$status"
       archiveArtifacts allowEmptyArchive: true, artifacts: archive
       step([$class: 'WsCleanup'])
     }
