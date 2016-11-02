@@ -1,22 +1,28 @@
 #!groovy
 
+// Importing Config Slurper using grapes
 @Grab(group='org.apache.commons', module='commons-io', version='1.3.2')
 
 def sout = new StringBuilder(), serr= new StringBuilder()
+
+// Clone Project, according to Gerrit Trigger
 def repoUrl = "$GERRIT_SCHEME://afahd@$GERRIT_HOST:$GERRIT_PORT/$GERRIT_PROJECT"
 def projectRoot = WORKSPACE + "/$GERRIT_PROJECT/"
 def clone = "git clone $repoUrl".execute(null, new File(WORKSPACE + "/"))
 clone.consumeProcessOutput(sout, serr)
 clone.waitFor()
+
+// Fetch and Checkout commit with Jenkins file
 def fetch = "git fetch $repoUrl $GERRIT_REFSPEC".execute(null, new File(projectRoot))
 fetch.consumeProcessOutput(sout, serr)
 fetch.waitFor()
-
 def checkout = "git checkout FETCH_HEAD".execute(null, new File(projectRoot))
 checkout.consumeProcessOutput(sout, serr)
 checkout.waitFor()
 println "out> $sout err> $serr"
 
+// Creating Folders in Jenkins
+// GERRIT_PROJECT --> GERRIT_BRANCH --> jobs
 folder("$GERRIT_PROJECT") {
     displayName("$GERRIT_PROJECT")
     description("pipeplines for $GERRIT_PROJECT")
@@ -27,6 +33,7 @@ folder("$GERRIT_PROJECT/$GERRIT_BRANCH")
     description("Pipelines for $GERRIT_PROJECT and branch: $GERRIT_BRANCH")
 }
 
+// Initializing values
 def days = 15
 def exc_drafts = "true"
 def exc_triv_rebase = "false"
@@ -34,6 +41,7 @@ def exc_no_code_chng = "true"
 boolean voting = true
 def email = ""
 
+// Reading ci enabled list and extracting emails of owners
 def ci_list = readFileFromWorkspace('ci_enabled.list')
 String[] split_file = ci_list.split(System.getProperty("line.separator"));
 for (def line:split_file)
@@ -45,14 +53,21 @@ for (def line:split_file)
     }
 }
 
+// Iterating over all jenkinsfiles in the directory
 new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     println "Jenkins File Text:"
     println file.text
+
+    // Loading jenkinsfile as config using ConfigSlurper
     def config = new ConfigSlurper().parse(file.text)
+    // Looks for aurora closure in jenkins file
+    // TODO: Add closure for physical pipelines
     if (config.containsKey("aurora")) {
         println "Going to generate aurora based job:$config.aurora.name"
+        // Creating pipeline job
         pipelineJob("$GERRIT_PROJECT/$GERRIT_BRANCH/$config.aurora.name") {
-            def daysToKeep = valueExist(days,config.aurora.days_to_keep)
+            // Checking if days_to_keep_builds exist in jenkinsfile or use default value
+            def daysToKeep = valueExist(days,config.aurora.days_to_keep_builds)
             logRotator(daysToKeep,-1,-1,-1)
             definition {
                 cpsScm {
@@ -70,12 +85,16 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                             }
                         }
                     }
+                    // Adding Jenkinsfile script path to be used by the new job
                     scriptPath("jenkins/jenkinsfiles/" + org.apache.commons.io.FilenameUtils.getBaseName(file.name))
                 }
             }
-                triggers {
-                    if( config.aurora.type == "review" )
-                   {
+            triggers
+            {
+                // Block for review pipelines
+                if( config.aurora.type == "review" )
+                {
+                    // Adding triggers to be used in review pipeline
                     gerrit {
                         configure { GerritTrigger ->
                             GerritTrigger / 'triggerOnEvents' {
@@ -112,7 +131,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                                 }
                             }
                             GerritTrigger << skipVote {
-                             
+
                                 if (!config.aurora.voting.isEmpty())
                                 {
                                     voting = !config.aurora.voting.toBoolean()
