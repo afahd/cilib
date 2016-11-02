@@ -49,8 +49,7 @@ def call(body) {
         catch (error)
         {
           echo "Aurora Build Failed! Cleaning up instances"
-          
-          writeFile('status-message.log','Aurora Build Failed! Cleaning up instances')
+          writeFile file: 'status-message.log', text: 'Aurora Build Failed! Cleaning up instances'
           
           //sh "aurora cleanup $JOB_BASE_NAME+$BUILD_NUMBER"
         }
@@ -101,7 +100,7 @@ def call(body) {
         }
       }
       
-      def status = readFile("$WORKSPACE/status-message.log")
+      def status = readFile "$WORKSPACE/status-message.log"
       echo "$status"
       archiveArtifacts allowEmptyArchive: true, artifacts: archive
       step([$class: 'WsCleanup'])
