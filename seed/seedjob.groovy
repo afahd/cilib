@@ -99,16 +99,19 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                         configure { GerritTrigger ->
                             GerritTrigger / 'triggerOnEvents' {
                                 'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginCommentAddedContainsEvent' {
+                                    // Trigger event for comment added
+                                    // Adding runpipeline: <pipeline-name>
                                     commentAddedCommentContains(".*runpipeline: ${config.aurora.name}.*")
                                 }
                                 'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginPatchsetCreatedEvent' {
-
+                                    // Using default values if jenkinsfile does not specify
                                     excludeDrafts(valueExist(exc_drafts, config.aurora.exclude_drafts))
                                     excludeTrivialRebase(valueExist(exc_triv_rebase, config.aurora.exclude_trivialrebase))
                                     excludeNoCodeChange(valueExist(exc_no_code_chng, config.aurora.exclude_nocodechange))
                                 }
                             }
                             GerritTrigger << gerritProjects {
+                                // Adding gerrit projects for gerrit trigger using GERRIT PROJECT and GERRIT_BRANCH
                                 'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.GerritProject' {
                                     compareType("PLAIN")
                                     pattern(GERRIT_PROJECT)
@@ -119,6 +122,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
 
                                         }
                                     }
+                                    // In case value for trigger path provided set trigger file path
                                     if ( config.aurora.trigger_path != null ) {
                                         filePaths {
                                             'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.FilePath' {
@@ -131,22 +135,25 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                                 }
                             }
                             GerritTrigger << skipVote {
-
+                                // Set pipeline voting or non voting
+                                // Job set as non voting by default
                                 if (!config.aurora.voting.isEmpty())
                                 {
                                     voting = !config.aurora.voting.toBoolean()
                                 }
+                                // Skip vote when voting set to false
                                 onSuccessful(voting)
                                 onFailed(voting)
                                 onUnstable(voting)
                                 onNotBuilt(voting)
                             }
+                            // Assigning custom build message to be posted to gerrit
                             GerritTrigger << buildFailureMessage("build FAILED (see extended build output for details) Contact [Pipeline Owners: $email] or comment runpipeline: ${config.aurora.name} to re-trigger the pipeline")
                             GerritTrigger << buildSuccessfulMessage("SUCCESS (see extended build output for details)")
                             GerritTrigger << buildNotBuiltMessage("NOT BUILT")
                             GerritTrigger << buildUnstableMessage("UNSTABLE (see extended build output for details)")
+                            // TODO: buildUnsuccessfulFilepath does not work for pipeline plugin
                             GerritTrigger << buildUnsuccessfulFilepath("status-message.log")
-
                         }
                     }
                 }
@@ -155,6 +162,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     }
 }
 
+// Returns argument if provided or provides orignal_value
 def valueExist(def orignal_value, def argument)
 {
     if (argument.isEmpty())
