@@ -44,7 +44,6 @@ def call(body) {
                 email = line_split.getAt(2)
             }
         }
-        echo "$email"
       }
 
       withEnv(["PATH=/opt/plumgrid/google-cloud-sdk/bin:$WORKSPACE/andromeda/gcloud/build:/opt/pg/scripts:$PATH"])
@@ -61,7 +60,7 @@ def call(body) {
         }
         catch (error)
         {
-          lib.errorToGerrit("Aurora build failed, Cleaning up instances")
+          lib.errorToGerrit("Aurora build failed with: $error, Cleaning up instances")
           sh "aurora cleanup $JOB_BASE_NAME+$BUILD_NUMBER"
         }
 
@@ -112,7 +111,6 @@ def call(body) {
       }
       
       def status = readFile "$WORKSPACE/status-message.log"
-      echo "$status"
       setGerritReview unsuccessfulMessage: "$status"
       lib.sendEmail(currentBuild.result,"$email")
       archiveArtifacts allowEmptyArchive: true, artifacts: archive
