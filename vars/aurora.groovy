@@ -33,10 +33,23 @@ def call(body) {
       dir('andromeda')
       {
         git branch: 'master', url: 'ssh://afahd@gerrit.plumgrid.com:29418/andromeda'
+        
+        def ci_list = readFileFromWorkspace('ci_enabled.list')
+        String[] split_file = ci_list.split(System.getProperty("line.separator"));
+        for (def line:split_file)
+        {
+            if (line.contains("$GERRIT_PROJECT $GERRIT_BRANCH"))
+            {
+                String[] line_split = line.split(" ")
+                email = line_split.getAt(2)
+            }
+        }
+        echo "$email"
       }
 
       withEnv(["PATH=/opt/plumgrid/google-cloud-sdk/bin:$WORKSPACE/andromeda/gcloud/build:/opt/pg/scripts:$PATH"])
       {
+        
         stage 'Build'
         sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..;'
         sh "touch $WORKSPACE/status-message.log"
@@ -101,8 +114,7 @@ def call(body) {
       def status = readFile "$WORKSPACE/status-message.log"
       echo "$status"
       setGerritReview unsuccessfulMessage: "$status"
-      //lib.sendEmail(currentBuild.result)
-      emailext body: 'this is body', subject: 'this is subject', to: 'afahd@plumgrid'
+      sendEmail(currentBuild.result,owners)
       archiveArtifacts allowEmptyArchive: true, artifacts: archive
       step([$class: 'WsCleanup'])
     }
