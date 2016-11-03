@@ -114,7 +114,7 @@ def call(body) {
       def status = readFile "$WORKSPACE/status-message.log"
       echo "$status"
       setGerritReview unsuccessfulMessage: "$status"
-      sendEmail(currentBuild.result,owners)
+      sendEmail(currentBuild.result,email)
       archiveArtifacts allowEmptyArchive: true, artifacts: archive
       step([$class: 'WsCleanup'])
     }
