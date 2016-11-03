@@ -137,7 +137,7 @@ def sendEmail(String build_result,owners)
                 "--\n" +
                 "Jenkins CI"
 
-    emailext body: "$body", subject: "$subject", to: '$owners'
+    emailext body: "$body", subject: "$subject", to: "$owners"
 }
 
 return this;
