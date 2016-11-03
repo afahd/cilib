@@ -53,15 +53,15 @@ def call(body) {
         sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..;'
         sh "touch $WORKSPACE/status-message.log"
         stage 'Aurora build'
-        echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC tag:$JOB_BASE_NAME+$BUILD_NUMBER"
+        echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC tag:$JOB_BASE_NAME_$BUILD_NUMBER"
         try
         {
-          sh "aurora build -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME+$BUILD_NUMBER -r $GERRIT_REFSPEC -n"
+          sh "aurora build -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME_$BUILD_NUMBER -r $GERRIT_REFSPEC -n"
         }
         catch (error)
         {
           lib.errorToGerrit("Aurora build failed with: $error, Cleaning up instances")
-          sh "aurora cleanup $JOB_BASE_NAME+$BUILD_NUMBER"
+          sh "aurora cleanup $JOB_BASE_NAME_$BUILD_NUMBER"
         }
 
         // Aurora build creates a build_id file in WORKSPACE/logs/ the file consists of BUILD ID created by aurora
