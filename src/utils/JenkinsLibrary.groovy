@@ -126,11 +126,11 @@ def errorToGerrit(String statement)
 
 def sendEmail(String build_result,owners)
 {
-    def subject = "[Jenkins] New build for $PROJECT_NAME (# $BUILD_NUMBER)  - $BUILD_STATUS!"
+    def subject = "[Jenkins] New build for $PROJECT_NAME (# $BUILD_NUMBER)  - $build_result!"
     def body = "Hi,\n" +
                 "build and testing completed for ${PROJECT_NAME}, build # ${BUILD_NUMBER}.\n" +
                 "\n" +
-                "Build status is: ${BUILD_STATUS}\n" +
+                "Build status is: ${build_result}\n" +
                 "\n" +
                 "Check the console output at $BUILD_URL for more information.\n" +
                 "\n" +
