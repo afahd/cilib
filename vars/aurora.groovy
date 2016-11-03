@@ -34,7 +34,7 @@ def call(body) {
       {
         git branch: 'master', url: 'ssh://afahd@gerrit.plumgrid.com:29418/andromeda'
         
-        def ci_list = readFileFromWorkspace('ci_enabled.list')
+        def ci_list = readFile 'ci_enabled.list'
         String[] split_file = ci_list.split(System.getProperty("line.separator"));
         for (def line:split_file)
         {
