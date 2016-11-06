@@ -6,7 +6,7 @@
 def sout = new StringBuilder(), serr= new StringBuilder()
 
 // Clone Project, according to Gerrit Trigger
-def repoUrl = "$GERRIT_SCHEME://afahd@$GERRIT_HOST:$GERRIT_PORT/$GERRIT_PROJECT"
+def repoUrl = "$GERRIT_SCHEME://$GERRIT_HOST:$GERRIT_PORT/$GERRIT_PROJECT"
 def projectRoot = WORKSPACE + "/$GERRIT_PROJECT/"
 def clone = "git clone $repoUrl".execute(null, new File(WORKSPACE + "/"))
 clone.consumeProcessOutput(sout, serr)
@@ -93,6 +93,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
             triggers
             {
                 // Block for review pipelines
+                // TODO: Periodic pipeline triggers
                 if( config.aurora.type == "review" )
                 {
                     // Adding triggers to be used in review pipeline
@@ -120,11 +121,10 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                                         'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.Branch' {
                                             compareType("PLAIN")
                                             pattern(GERRIT_BRANCH)
-
                                         }
                                     }
                                     // In case value for trigger path provided set trigger file path
-                                    if (!config.aurora.trigger_path.isEmpty()) {
+                                    if ( config.aurora.trigger_path != null ) {
                                         filePaths {
                                             'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.FilePath' {
                                                 compareType("REG_EXP")
@@ -157,10 +157,12 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                             GerritTrigger << buildSuccessfulMessage("SUCCESS (see extended build output for details)")
                             GerritTrigger << buildNotBuiltMessage("NOT BUILT")
                             GerritTrigger << buildUnstableMessage("UNSTABLE (see extended build output for details)")
-                            // TODO: buildUnsuccessfulFilepath does not work for pipeline plugin
-                            GerritTrigger << buildUnsuccessfulFilepath("status-message.log")
                         }
                     }
+                }
+                if( config.aurora.type == "periodic" )
+                {
+                    scm(config.aurora.cron)
                 }
             }
         }
