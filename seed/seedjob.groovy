@@ -6,7 +6,7 @@
 def sout = new StringBuilder(), serr= new StringBuilder()
 
 // Clone Project, according to Gerrit Trigger
-def repoUrl = "$GERRIT_SCHEME://$GERRIT_HOST:$GERRIT_PORT/$GERRIT_PROJECT"
+def repoUrl = "$GERRIT_SCHEME://afahd@$GERRIT_HOST:$GERRIT_PORT/$GERRIT_PROJECT"
 def projectRoot = WORKSPACE + "/$GERRIT_PROJECT/"
 def clone = "git clone $repoUrl".execute(null, new File(WORKSPACE + "/"))
 clone.consumeProcessOutput(sout, serr)
