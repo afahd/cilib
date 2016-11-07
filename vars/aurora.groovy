@@ -32,7 +32,7 @@ def call(body) {
 
       dir('andromeda')
       {
-        git branch: 'master', url: 'ssh://afahd@gerrit.plumgrid.com:29418/andromeda'
+        git branch: 'master', url: 'ssh://gerrit.plumgrid.com:29418/andromeda'
         
         def ci_list = readFile 'ci_enabled.list'
         String[] split_file = ci_list.split(System.getProperty("line.separator"));
@@ -46,7 +46,7 @@ def call(body) {
         }
       }
 
-      withEnv(["PATH=/opt/plumgrid/google-cloud-sdk/bin:$WORKSPACE/andromeda/gcloud/build:/opt/pg/scripts:$PATH"])
+      withEnv(["PATH=/home/plumgrid/google-cloud-sdk/bin:$WORKSPACE/andromeda/gcloud/build:/opt/pg/scripts:$PATH"])
       {
         
         stage 'Build'
