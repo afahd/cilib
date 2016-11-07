@@ -59,7 +59,7 @@ def call(body) {
         echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC tag:$JOB_BASE_NAME-$BUILD_NUMBER"
         try
         {
-          sh "bash aurora_build.sh -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME-$BUILD_NUMBER -r $GERRIT_REFSPEC"
+          sh "bash andromeda/gcloud/build/aurora_build.sh -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME-$BUILD_NUMBER -r $GERRIT_REFSPEC"
         }
         catch (error)
         {
