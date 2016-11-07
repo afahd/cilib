@@ -60,7 +60,7 @@ def call(body) {
         {
           dir('andromeda/gcloud/build/aurora/')
           {
-            sh "aurora build -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME-$BUILD_NUMBER -r $GERRIT_REFSPEC"
+            sh "aurora build -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME-$BUILD_NUMBER 
           }
         }
         catch (error)
