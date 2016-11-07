@@ -48,6 +48,7 @@ def call(body) {
 
       withEnv(["PATH=/home/plumgrid/google-cloud-sdk/bin:$WORKSPACE/andromeda/gcloud/build:/opt/pg/scripts:$PATH"])
       {
+        echo "$PATH"
         
         stage 'Build'
         sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..;'
