@@ -54,14 +54,14 @@ def call(body) {
         sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..;'
         sh "touch $WORKSPACE/status-message.log"
         stage 'Aurora build'
-        sh "ls aurora/"
+       
         sh "pwd"
         echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC tag:$JOB_BASE_NAME-$BUILD_NUMBER"
         try
         {
           dir('andromeda/gcloud/build')
           {
-            sh "ls"
+            sh "pwd; ls"
             sh "/bin/bash aurora_build.sh -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME-$BUILD_NUMBER -r $GERRIT_REFSPEC"
           }
         }
