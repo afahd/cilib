@@ -166,6 +166,9 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
     }
 }
 
+// Queues newly created job 
+queue(config.aurora.name)
+
 // Returns argument if provided or provides orignal_value
 def valueExist(def orignal_value, def argument)
 {
