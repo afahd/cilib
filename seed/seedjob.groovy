@@ -77,6 +77,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                             remote {
                                 name(GERRIT_PROJECT)
                                 url(repoUrl)
+                                refspec('$GERRIT_REFSPEC')
                             }
                             branch (GERRIT_BRANCH)
                             extensions {
@@ -124,7 +125,7 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                                         }
                                     }
                                     // In case value for trigger path provided set trigger file path
-                                    if ( config.aurora.trigger_path != null ) {
+                                    if (!config.aurora.trigger_path.isEmpty()) {
                                         filePaths {
                                             'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.FilePath' {
                                                 compareType("REG_EXP")
@@ -159,10 +160,6 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                             GerritTrigger << buildUnstableMessage("UNSTABLE (see extended build output for details)")
                         }
                     }
-                }
-                if( config.aurora.type == "periodic" )
-                {
-                    scm(config.aurora.cron)
                 }
             }
         }
