@@ -48,12 +48,14 @@ def call(body) {
 
       withEnv(["PATH=/home/plumgrid/google-cloud-sdk/bin:$WORKSPACE/andromeda/gcloud/build:/opt/pg/scripts:$PATH"])
       {
-        echo "$PATH"
+       
         
         stage 'Build'
         sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..;'
         sh "touch $WORKSPACE/status-message.log"
         stage 'Aurora build'
+        sh "ls"
+        sh "pwd"
         echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC tag:$JOB_BASE_NAME-$BUILD_NUMBER"
         try
         {
