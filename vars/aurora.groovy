@@ -46,7 +46,7 @@ def call(body) {
         }
       }
 
-      withEnv(["PATH=/home/plumgrid/google-cloud-sdk/bin:$WORKSPACE/andromeda/gcloud/build:/opt/pg/scripts:$PATH"])
+      withEnv(["PATH=/home/plumgrid/google-cloud-sdk/bin:$WORKSPACE/andromeda/gcloud/build/aurora:$WORKSPACE/andromeda/gcloud/build/aurora/pipeline_scripts:$PATH"])
       {
        
         
@@ -55,14 +55,12 @@ def call(body) {
         sh "touch $WORKSPACE/status-message.log"
         stage 'Aurora build'
        
-        sh "pwd"
         echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC tag:$JOB_BASE_NAME-$BUILD_NUMBER"
         try
         {
           dir('andromeda/gcloud/build/aurora/')
           {
-            sh "pwd; ls"
-            sh "/bin/bash aurora_build.sh -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME-$BUILD_NUMBER -r $GERRIT_REFSPEC"
+            sh "aurora build -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME-$BUILD_NUMBER -r $GERRIT_REFSPEC"
           }
         }
         catch (error)
