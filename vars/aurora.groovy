@@ -100,8 +100,8 @@ def call(body) {
             } catch (err)
             {
                 lib.errorToGerrit("Aurora Test failed with: ${err}")
-                currentBuild.result = 'UNSTABLE'
                 sh "aurora cleanup $build_id"
+                currentBuild.result = 'UNSTABLE'
             }
           }
           else
