@@ -102,10 +102,7 @@ def valueExist (def orignal_value, def argument)
 
 def checkGerritArguments()
 {
-    if (GERRIT_REFSPEC == null)
-    {
-     error 'No GERRIT_REFSPEC found'
-    }
+    
     if (GERRIT_BRANCH == null)
     {
      error 'No GERRIT_BRANCH found'
@@ -113,6 +110,10 @@ def checkGerritArguments()
     if (GERRIT_PROJECT == null)
     {
      error 'No GERRIT_PROJECT found'
+    }
+    if (GERRIT_REFSPEC == null)
+    {
+     error 'No GERRIT_REFSPEC found'
     }
 }
 
