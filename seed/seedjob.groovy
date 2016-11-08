@@ -70,35 +70,36 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
             // Checking if days_to_keep_builds exist in jenkinsfile or use default value
             def daysToKeep = valueExist(days,config.aurora.days_to_keep_builds)
             logRotator(daysToKeep,-1,-1,-1)
-            definition {
-                cpsScm {
-                    scm {
-                        git {
-                            remote {
-                                name(GERRIT_PROJECT)
-                                url(repoUrl)
-                                refspec('$GERRIT_REFSPEC')
-                            }
-                            branch (GERRIT_BRANCH)
-                            extensions {
-                                choosingStrategy {
-                                    gerritTrigger()
+            // Block for review pipelines
+            // TODO: Periodic pipeline triggers
+            if( config.aurora.type == "review" )
+            {
+                definition
+                {
+                    cpsScm {
+                        scm {
+                            git {
+                                remote {
+                                    name(GERRIT_PROJECT)
+                                    url(repoUrl)
+                                }
+                                branch (GERRIT_BRANCH)
+                                extensions {
+                                    choosingStrategy {
+                                        gerritTrigger()
+                                    }
                                 }
                             }
                         }
+                        // Adding Jenkinsfile script path to be used by the new job
+                        scriptPath("jenkins/jenkinsfiles/" + org.apache.commons.io.FilenameUtils.getBaseName(file.name))
                     }
-                    // Adding Jenkinsfile script path to be used by the new job
-                    scriptPath("jenkins/jenkinsfiles/" + org.apache.commons.io.FilenameUtils.getBaseName(file.name))
                 }
-            }
-            triggers
-            {
-                // Block for review pipelines
-                // TODO: Periodic pipeline triggers
-                if( config.aurora.type == "review" )
+                triggers
                 {
                     // Adding triggers to be used in review pipeline
-                    gerrit {
+                    gerrit
+                    {
                         configure { GerritTrigger ->
                             GerritTrigger / 'triggerOnEvents' {
                                 'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginCommentAddedContainsEvent' {
@@ -133,7 +134,6 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                                             }
                                         }
                                     }
-
                                 }
                             }
                             GerritTrigger << skipVote {
@@ -161,15 +161,38 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                         }
                     }
                 }
-                if( config.aurora.type == "periodic" )
+            }
+            if( config.aurora.type == "periodic" )
+            {
+                definition
+                {
+                    cpsScm {
+                        scm {
+                            git {
+                                remote {
+                                    name(GERRIT_PROJECT)
+                                    url(repoUrl)
+                                }
+                                branch(GERRIT_BRANCH)
+                            }
+                        }
+                        // Adding Jenkinsfile script path to be used by the new job
+                        scriptPath("jenkins/jenkinsfiles/" + org.apache.commons.io.FilenameUtils.getBaseName(file.name))
+                    }
+                }
+                triggers
                 {
                     scm(config.aurora.cron)
+                }
+                parameters
+                {
+                    stringParam("GERRIT_PROJECT","$GERRIT_PROJECT")
+                    stringParam("GERRIT_BRANCH","$GERRIT_BRANCH")
                 }
             }
         }
     }
 }
-
 
 // Returns argument if provided or provides orignal_value
 def valueExist(def orignal_value, def argument)
