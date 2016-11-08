@@ -161,6 +161,10 @@ new File("$projectRoot/jenkins/jenkinsfiles").eachFile() { file->
                         }
                     }
                 }
+                if( config.aurora.type == "periodic" )
+                {
+                    scm(config.aurora.cron)
+                }
             }
         }
     }
