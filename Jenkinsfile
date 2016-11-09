@@ -1,4 +1,4 @@
-node('slave-cloud2')
+node('cloud')
 {
   echo "this is "
 }
