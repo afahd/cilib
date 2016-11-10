@@ -55,7 +55,7 @@ def call(body) {
         sh "touch $WORKSPACE/status-message.log"
         stage 'Aurora build'
        
-        echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC tag:$JOB_BASE_NAME-$BUILD_NUMBER"
+        echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH tag:$JOB_BASE_NAME-$BUILD_NUMBER"
         try
         {
           dir('andromeda/gcloud/build/aurora/')
