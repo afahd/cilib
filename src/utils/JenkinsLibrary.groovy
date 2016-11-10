@@ -111,10 +111,7 @@ def checkGerritArguments()
     {
      error 'No GERRIT_PROJECT found'
     }
-    if (GERRIT_REFSPEC == null)
-    {
-     error 'No GERRIT_REFSPEC found'
-    }
+
 }
 
 def errorToGerrit(String statement)
