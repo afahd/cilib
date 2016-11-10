@@ -19,4 +19,5 @@ aurora {
 
     // Set Voting/Non-Voting Status for pipeline
     voting = "false"
+    
 }
