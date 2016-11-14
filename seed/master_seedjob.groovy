@@ -15,7 +15,7 @@ for (def line:split_file)
 {
     String[] line_split = line.split(" ")
     repourl = line_split.getAt(0)
-    repo = "${repourl}" - "${gerrit_url}"
+    repo = "${repo_url}" - "${gerrit_url}"
     branch = line_split.getAt(1)
     email = line_split.getAt(2)
 
@@ -55,24 +55,42 @@ freeStyleJob('ci_seed_job_irfan_test') {
                 }
 
 
+for (def line:split_file)
+{
+    String[] line_split = line.split(" ")
+    repourl = line_split.getAt(0)
+    repo = "${repourl}" - "${gerrit_url}"
+    branch = line_split.getAt(1)
+    email = line_split.getAt(2)
 
+    println "${repo}, ${branch}, ${email}"
+}
 
                 GerritTrigger << gerritProjects {
-                    // Adding gerrit projects for gerrit trigger using GERRIT PROJECT and GERRIT_BRANCH
-                    'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.GerritProject' {
-                        compareType("PLAIN")
-                        pattern(GERRIT_PROJECT)
-                        branches{
-                            'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.Branch' {
-                                compareType("PLAIN")
-                                pattern(GERRIT_BRANCH)
+                    for (def line:split_file)
+                    {
+                        String[] line_split = line.split(" ")
+                        repourl = line_split.getAt(0)
+                        repo = "${repourl}" - "${gerrit_url}"
+                        branch = line_split.getAt(1)
+                        email = line_split.getAt(2)
+                        println "${repo}, ${branch}, ${email}"
+                        // Adding gerrit projects for gerrit trigger using GERRIT PROJECT and GERRIT_BRANCH
+                        'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.GerritProject' {
+                            compareType("PLAIN")
+                            pattern(repo)
+                            branches{
+                                'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.Branch' {
+                                    compareType("PLAIN")
+                                    pattern(branch)
+                                }
                             }
-                        }
-                        // In case value for trigger path provided set trigger file path
-                        filePaths {
-                            'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.FilePath' {
-                                compareType("ANT")
-                                pattern("jenkins/jenkinsfiles/**")
+                            // In case value for trigger path provided set trigger file path
+                            filePaths {
+                                'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.FilePath' {
+                                    compareType("ANT")
+                                    pattern("jenkins/jenkinsfiles/**")
+                                }
                             }
                         }
                     }
