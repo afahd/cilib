@@ -9,29 +9,22 @@ def repoUrl = "$GERRIT_SCHEME://afahd@$GERRIT_HOST:$GERRIT_PORT/$GERRIT_PROJECT"
 
 freeStyleJob('ci_seed_job_irfan_test') {
     logRotator(-1, 10)
-
-    definition
-    {
-        cpsScm {
-            scm {
-                git {
-                    remote {
-                        name(GERRIT_PROJECT)
-                        url(repoUrl)
-                    }
-                    branch (GERRIT_BRANCH)
-                    extensions {
-                        choosingStrategy {
-                            gerritTrigger()
-                        }
-                    }
+    scm {
+        git {
+            remote {
+                name(GERRIT_PROJECT)
+                url(repoUrl)
+            }
+            branch (GERRIT_BRANCH)
+            extensions {
+                choosingStrategy {
+                    gerritTrigger()
                 }
             }
-            // Adding Jenkinsfile script path to be used by the new job
-            scriptPath("jenkins/jenkinsfiles/" + org.apache.commons.io.FilenameUtils.getBaseName(file.name))
         }
     }
-
+    
+    
     triggers {
         githubPush()
     }
