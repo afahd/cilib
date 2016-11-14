@@ -6,10 +6,7 @@
 def sout = new StringBuilder(), serr= new StringBuilder()
 // Clone Project, according to Gerrit Trigger
 def repoUrl = "$GERRIT_SCHEME://afahd@$GERRIT_HOST:$GERRIT_PORT/$GERRIT_PROJECT"
-def projectRoot = WORKSPACE + "/$GERRIT_PROJECT/"
-def clone = "git clone $repoUrl".execute(null, new File(WORKSPACE + "/"))
-clone.consumeProcessOutput(sout, serr)
-clone.waitFor()
+def projectRoot = WORKSPACE 
 
 // Fetch and Checkout commit with Jenkins file
 def fetch = "git fetch $repoUrl $GERRIT_REFSPEC".execute(null, new File(projectRoot))
