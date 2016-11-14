@@ -4,13 +4,34 @@
 @Grab(group='org.apache.commons', module='commons-io', version='1.3.2')
 
 def sout = new StringBuilder(), serr= new StringBuilder()
+def repoUrl = "$GERRIT_SCHEME://afahd@$GERRIT_HOST:$GERRIT_PORT/$GERRIT_PROJECT"
 
-freeStyleJob('test_example') {
+
+freeStyleJob('ci_seed_job_irfan_test') {
     logRotator(-1, 10)
-    jdk('Java 6')
-    scm {
-        github('jenkinsci/job-dsl-plugin', 'master')
+
+    definition
+    {
+        cpsScm {
+            scm {
+                git {
+                    remote {
+                        name(GERRIT_PROJECT)
+                        url(repoUrl)
+                    }
+                    branch (GERRIT_BRANCH)
+                    extensions {
+                        choosingStrategy {
+                            gerritTrigger()
+                        }
+                    }
+                }
+            }
+            // Adding Jenkinsfile script path to be used by the new job
+            scriptPath("jenkins/jenkinsfiles/" + org.apache.commons.io.FilenameUtils.getBaseName(file.name))
+        }
     }
+
     triggers {
         githubPush()
     }
