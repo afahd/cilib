@@ -54,18 +54,6 @@ freeStyleJob('ci_seed_job_irfan_test') {
                     }
                 }
 
-
-for (def line:split_file)
-{
-    String[] line_split = line.split(" ")
-    repourl = line_split.getAt(0)
-    repo = "${repourl}" - "${gerrit_url}"
-    branch = line_split.getAt(1)
-    email = line_split.getAt(2)
-
-    println "${repo}, ${branch}, ${email}"
-}
-
                 GerritTrigger << gerritProjects {
                     for (def line:split_file)
                     {
@@ -73,8 +61,7 @@ for (def line:split_file)
                         repourl = line_split.getAt(0)
                         repo = "${repourl}" - "${gerrit_url}"
                         branch = line_split.getAt(1)
-                        email = line_split.getAt(2)
-                        println "${repo}, ${branch}, ${email}"
+                        println "${repo}, ${branch}"
                         // Adding gerrit projects for gerrit trigger using GERRIT PROJECT and GERRIT_BRANCH
                         'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.data.GerritProject' {
                             compareType("PLAIN")
