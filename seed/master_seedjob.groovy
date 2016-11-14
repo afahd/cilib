@@ -15,7 +15,7 @@ for (def line:split_file)
 {
     String[] line_split = line.split(" ")
     repourl = line_split.getAt(0)
-    repo = "${repo_url}" - "${gerrit_url}"
+    repo = "${repourl}" - "${gerrit_url}"
     branch = line_split.getAt(1)
     email = line_split.getAt(2)
 
