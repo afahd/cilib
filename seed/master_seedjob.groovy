@@ -1,0 +1,73 @@
+#!groovy
+
+// Importing Config Slurper using grapes
+@Grab(group='org.apache.commons', module='commons-io', version='1.3.2')
+
+def sout = new StringBuilder(), serr= new StringBuilder()
+
+freeStyleJob('test_example') {
+    logRotator(-1, 10)
+    jdk('Java 6')
+    scm {
+        github('jenkinsci/job-dsl-plugin', 'master')
+    }
+    triggers {
+        githubPush()
+    }
+    steps {
+        gradle('clean build')
+    }
+    publishers {
+        archiveArtifacts('job-dsl-plugin/build/libs/job-dsl.hpi')
+    }
+}
+
+// Clone Project, according to Gerrit Trigger
+//def repoUrl = "$GERRIT_SCHEME://$GERRIT_HOST:$GERRIT_PORT/$GERRIT_PROJECT"
+//def projectRoot = WORKSPACE + "/$GERRIT_PROJECT/"
+//def clone = "git clone $repoUrl".execute(null, new File(WORKSPACE + "/"))
+//clone.consumeProcessOutput(sout, serr)
+//clone.waitFor()
+
+// Fetch and Checkout commit with Jenkins file
+//def fetch = "git fetch $repoUrl $GERRIT_REFSPEC".execute(null, new File(projectRoot))
+//fetch.consumeProcessOutput(sout, serr)
+//fetch.waitFor()
+//def checkout = "git checkout FETCH_HEAD".execute(null, new File(projectRoot))
+//checkout.consumeProcessOutput(sout, serr)
+//checkout.waitFor()
+//println "out> $sout err> $serr"
+
+// Creating Folders in Jenkins
+// GERRIT_PROJECT --> GERRIT_BRANCH --> jobs
+//folder("$GERRIT_PROJECT") {
+//    displayName("$GERRIT_PROJECT")
+//    description("pipeplines for $GERRIT_PROJECT")
+//}
+//folder("$GERRIT_PROJECT/$GERRIT_BRANCH")
+//{
+//    displayName("$GERRIT_BRANCH")
+//    description("Pipelines for $GERRIT_PROJECT and branch: $GERRIT_BRANCH")
+//}
+
+// Initializing values
+def days = 15
+def exc_drafts = "true"
+def exc_triv_rebase = "false"
+def exc_no_code_chng = "true"
+boolean voting = true
+def voting_status=""
+def email = ""
+
+// Reading ci enabled list and extracting emails of owners
+// def ci_list = readFileFromWorkspace('ci_enabled.list')
+// String[] split_file = ci_list.split(System.getProperty("line.separator"));
+// for (def line:split_file)
+// {
+//     if (line.contains("$GERRIT_PROJECT $GERRIT_BRANCH"))
+//    {
+//        String[] line_split = line.split(" ")
+//        email = line_split.getAt(2)
+//    }
+//}
+
