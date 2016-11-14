@@ -22,7 +22,7 @@ String[] split_file = ci_list.split(System.getProperty("line.separator"));
 
 def gerrit_url = "ssh://gerrit.plumgrid.com:29418/"
 
-freeStyleJob('ci_seed_job_irfan_test') {
+freeStyleJob('ci_seed_job') {
     logRotator(-1, 10)
 
     scm {
