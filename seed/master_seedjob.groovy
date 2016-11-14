@@ -98,6 +98,10 @@ for (def line:split_file)
             }
         }
     }
+
+    steps {
+        dsl{
+            external('seed/seedjob.groovy')
+        }
+    }
 }
-
-
