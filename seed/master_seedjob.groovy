@@ -21,8 +21,13 @@ freeStyleJob('ci_seed_job_irfan_test') {
     
     
     triggers {
-        githubPush()
+        // Adding triggers to be used in review pipeline
+        gerrit {
+            project(GERRIT_PROJECT, GERRIT_BRANCH)
+        }
     }
+    
+    
     steps {
         gradle('clean build')
     }
