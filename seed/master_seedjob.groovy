@@ -16,11 +16,6 @@ freeStyleJob('ci_seed_job_irfan_test') {
                 url(repoUrl)
             }
             branch (GERRIT_BRANCH)
-            extensions {
-                choosingStrategy {
-                    gerritTrigger()
-                }
-            }
         }
     }
     
