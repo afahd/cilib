@@ -44,7 +44,7 @@ freeStyleJob('ci_seed_job') {
                     'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginCommentAddedContainsEvent' {
                         // Trigger event for comment added
                         // Adding runpipeline: <pipeline-name>
-                        commentAddedCommentContains(".*runpipeline: master_seed_job")
+                        commentAddedCommentContains(".*runpipeline: ci_seed_job")
                     }
                     'com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.events.PluginPatchsetCreatedEvent' {
                         // Using default values if jenkinsfile does not specify
