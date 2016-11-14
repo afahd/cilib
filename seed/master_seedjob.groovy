@@ -11,21 +11,15 @@ String[] split_file = ci_list.split(System.getProperty("line.separator"));
 
 def gerrit_url = "ssh://gerrit.plumgrid.com:29418/"
 
-def repo_url = "ssh://gerrit.plumgrid.com:29418/pkg"
-
-
-def repo = "${repo_url}" - "${gerrit_url}"
-
-println "${repo}"
-
 for (def line:split_file)
 {
     String[] line_split = line.split(" ")
-    rep = line_split.getAt(0)
-    bran = line_split.getAt(1)
+    repourl = line_split.getAt(0)
+    repo = "${repo_url}" - "${gerrit_url}"
+    branch = line_split.getAt(1)
     email = line_split.getAt(2)
 
-    println "${rep}, ${bran}, ${email}"
+    println "${repo}, ${branch}, ${email}"
 }
 
 freeStyleJob('ci_seed_job_irfan_test') {
