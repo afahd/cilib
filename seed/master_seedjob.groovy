@@ -1,12 +1,9 @@
 #!groovy
 
-// Importing Config Slurper using grapes
-@Grab(group='org.apache.commons', module='commons-io', version='1.3.2')
-
 def sout = new StringBuilder(), serr= new StringBuilder()
 // Clone Project, according to Gerrit Trigger
 def repoUrl = "$GERRIT_SCHEME://afahd@$GERRIT_HOST:$GERRIT_PORT/$GERRIT_PROJECT"
-def projectRoot = WORKSPACE 
+def projectRoot = WORKSPACE + "/$GERRIT_PROJECT/" 
 
 // Fetch and Checkout commit with Jenkins file
 def fetch = "git fetch $repoUrl $GERRIT_REFSPEC".execute(null, new File(projectRoot))
