@@ -8,21 +8,34 @@ def call(body) {
   body()
 
   // Default Values
-  def iter = 1
   def archive = "logs/"
   def time = 60
+  def target = "default"
+  def instances = 1
+  def test_args = ""
   // Loading Jenkins library
   def lib = new utils.JenkinsLibrary()
 
-  iter = lib.valueExist(iter,args.iterations)
-  archive = lib.valueExist(archive,args.archive)
-  time = lib.valueExist(time,args.timeout)
+  archive = lib.valueExist(archive, args.archive)
+  time = lib.valueExist(time, args.timeout)
+  target = lib.valueExist(target, args.target)
+  instances = lib.valueExist(instances, args.num_instances)
+
+  if ( args.test_args != null )
+  {
+    test_args = "-A \"$args.test_args\""
+  }
+
+  if (!(args.test_type in ['ctest', 'plain']))
+  {
+    error "Unsupported test_type:$args.test_type, exiting"
+  }
 
   if (args.type == 'review')
   {
     lib.checkGerritArguments()
   }
-
+  
   node('slave-cloud2')
   {
     timeout(time)
@@ -48,27 +61,28 @@ def call(body) {
 
       withEnv(["PATH=/home/plumgrid/google-cloud-sdk/bin:$WORKSPACE/andromeda/gcloud/build/aurora:$WORKSPACE/andromeda/gcloud/build/aurora/pipeline_scripts:$PATH"])
       {
-       
-        
         stage 'Build'
         sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..;'
         sh "touch $WORKSPACE/status-message.log"
         stage 'Aurora build'
-       
-        echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH tag:$JOB_BASE_NAME-$BUILD_NUMBER"
         try
         {
-          dir('andromeda/gcloud/build/aurora/')
+          if (args.type == 'review')
           {
-            sh "aurora build -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME-$BUILD_NUMBER"
+            echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC tag:$JOB_BASE_NAME-$BUILD_NUMBER target: $target"
+            sh "aurora build -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME-$BUILD_NUMBER -r $GERRIT_REFSPEC -T $target"
+          }
+          else
+          {
+            echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH tag:$JOB_BASE_NAME-$BUILD_NUMBER target: $target"
+            sh "aurora build -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME-$BUILD_NUMBER -T $target"
           }
         }
         catch (error)
         {
-          lib.errorToGerrit("Aurora build failed with: $error, Cleaning up instances")
+          lib.errorMessage("Aurora build failed with: $error, Cleaning up instances")
           sh "aurora cleanup $JOB_BASE_NAME-$BUILD_NUMBER"
         }
-
         // Aurora build creates a build_id file in WORKSPACE/logs/ the file consists of BUILD ID created by aurora
         if (fileExists ('logs/build_id'))
         {
@@ -79,47 +93,32 @@ def call(body) {
           // In case build_id file has empty file
           if (build_id == null)
           {
-            lib.errorToGerrit("Build ID value not found")
+            lib.errorMessage("Build ID value not found")
           }
 
-          // In case no ctest_tag is provided
-          if (args.ctest_tag != null)
+          try
           {
-            // In case no number of instances specified
-            if (args.num_instances == null)
-            {
-              lib.errorToGerrit("Number of instances are not defined")
-            }
+            stage 'test'
+            echo "Starting aurora test, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH test_type:$args.test_type test_cmd:$args.test_cmd"
+            sh "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.test_type $test_args -c \"$args.test_cmd\" -n $instances -l $build_id"
 
-            try
-            {
-              stage 'test'
-              echo "Starting aurora test, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH ctest_tag:$args.ctest_tag"
-              sh "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.ctest_tag -n $args.num_instances -i $iter  '-A $args.test_args' -l $build_id "
-
-            } catch (err)
-            {
-                lib.errorToGerrit("Aurora Test failed with: ${err}")
-                sh "aurora cleanup $build_id"
-                currentBuild.result = 'UNSTABLE'
-            }
-          }
-          else
+          } catch (err)
           {
-            lib.errorToGerrit("Aurora Test did not start since no test tag provided")
+              lib.errorMessage("Aurora Test failed with: ${err}")
+              currentBuild.result = 'UNSTABLE'
+              sh "aurora cleanup $build_id"
           }
         }
         else
         {
-          lib.errorToGerrit("Build_id file missing")
+          lib.errorMessage("Build_id file missing")
         }
       }
-      lib.sendEmail(currentBuild.result,"$email")
       def status = readFile "$WORKSPACE/status-message.log"
       setGerritReview unsuccessfulMessage: "$status"
+      lib.sendEmail(currentBuild.result,"$email")
       archiveArtifacts allowEmptyArchive: true, artifacts: archive
       step([$class: 'WsCleanup'])
-      
     }
   }
 }
