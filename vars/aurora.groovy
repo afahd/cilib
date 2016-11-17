@@ -115,7 +115,6 @@ def call(body) {
         }
       }
       def status = readFile "$WORKSPACE/status-message.log"
-      setGerritReview unsuccessfulMessage: "$status"
       lib.sendEmail(currentBuild.result,"$email")
       archiveArtifacts allowEmptyArchive: true, artifacts: archive
       step([$class: 'WsCleanup'])
