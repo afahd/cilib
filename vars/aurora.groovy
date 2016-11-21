@@ -103,7 +103,7 @@ def call(body) {
           def instance_id_cmd = ''
           def instance_id = ''
           // Reading file and extracting build name
-          def string_out = readFile('logs/build_id')
+          def string_out = readFile('logs/instance-id')
 
           if (string_out.startsWith("BUILD-ID"))
           {
