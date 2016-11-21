@@ -108,12 +108,12 @@ def call(body) {
           if (string_out.startsWith("BUILD-ID"))
           {
             instance_id_cmd = string_out.replace("BUILD-ID=",'-l ')
-            instance_id = .replace("BUILD-ID=",'')
+            instance_id = string_out.replace("BUILD-ID=",'')
           }
           else if (string_out.startsWith("INSTANCE-ID"))
           {
             instance_id_cmd = string_out.replace("INSTANCE-ID",'-i ')
-            instance_id = .replace("INSTANCE-ID=",'')
+            instance_id = string_out.replace("INSTANCE-ID=",'')
           }
           else
           {
