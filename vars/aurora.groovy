@@ -22,7 +22,8 @@ def call(body) {
   target = lib.valueExist(target, args.target)
   instances = lib.valueExist(instances, args.num_instances)
   snapshot = lib.valueExist(snapshot, args.snapshot)
-
+  
+  echo "SNapshot:$snapshot , instances:$instances"
   if ( snapshot == "false" && instances > 1 )
   {
     error "Set snapshot to 'true' for multiple instances"
