@@ -8,6 +8,7 @@ def call(body) {
   body()
 
   // Default Values
+  def snapshot = "false"
   def archive = "logs/"
   def time = 60
   def target = "default"
@@ -20,6 +21,18 @@ def call(body) {
   time = lib.valueExist(time, args.timeout)
   target = lib.valueExist(target, args.target)
   instances = lib.valueExist(instances, args.num_instances)
+  snapshot = lib.valueExist(snapshot, args.snapshot)
+
+  if ( snapshot == "false" && instances > 1 )
+  {
+    error "Set snapshot to 'true' for multiple instances"
+  }
+
+  def snapshot_args = ''
+  if ( snapshot == "false" )
+  {
+    snapshot_args = "-K"
+  }
 
   if ( args.test_args != null )
   {
@@ -35,7 +48,7 @@ def call(body) {
   {
     lib.checkGerritArguments()
   }
-  
+
   node('slave-cloud2')
   {
     timeout(time)
@@ -45,8 +58,9 @@ def call(body) {
 
       dir('andromeda')
       {
-        git branch: 'master', url: 'ssh://gerrit.plumgrid.com:29418/andromeda'
-        
+        git branch: 'master', url: 'ssh://afahd@gerrit.plumgrid.com:29418/andromeda'
+        sh 'git fetch ssh://afahd@gerrit.plumgrid.com:29418/andromeda refs/changes/91/27391/3 && git cherry-pick FETCH_HEAD'
+
         def ci_list = readFile 'ci_enabled.list'
         String[] split_file = ci_list.split(System.getProperty("line.separator"));
         for (def line:split_file)
@@ -70,12 +84,12 @@ def call(body) {
           if (args.type == 'review')
           {
             echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC tag:$JOB_BASE_NAME-$BUILD_NUMBER target: $target"
-            sh "aurora build -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME-$BUILD_NUMBER -r $GERRIT_REFSPEC -T $target"
+            sh "aurora build -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME-$BUILD_NUMBER -r $GERRIT_REFSPEC -T $target $snapshot_args"
           }
           else
           {
             echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH tag:$JOB_BASE_NAME-$BUILD_NUMBER target: $target"
-            sh "aurora build -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME-$BUILD_NUMBER -T $target"
+            sh "aurora build -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $JOB_BASE_NAME-$BUILD_NUMBER -T $target $snapshot_args"
           }
         }
         catch (error)
@@ -84,37 +98,48 @@ def call(body) {
           sh "aurora cleanup $JOB_BASE_NAME-$BUILD_NUMBER"
         }
         // Aurora build creates a build_id file in WORKSPACE/logs/ the file consists of BUILD ID created by aurora
-        if (fileExists ('logs/build_id'))
+        if (fileExists ('logs/instance-id'))
         {
+          def instance_id_cmd = ''
+          def instance_id = ''
           // Reading file and extracting build name
           def string_out = readFile('logs/build_id')
-          def build_id = string_out.replace("BUILD-ID=","")
 
-          // In case build_id file has empty file
-          if (build_id == null)
+          if (string_out.startsWith("BUILD-ID"))
           {
-            lib.errorMessage("Build ID value not found")
+            instance_id_cmd = string_out.replace("BUILD-ID=",'-l ')
+            instance_id = .replace("BUILD-ID=",'')
+          }
+          else if (string_out.startsWith("INSTANCE-ID"))
+          {
+            instance_id_cmd = string_out.replace("INSTANCE-ID",'-i ')
+            instance_id = .replace("INSTANCE-ID=",'')
+          }
+          else
+          {
+            lib.errorMessage("INSTANCE ID value not found")
           }
 
           try
           {
             stage 'test'
-            echo "Starting aurora test, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH test_type:$args.test_type test_cmd:$args.test_cmd"
-            sh "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.test_type $test_args -c \"$args.test_cmd\" -n $instances -l $build_id"
+            echo "Starting aurora test, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH test_type:$args.test_type test_cmd:$args.test_cmd instance_id:$instance_id_cmd"
+            sh "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.test_type $test_args -c \"$args.test_cmd\" -n $instances $instance_id_cmd"
 
           } catch (err)
           {
               lib.errorMessage("Aurora Test failed with: ${err}")
               currentBuild.result = 'UNSTABLE'
-              sh "aurora cleanup $build_id"
+              sh "aurora cleanup $instance_id"
           }
         }
         else
         {
-          lib.errorMessage("Build_id file missing")
+          lib.errorMessage("Instance_id file missing")
         }
       }
       def status = readFile "$WORKSPACE/status-message.log"
+      setGerritReview unsuccessfulMessage: "$status"
       lib.sendEmail(currentBuild.result,"$email")
       archiveArtifacts allowEmptyArchive: true, artifacts: archive
       step([$class: 'WsCleanup'])
