@@ -79,7 +79,7 @@ def call(body) {
           {
             stage 'Test'
             echo "Starting aurora test, test_type:$args.test_type test_cmd:$args.test_cmd archive: $archive_logs"
-            //sh "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.test_type $test_args -c \"$args.test_cmd\" -n $instances $instance_id_cmd $archive_logs"
+            sh "aurora test -t $args.test_type $test_args -c \"$args.test_cmd\" $archive_logs"
 
           } catch (err)
           {
