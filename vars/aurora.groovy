@@ -79,29 +79,11 @@ def call(body) {
       }
 
       withEnv(["PATH=/home/plumgrid/google-cloud-sdk/bin:$WORKSPACE/andromeda/gcloud/build/aurora:$WORKSPACE/andromeda/gcloud/build/aurora/pipeline_scripts:$PATH"])
-{
+      {
         sh 'cd andromeda/gcloud/; mkdir -p build; cd build; cmake ..;'
         sh "touch $WORKSPACE/status-message.log"
         stage 'Build'
-        try
-        {
-          def build_tag = "${JOB_BASE_NAME}${BUILD_NUMBER}"
-          if (args.type == 'review')
-          {
-            echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH refspec:$GERRIT_REFSPEC tag:$build_tag target: $target"
-            sh "aurora build -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $build_tag -r $GERRIT_REFSPEC -T $target $snapshot_args"
-          }
-          else
-          {
-            echo "Starting aurora build, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH tag:$build_tag target: $target"
-            sh "aurora build -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $build_tag -T $target $snapshot_args"
-          }
-        }
-        catch (error)
-        {
-          lib.errorMessage("Aurora build failed with: $error, Cleaning up instances")
-          sh "aurora cleanup $build_tag"
-        }
+       
         // Aurora build creates a build_id file in WORKSPACE/logs/ the file consists of BUILD ID created by aurora
         if (fileExists ('logs/instance-id'))
         {
@@ -120,16 +102,12 @@ def call(body) {
             instance_id_cmd = string_out.replace("INSTANCE-ID=",'-i ')
             instance_id = string_out.replace("INSTANCE-ID=",'')
           }
-          else
-          {
-            lib.errorMessage("INSTANCE ID value not found")
-          }
 
           try
           {
             stage 'Test'
-            echo "Starting aurora test, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH test_type:$args.test_type test_cmd:$args.test_cmd instance_id:$instance_id_cmd"
-            sh "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.test_type $test_args -c \"$args.test_cmd\" -n $instances $instance_id_cmd $archive_logs"
+            echo "Starting aurora test, project:$GERRIT_PROJECT, branch:$GERRIT_BRANCH test_type:$args.test_type test_cmd:$args.test_cmd instance_id:$instance_id_cmd archive: $archive_logs"
+            //sh "aurora test -p $GERRIT_PROJECT -b $GERRIT_BRANCH -t $args.test_type $test_args -c \"$args.test_cmd\" -n $instances $instance_id_cmd $archive_logs"
 
           } catch (err)
           {
