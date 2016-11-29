@@ -62,12 +62,7 @@ def call(body) {
       {
         git branch: 'master', url: 'ssh://gerrit.plumgrid.com:29418/andromeda'
        
-        def ci_list = readFile 'ci_enabled.list'
-        String[] split_file = ci_list.split(System.getProperty("line.separator"));
-        for (def line:split_file)
-        {
-           
-        }
+        
       }
 
       withEnv(["PATH=/home/plumgrid/google-cloud-sdk/bin:$WORKSPACE/andromeda/gcloud/build/aurora:$WORKSPACE/andromeda/gcloud/build/aurora/pipeline_scripts:$PATH"])
@@ -115,7 +110,7 @@ def call(body) {
       }
       def status = readFile "$WORKSPACE/status-message.log"
       setGerritReview unsuccessfulMessage: "$status"
-      lib.sendEmail(currentBuild.result,"$email")
+      
       archiveArtifacts allowEmptyArchive: true, artifacts: archive
       step([$class: 'WsCleanup'])
     }
