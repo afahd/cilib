@@ -6,16 +6,27 @@ def call(body) {
   body.resolveStrategy = Closure.DELEGATE_FIRST
   body.delegate = args
   body()
-
+  
   // Default Values
   def snapshot = "false"
-  def archive = "logs/"
+  def artifacts = "logs/"
   def time = 60
   def target = "default"
   def instances = 1
   def test_args = ""
+  def archive_logs = ""
   // Loading Jenkins library
   def lib = new utils.JenkinsLibrary()
+
+  if (args.archive)
+  {
+    archive_logs = "-a ${args.archive}"
+    echo "$archive_logs"
+  }
+  else
+  {
+    error "Not working"
+  }
 
   archive = lib.valueExist(archive, args.archive)
   time = lib.valueExist(time, args.timeout)
