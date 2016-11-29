@@ -48,10 +48,7 @@ def call(body) {
     error "Unsupported test_type:$args.test_type, exiting"
   }
 
-  if (args.type == 'review')
-  {
-    lib.checkGerritArguments()
-  }
+  
 
 
   node('slave-cloud2')
