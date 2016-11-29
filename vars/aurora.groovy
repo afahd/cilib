@@ -72,8 +72,7 @@ def call(body) {
         stage 'Build'
        
         // Aurora build creates a build_id file in WORKSPACE/logs/ the file consists of BUILD ID created by aurora
-        if (fileExists ('logs/instance-id'))
-        {
+        
           def instance_id_cmd = ''
           def instance_id = ''
           // Reading file and extracting build name
@@ -103,10 +102,7 @@ def call(body) {
               sh "aurora cleanup $instance_id"
           }
         }
-        else
-        {
-          lib.errorMessage("Instance_id file missing")
-        }
+        
       }
       def status = readFile "$WORKSPACE/status-message.log"
       setGerritReview unsuccessfulMessage: "$status"
