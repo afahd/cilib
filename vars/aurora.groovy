@@ -66,11 +66,7 @@ def call(body) {
         String[] split_file = ci_list.split(System.getProperty("line.separator"));
         for (def line:split_file)
         {
-            if (line.contains("$GERRIT_PROJECT $GERRIT_BRANCH"))
-            {
-                String[] line_split = line.split(" ")
-                email = line_split.getAt(2)
-            }
+           
         }
       }
 
