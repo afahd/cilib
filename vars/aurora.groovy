@@ -61,8 +61,7 @@ def call(body) {
       dir('andromeda')
       {
         git branch: 'master', url: 'ssh://gerrit.plumgrid.com:29418/andromeda'
-        sh 'git fetch ssh://gerrit.plumgrid.com:29418/andromeda refs/changes/91/27391/6 && git cherry-pick FETCH_HEAD'
-
+       
         def ci_list = readFile 'ci_enabled.list'
         String[] split_file = ci_list.split(System.getProperty("line.separator"));
         for (def line:split_file)
