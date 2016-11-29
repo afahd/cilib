@@ -73,21 +73,7 @@ def call(body) {
        
         // Aurora build creates a build_id file in WORKSPACE/logs/ the file consists of BUILD ID created by aurora
         
-          def instance_id_cmd = ''
-          def instance_id = ''
-          // Reading file and extracting build name
-          def string_out = readFile('logs/instance-id')
-
-          if (string_out.startsWith("BUILD-ID"))
-          {
-            instance_id_cmd = string_out.replace("BUILD-ID=",'-l ')
-            instance_id = string_out.replace("BUILD-ID=",'')
-          }
-          else if (string_out.startsWith("INSTANCE-ID"))
-          {
-            instance_id_cmd = string_out.replace("INSTANCE-ID=",'-i ')
-            instance_id = string_out.replace("INSTANCE-ID=",'')
-          }
+          
 
           try
           {
@@ -101,7 +87,7 @@ def call(body) {
               currentBuild.result = 'UNSTABLE'
               sh "aurora cleanup $instance_id"
           }
-        }
+        
         
       }
       def status = readFile "$WORKSPACE/status-message.log"
