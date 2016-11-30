@@ -3,10 +3,11 @@
 def call(body) {
 
   def args = [:]
+  println body
   body.resolveStrategy = Closure.DELEGATE_FIRST
   body.delegate = args
   body()
-  println archive1
+  println body
   // Default Values
   def snapshot = "false"
   def artifacts = "logs/"
