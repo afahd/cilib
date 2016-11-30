@@ -4,7 +4,7 @@ def call(body, config) {
   println config
   def args = [:]
   println args
-  body.resolveStrategy = Closure.OWNER_FIRST
+  body.resolveStrategy = Closure.DELEGATE_FIRST
   body.delegate = args
   body()
   println args
