@@ -6,6 +6,7 @@ def call(body) {
     body()
     node('master') {
       git 'ssh://afahd@192.168.10.77:29418/phoenix.git'
-      load 'jenkins/jenkinsfiles/lint'
+      def aurora = load('jenkins/jenkinsfiles/lint')
+      aurora(config)
       }
     }
