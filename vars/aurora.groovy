@@ -1,7 +1,7 @@
 #!groovy
 
-def call(body) {
-
+def call(body, config) {
+  println config
   def args = [:]
   println args
   body.resolveStrategy = Closure.OWNER_FIRST
