@@ -9,6 +9,6 @@ def call(body) {
     node('master') {
       git 'ssh://afahd@192.168.10.77:29418/phoenix.git'
       def aurora = load('jenkins/jenkinsfiles/lint')
-      aurora(config)
+        aurora("aurora { archive = 123 }")
       }
     }
