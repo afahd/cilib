@@ -5,10 +5,10 @@ def call(body) {
     body.delegate = config
     body()
     println "Config"
-    println config
+    println config.archive1
     node('master') {
       git 'ssh://afahd@192.168.10.77:29418/phoenix.git'
       def aurora = load('jenkins/jenkinsfiles/lint')
-        aurora("aurora { archive = 123 }")
+        aurora(config)
       }
     }
