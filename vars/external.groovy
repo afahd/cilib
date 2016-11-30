@@ -6,6 +6,8 @@ def call(body) {
     body.resolveStrategy = Closure.DELEGATE_FIRST
     body.delegate = config
     body()
+    
+    aurora { archive = "test" }
     println "Config"
     node('master') {
       git 'ssh://afahd@192.168.10.77:29418/phoenix.git'
