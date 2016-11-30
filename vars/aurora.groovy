@@ -5,6 +5,11 @@ def call(body) {
   def args = [:]
   body.resolveStrategy = Closure.OWNER_FIRST
   body.delegate = args
+  
+  println "ARGS:"
+  println args
+  println "BODY"
+  println body()
   body()
 
   // Default Values
