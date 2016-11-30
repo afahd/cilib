@@ -4,6 +4,8 @@ def call(body) {
     body.resolveStrategy = Closure.DELEGATE_FIRST
     body.delegate = config
     body()
+    println "Config"
+    println config
     node('master') {
       git 'ssh://afahd@192.168.10.77:29418/phoenix.git'
       def aurora = load('jenkins/jenkinsfiles/lint')
