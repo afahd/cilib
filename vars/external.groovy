@@ -7,7 +7,7 @@ def call(body) {
     body.delegate = config
     body()
     
-    aurora { archive = "test" }
+    aurora { "archive = \"test\"" }
     println "Config"
     node('master') {
       git 'ssh://afahd@192.168.10.77:29418/phoenix.git'
