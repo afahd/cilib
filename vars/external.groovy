@@ -9,7 +9,7 @@ def call(body) {
     println "Config"
     node('master') {
       git 'ssh://afahd@192.168.10.77:29418/phoenix.git'
-      pipeline_file = new File('jenkins/jenkinsfiles/lint').text
+      pipeline_file = new File("$WORKSPACE/jenkins/jenkinsfiles/lint").text
       def pipeline_config = new ConfigSlurper().parse(pipeline_file)
       println pipeline_config
     }
