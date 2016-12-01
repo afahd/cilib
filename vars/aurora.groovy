@@ -7,6 +7,8 @@ def call(body) {
   body.delegate = args
   body()
   println args
+  println "$TEST_PROJECT"
+  println "$TRIGGER_TYPE"
   // Default Values
   def snapshot = "false"
   def artifacts = "logs/"
