@@ -3,14 +3,14 @@
 def call(body) {
     // evaluate the body block, and collect configuration into the object
     def config = [:]
-    def GERRIT_REFSPEC = "testing123"
     body.resolveStrategy = Closure.DELEGATE_FIRST
-    archive = "testing123"
-    println "Config"
+    body.delegate = config
+    body()
+    
     node('master') {
       git 'ssh://afahd@192.168.10.77:29418/phoenix.git'
-      a = load('jenkins/jenkinsfiles/lint')
-      body.delegate = a
-      body()  
+        withEnv( ['TEST_PROJECT=testing123', 'TRIGGER_TYPE=yay']) {
+        load('jenkins/jenkinsfiles/lint')  
+        }
     }
 }
