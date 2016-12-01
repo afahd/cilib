@@ -4,13 +4,12 @@ def call(body) {
     // evaluate the body block, and collect configuration into the object
     def config = [:]
     body.resolveStrategy = Closure.DELEGATE_FIRST
-    body.delegate = config
-    body()
     archive = "testing123"
     println "Config"
     node('master') {
       git 'ssh://afahd@192.168.10.77:29418/phoenix.git'
       a = load('jenkins/jenkinsfiles/lint')
-      a({ archive = "testing123" }, config)
+      body.delegate = a
+      body()  
     }
 }
