@@ -3,7 +3,8 @@
 def call(body) {
     // evaluate the body block, and collect configuration into the object
     def config = [:]
-    body.resolveStrategy = Closure.OWNER_FIRST
+    def GERRIT_REFSPEC = "testing123"
+    body.resolveStrategy = Closure.DELEGATE_FIRST
     archive = "testing123"
     println "Config"
     node('master') {
