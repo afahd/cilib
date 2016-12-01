@@ -3,7 +3,7 @@
 def call(body) {
     // evaluate the body block, and collect configuration into the object
     def config = [:]
-    body.resolveStrategy = Closure.DELEGATE_FIRST
+    body.resolveStrategy = Closure.OWNER_FIRST
     archive = "testing123"
     println "Config"
     node('master') {
