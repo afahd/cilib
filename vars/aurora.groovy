@@ -1,10 +1,7 @@
 #!groovy
 
-def call(body) {
-  println body.getClass().name
-  def args = [:]
-  println body
-  println body()
+def call(body, args=[:]) {
+  println args
   body.resolveStrategy = Closure.DELEGATE_FIRST
   body.delegate = args
   body()
