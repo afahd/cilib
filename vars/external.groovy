@@ -11,6 +11,6 @@ def call(body) {
     node('master') {
       git 'ssh://afahd@192.168.10.77:29418/phoenix.git'
       a = load('jenkins/jenkinsfiles/lint')
-      a.call({ this })
+      a.call(this)
     }
 }
