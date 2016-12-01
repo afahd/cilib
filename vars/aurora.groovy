@@ -3,7 +3,8 @@
 def call(body) {
   println body.getClass().name
   def args = [:]
-  println args
+  println body
+  println body()
   body.resolveStrategy = Closure.DELEGATE_FIRST
   body.delegate = args
   body()
