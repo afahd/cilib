@@ -7,10 +7,10 @@ def call(body) {
     body.delegate = config
     body()
     archive = "testing123"
-    aurora { this }
     println "Config"
     node('master') {
       git 'ssh://afahd@192.168.10.77:29418/phoenix.git'
-      load('jenkins/jenkinsfiles/lint')
+      a = load('jenkins/jenkinsfiles/lint')
+      a.call({ this })
     }
 }
