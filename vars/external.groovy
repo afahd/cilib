@@ -10,6 +10,7 @@ def call(body) {
     print test_project
     node('master') {
         git branch:config.branch, url:config.location
+        // Just need to export one variable
         withEnv( ["TEST_PROJECT=$test_project"]) 
         {
           load("jenkins/jenkinsfiles/$config.pipeline_name")  
