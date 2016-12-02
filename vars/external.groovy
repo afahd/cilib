@@ -6,26 +6,13 @@ def call(body) {
     body.resolveStrategy = Closure.DELEGATE_FIRST
     body.delegate = config
     body()
-    
-    //name = "pgui-falcon"
-    println config.name
-   
-    //project = "pgui"
-   
-    //type = "review"
-   
-    //branch = "master"
-   
-    //location = "ssh://afahd@192.168.10.77:29418/pgui.git"
-   
-    // trigger_path = "./"
-   
-    
+    def test_project= config.location.split('/')[-1].minus(".git")
+    print test_project
     node('master') {
-      //git 'ssh://afahd@192.168.10.77:29418/phoenix.git'
-        withEnv( ['TEST_PROJECT=testing123', 'TRIGGER_TYPE=yay']) 
+        git branch:config.branch, url:config.location
+        withEnv( ["TEST_PROJECT=$test_project"]) 
         {
-        //load('jenkins/jenkinsfiles/lint')  
+          load('jenkins/jenkinsfiles/lint')  
         }
     }
 }
