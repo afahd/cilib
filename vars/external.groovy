@@ -12,7 +12,7 @@ def call(body) {
         git branch:config.branch, url:config.location
         withEnv( ["TEST_PROJECT=$test_project"]) 
         {
-          load('jenkins/jenkinsfiles/lint')  
+          load("jenkins/jenkinsfiles/$config.pipeline_name")  
         }
     }
 }
